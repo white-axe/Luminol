@@ -57,6 +57,8 @@ pub mod components;
 
 pub mod command_gen;
 
+pub mod commands;
+
 /// Floating windows to be displayed anywhere.
 pub mod windows;
 

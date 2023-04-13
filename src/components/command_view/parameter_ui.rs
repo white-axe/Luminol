@@ -17,8 +17,6 @@
 
 use crate::prelude::*;
 
-use command_lib::{Parameter, ParameterKind};
-
 impl CommandView {
     #[allow(clippy::only_used_in_recursion)]
     pub fn parameter_ui(

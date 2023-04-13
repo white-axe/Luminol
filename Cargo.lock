@@ -891,15 +891,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "command-lib"
-version = "0.1.0"
-dependencies = [
- "rand 0.8.5",
- "serde",
- "strum",
-]
-
-[[package]]
 name = "concurrent-queue"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2273,6 +2264,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "indextree"
+version = "4.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c40411d0e5c63ef1323c3d09ce5ec6d84d71531e18daed0743fccea279d7deb6"
+
+[[package]]
 name = "infer"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2574,11 +2571,11 @@ dependencies = [
  "alox-48",
  "async-fs",
  "async-trait",
+ "atomic_refcell",
  "bytemuck",
  "catppuccin-egui",
  "cfg-if",
  "color-eyre",
- "command-lib",
  "console_error_panic_hook",
  "eframe",
  "egui",
@@ -2591,6 +2588,7 @@ dependencies = [
  "futures",
  "git-version",
  "image 0.24.6",
+ "indextree",
  "itertools",
  "js-sys",
  "luminol-term",

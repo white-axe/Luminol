@@ -17,8 +17,6 @@
 
 use super::WindowState;
 use crate::prelude::*;
-
-use command_lib::CommandKind;
 use itertools::Itertools;
 
 impl CommandView {

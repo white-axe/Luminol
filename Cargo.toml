@@ -64,10 +64,11 @@ ron = "0.8.0"
 tracing = "0.1.37"
 catppuccin-egui = "2.0.1"
 
-command-lib = { version = "*", path = "command-lib" }
 rmxp-types = { version = "*", path = "rmxp-types" }
 
 itertools = "0.10"
+indextree = "4.6.0"
+atomic_refcell = "0.1.9"
 
 [features]
 default = ["generic-tilemap"]
@@ -133,7 +134,7 @@ opt-level = 3
 # https://bevy-cheatbook.github.io/pitfalls/performance.html#why-not-use---release
 
 [workspace]
-members = ["alox-48", "command-lib", "rmxp-types", "luminol-term"]
+members = ["alox-48", "rmxp-types", "luminol-term"]
 
 [patch.crates-io]
 poll-promise = { git = "https://github.com/EmbarkStudios/poll-promise", rev = "8c4d0d6e4d693cf54e9306950cb2f6d271c77080" }

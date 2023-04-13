@@ -14,7 +14,6 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
-use command_lib::{CommandDescription, CommandKind, Index, Parameter};
 
 use ui_example::UiExample;
 

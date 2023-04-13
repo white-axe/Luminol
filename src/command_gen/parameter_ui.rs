@@ -14,10 +14,9 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
-use command_lib::{Index, Parameter, ParameterKind};
-use eframe::egui;
 
 use strum::IntoEnumIterator;
+use crate::prelude::*;
 
 pub fn parameter_ui(
     ui: &mut egui::Ui,

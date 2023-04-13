@@ -17,8 +17,6 @@
 use super::WindowState;
 use crate::prelude::*;
 
-use command_lib::{CommandKind, Parameter, ParameterKind};
-
 impl CommandView {
     pub fn command_ui<'i, I>(
         &mut self,
