@@ -23,6 +23,7 @@ pub use crate::project::*;
 pub use crate::tabs::*;
 pub use crate::windows::*;
 
+pub use crate::error::{Error, Result};
 pub use crate::filesystem::Filesystem;
 pub use crate::project::CommandDB;
 pub use crate::project::LocalConfig;

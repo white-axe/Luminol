@@ -43,28 +43,27 @@ impl Filesystem {
     }
 
     /// Get the directory children of a path.
-    pub fn dir_children(&self, path: impl AsRef<Path>) -> Result<Vec<String>, String> {
+    pub fn dir_children(&self, path: impl AsRef<Path>) -> Result<Vec<String>> {
         // I am too lazy to make this actually .
         // It'd take an external library or some hacking that I'm not up for currently.
-        std::fs::read_dir(
+        let rd = std::fs::read_dir(
             self.project_path
                 .read()
                 .as_ref()
-                .ok_or_else(|| "Project not open".to_string())?
+                .ok_or(Error::NotOpen)?
                 .join(path),
-        )
-        .map_err(|e| e.to_string())
-        .map(|rd| {
-            rd.into_iter()
-                .map(|e| e.unwrap().file_name().into_string().unwrap())
-                .collect()
-        })
+        )?;
+
+        Ok(rd
+            .into_iter()
+            .map(|e| e.unwrap().file_name().into_string().unwrap())
+            .collect())
     }
 
     /// Read a data file and deserialize it with RON (rusty object notation)
     /// In the future this will take an optional parameter (type) to set the loading method.
     /// (Options would be Marshal, RON, Lumina)
-    pub fn read_data<T>(&self, path: impl AsRef<Path>) -> Result<T, String>
+    pub fn read_data<T>(&self, path: impl AsRef<Path>) -> Result<T>
     where
         T: serde::de::DeserializeOwned,
     {
@@ -72,38 +71,38 @@ impl Filesystem {
             .project_path
             .read()
             .as_ref()
-            .ok_or_else(|| "Project not open".to_string())?
+            .ok_or(Error::NotOpen)?
             .join(path);
 
-        let data = std::fs::read(&path).map_err(|e| e.to_string())?;
+        let data = std::fs::read(path).map_err(|e| e.to_string())?;
 
         // let de = &mut alox_48::Deserializer::new(&data).unwrap();
         // let result = serde_path_to_error::deserialize(de);
         //
         // result.map_err(|e| format!("{}: {:?}", e.path(), e.inner()))
-        alox_48::from_bytes(&data).map_err(|e| format!("Loading {path:?}: {e}"))
+        Ok(alox_48::from_bytes(&data)?)
     }
 
     /// Read bytes from a file.
-    pub fn read_bytes(&self, provided_path: impl AsRef<Path>) -> Result<Vec<u8>, String> {
+    pub fn read_bytes(&self, provided_path: impl AsRef<Path>) -> Result<Vec<u8>> {
         let path = self
             .project_path
             .read()
             .as_ref()
-            .ok_or_else(|| "Project not open".to_string())?
+            .ok_or(Error::NotOpen)?
             .join(provided_path);
-        std::fs::read(&path).map_err(|e| format!("Loading {path:?}: {e}"))
+        Ok(std::fs::read(path)?)
     }
 
-    pub fn save_data(&self, path: impl AsRef<Path>, data: impl AsRef<[u8]>) -> Result<(), String> {
+    pub fn save_data(&self, path: impl AsRef<Path>, data: impl AsRef<[u8]>) -> Result<()> {
         let path = self
             .project_path
             .read()
             .as_ref()
-            .ok_or_else(|| "Project not open".to_string())?
+            .ok_or(Error::NotOpen)?
             .join(path);
 
-        std::fs::write(path, data).map_err(|e| e.to_string())
+        Ok(std::fs::write(path, data)?)
     }
 
     /// Check if file path exists
@@ -114,11 +113,11 @@ impl Filesystem {
     }
 
     /// Save all cached files. An alias for [`DataCache::save`];
-    pub fn save_cached(&self) -> Result<(), String> {
+    pub fn save_cached(&self) -> Result<()> {
         state!().data_cache.save(self)
     }
 
-    pub fn try_open_project(&self, path: impl AsRef<Path>) -> Result<(), String> {
+    pub fn try_open_project(&self, path: impl AsRef<Path>) -> Result<()> {
         let mut path = path.as_ref().to_path_buf();
         let original_path = path.to_string_lossy().to_string();
 
@@ -158,7 +157,7 @@ impl Filesystem {
     }
 
     /// Try to open a project.
-    pub async fn spawn_project_file_picker(&self) -> Result<(), String> {
+    pub async fn spawn_project_file_picker(&self) -> Result<()> {
         if let Some(path) = rfd::AsyncFileDialog::default()
             .add_filter("project file", &["rxproj", "lumproj"])
             .pick_file()
@@ -166,24 +165,24 @@ impl Filesystem {
         {
             self.try_open_project(path.path())
         } else {
-            Err("Cancelled loading project".to_string())
+            Err("Cancelled loading project".to_string())?
         }
     }
 
     /// Create a directory at the specified path.
-    pub fn create_directory(&self, path: impl AsRef<Path>) -> Result<(), String> {
+    pub fn create_directory(&self, path: impl AsRef<Path>) -> Result<()> {
         let path = self
             .project_path
             .read()
             .as_ref()
-            .ok_or_else(|| "Project not open".to_string())?
+            .ok_or(Error::NotOpen)?
             .join(path);
 
-        std::fs::create_dir(path).map_err(|e| e.to_string())
+        Ok(std::fs::create_dir(path)?)
     }
 
     /// Try to create a project.
-    pub async fn try_create_project(&self, name: String, rgss_ver: RGSSVer) -> Result<(), String> {
+    pub async fn try_create_project(&self, name: String, rgss_ver: RGSSVer) -> Result<()> {
         if let Some(path) = rfd::AsyncFileDialog::default().pick_folder().await {
             let path: PathBuf = path.into();
             let path = path.join(name.clone());
@@ -208,21 +207,16 @@ impl Filesystem {
 
             self.save_data(format!("{name}.lumproj"), "")
         } else {
-            Err("Cancelled opening a folder".to_owned())
+            Err("Cancelled opening a folder".to_owned())?
         }
     }
 
-    pub fn create_project(
-        &self,
-        name: String,
-        path: PathBuf,
-        rgss_ver: RGSSVer,
-    ) -> Result<(), String> {
+    pub fn create_project(&self, name: String, path: PathBuf, rgss_ver: RGSSVer) -> Result<()> {
         *self.project_path.write() = Some(path);
         self.create_directory("")?;
 
         if !self.dir_children(".")?.is_empty() {
-            return Err("Directory not empty".to_string());
+            Err("Directory not empty".to_string())?;
         }
 
         self.create_directory("Data")?;

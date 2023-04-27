@@ -27,7 +27,7 @@ use std::sync::Arc;
 pub struct Window {
     name: String,
     rgss_ver: RGSSVer,
-    project_promise: Option<poll_promise::Promise<Result<(), String>>>,
+    project_promise: Option<Promise<Result<()>>>,
     download_executable: bool,
     progress: Arc<Progress>,
     init_git: bool,
@@ -206,7 +206,7 @@ impl window::Window for Window {
 }
 
 impl Window {
-    async fn download_executable(rgss_ver: RGSSVer, progress: Arc<Progress>) -> Result<(), String> {
+    async fn download_executable(rgss_ver: RGSSVer, progress: Arc<Progress>) -> Result<()> {
         let zip_url: &[_] = match rgss_ver {
             RGSSVer::ModShot => &[
                 "https://github.com/thehatkid/ModShot/releases/download/latest/ModShot_Windows_bb6bcbc_Ruby-3.1-ucrt64_Steam-false.zip", 

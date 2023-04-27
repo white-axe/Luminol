@@ -33,23 +33,23 @@ impl Toasts {
     }
 
     /// Display an info toast.
-    pub fn info(&self, caption: impl Into<String>) {
-        self.inner.write().info(caption);
+    pub fn info(&self, caption: impl ToString) {
+        self.inner.write().info(caption.to_string());
     }
 
     /// Display a warning toast.
-    pub fn warning(&self, caption: impl Into<String>) {
-        self.inner.write().warning(caption);
+    pub fn warning(&self, caption: impl ToString) {
+        self.inner.write().warning(caption.to_string());
     }
 
     /// Display an error toast.
-    pub fn error(&self, caption: impl Into<String>) {
-        self.inner.write().error(caption);
+    pub fn error(&self, caption: impl ToString) {
+        self.inner.write().error(caption.to_string());
     }
 
     /// Display a generic toast.
-    pub fn basic(&self, caption: impl Into<String>) {
-        self.inner.write().basic(caption);
+    pub fn basic(&self, caption: impl ToString) {
+        self.inner.write().basic(caption.to_string());
     }
 
     /// Display all toasts.

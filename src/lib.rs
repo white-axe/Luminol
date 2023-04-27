@@ -77,6 +77,8 @@ pub mod filesystem;
 /// The code for handling lumi, the friendly world machine!
 pub mod lumi;
 
+pub mod error;
+
 pub use luminol::Luminol;
 use saved_state::SavedState;
 use tabs::tab::Tab;
@@ -161,17 +163,17 @@ macro_rules! state {
 }
 
 /// Load a RetainedImage from disk.
-pub fn load_image_software(path: String) -> Result<RetainedImage, String> {
-    egui_extras::RetainedImage::from_image_bytes(
+pub fn load_image_software(path: String) -> Result<RetainedImage> {
+    Ok(egui_extras::RetainedImage::from_image_bytes(
         path.clone(),
         &state!().filesystem.read_bytes(format!("{path}.png",))?,
     )
-    .map(|i| i.with_options(TextureOptions::NEAREST))
+    .map(|i| i.with_options(TextureOptions::NEAREST))?)
 }
 
 /// Load a gl texture from disk.
 #[allow(clippy::cast_possible_wrap, unsafe_code)]
-pub fn load_image_hardware(path: String) -> Result<glow::Texture, String> {
+pub fn load_image_hardware(path: String) -> Result<glow::Texture> {
     use glow::HasContext;
 
     let image = image::load_from_memory(&state!().filesystem.read_bytes(format!("{path}.png",))?)

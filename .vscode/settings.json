@@ -20,7 +20,8 @@
 		"playtest",
 		"wasm",
 		"filesystem",
-		"image cache"
+		"image cache",
+		"error handling"
 	],
-  "rust-analyzer.showUnlinkedFileNotification": false
+	"rust-analyzer.showUnlinkedFileNotification": false
 }

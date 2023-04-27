@@ -53,7 +53,7 @@ mod tilemap {
     /// A trait defining how a tilemap should function.
     pub trait TilemapDef: Sized {
         /// Create a new tilemap.
-        fn new(id: i32) -> Result<Self, String>;
+        fn new(id: i32) -> crate::Result<Self>;
 
         /// Display the tilemap.
         fn ui(

@@ -26,7 +26,7 @@ pub struct Lumi {
 }
 
 impl Lumi {
-    pub fn new() -> Result<Self, String> {
+    pub fn new() -> Result<Self> {
         let idle = egui_extras::RetainedImage::from_svg_bytes(
             "lumi_idle",
             include_bytes!("assets/lumi-idle.svg"),

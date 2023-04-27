@@ -22,7 +22,7 @@ use crate::Pencil;
 /// The top bar for managing the project.
 #[derive(Default)]
 pub struct TopBar {
-    open_project_promise: Option<Promise<Result<(), String>>>,
+    open_project_promise: Option<Promise<Result<()>>>,
     egui_settings_open: bool,
     fullscreen: bool,
 }

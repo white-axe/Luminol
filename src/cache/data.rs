@@ -114,7 +114,7 @@ macro_rules! setup_default {
 
 impl Cache {
     /// Load all data required when opening a project.
-    pub fn load(&self) -> Result<(), String> {
+    pub fn load(&self) -> Result<()> {
         let filesystem = &state!().filesystem;
 
         if !filesystem.path_exists(".luminol") {
@@ -198,15 +198,11 @@ impl Cache {
     }
 
     /// Load a map.
-    pub fn load_map(
-        &self,
-        id: i32,
-    ) -> Result<impl Deref<Target = rpg::Map> + DerefMut + '_, String> {
+    pub fn load_map(&self, id: i32) -> Result<impl Deref<Target = rpg::Map> + DerefMut + '_> {
         self.maps.entry(id).or_try_insert_with(|| {
             state!()
                 .filesystem
                 .read_data(format!("Data/Map{id:0>3}.rxdata",))
-                .map_err(|e| format!("Failed to load map: {e}"))
         })
     }
 
@@ -239,7 +235,7 @@ impl Cache {
     }
 
     /// Save the local config.
-    pub fn save_config(&self, filesystem: &Filesystem) -> Result<(), String> {
+    pub fn save_config(&self, filesystem: &Filesystem) -> Result<()> {
         if !filesystem.path_exists(".luminol") {
             filesystem.create_directory(".luminol")?;
         }
@@ -269,7 +265,7 @@ impl Cache {
 
     /// Save all cached data to disk.
     /// Will flush the cache too.
-    pub fn save(&self, filesystem: &Filesystem) -> Result<(), String> {
+    pub fn save(&self, filesystem: &Filesystem) -> Result<()> {
         self.system().magic_number = rand::random();
 
         // Write map data and clear map cache.

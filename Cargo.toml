@@ -60,6 +60,7 @@ bytemuck = "1"
 
 color-eyre = "0.6"
 eyre = "0.6"
+thiserror = "1.0"
 
 paste = "1.0"
 cfg-if = "1.0.0"

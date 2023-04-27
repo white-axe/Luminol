@@ -2613,6 +2613,7 @@ dependencies = [
  "strum",
  "surf",
  "syntect",
+ "thiserror",
  "tracing",
  "tracing-subscriber",
  "windows 0.46.0",

@@ -116,7 +116,7 @@ const AUTOTILES: [[i32; 4]; 48] = [
 
 #[allow(dead_code)]
 impl TilemapDef for Tilemap {
-    fn new(id: i32) -> Result<Tilemap, String> {
+    fn new(id: i32) -> crate::Result<Tilemap> {
         let textures = Self::load_data(id)?;
         Ok(Self {
             pan: Vec2::ZERO,
@@ -623,7 +623,7 @@ impl TilemapDef for Tilemap {
 }
 impl Tilemap {
     #[allow(unused_variables, unused_assignments)]
-    fn load_data(id: i32) -> Result<Textures, String> {
+    fn load_data(id: i32) -> crate::Result<Textures> {
         let info = state!();
         // Load the map.
 
