@@ -15,6 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::sync::Arc;
+
 use crate::prelude::*;
 use glow::HasContext;
 
@@ -68,7 +70,7 @@ impl Cache {
         &self,
         directory: impl AsRef<str>,
         filename: impl AsRef<str>,
-    ) -> Result<Arc<RetainedImage>, String> {
+    ) -> Result<Arc<RetainedImage>> {
         let directory = directory.as_ref();
         let filename = filename.as_ref();
 
@@ -76,20 +78,20 @@ impl Cache {
             .egui_imgs
             .entry(format!("{directory}/{filename}"))
             .or_try_insert_with(|| {
-                let Some(f) = state!().filesystem.dir_children(directory)?.map(Result::unwrap).find(|entry| {
+                let Some(f) = state!().filesystem.dir_children(directory)?.map(std::result::Result::unwrap).find(|entry| {
                     entry.path().file_stem() == Some(std::ffi::OsStr::new(filename))
                 }) else {
-                    return  Err("image not found".to_string());
+                    return  Err(Error::Custom("image not found".to_string()));
                 };
 
-                egui_extras::RetainedImage::from_image_bytes(
+                let tex = egui_extras::RetainedImage::from_image_bytes(
                     format!("{directory}/{filename}"),
                     std::fs::read(f.path())
                         .map_err(|e| e.to_string())?
                         .as_slice(),
-                )
-                .map(|i| i.with_options(egui::TextureOptions::NEAREST))
-                .map(Arc::new)
+                )?
+                .with_options(egui::TextureOptions::NEAREST);
+                Ok(Arc::new(tex))
             })?;
         Ok(Arc::clone(&entry))
     }
@@ -102,7 +104,7 @@ impl Cache {
         &self,
         directory: impl AsRef<str>,
         filename: impl AsRef<str>,
-    ) -> Result<Arc<GlTexture>, String> {
+    ) -> Result<Arc<GlTexture>> {
         let directory = directory.as_ref();
         let filename = filename.as_ref();
 
@@ -110,10 +112,10 @@ impl Cache {
             .glow_imgs
             .entry(format!("{directory}/{filename}"))
             .or_try_insert_with(|| {
-                let Some(f) = state!().filesystem.dir_children(directory)?.map(Result::unwrap).find(|entry| {
+                let Some(f) = state!().filesystem.dir_children(directory)?.map(std::result::Result::unwrap).find(|entry| {
                     entry.path().file_stem() == Some(std::ffi::OsStr::new(filename))
                 }) else {
-                    return  Err("image not found".to_string());
+                    return  Err(Error::Custom("image not found".to_string()));
                 };
 
                 let image = image::open(f.path())

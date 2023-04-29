@@ -46,13 +46,13 @@ impl Filesystem {
     pub fn dir_children(&self, path: impl AsRef<Path>) -> Result<std::fs::ReadDir> {
         // I am too lazy to make this actually .
         // It'd take an external library or some hacking that I'm not up for currently.
-        std::fs::read_dir(
+        Ok(std::fs::read_dir(
             self.project_path
                 .read()
                 .as_ref()
                 .ok_or(Error::NotOpen)?
                 .join(path),
-        )
+        )?)
     }
 
     pub fn dir_children_strings(&self, path: impl AsRef<Path>) -> Result<Vec<String>> {
@@ -226,7 +226,7 @@ impl Filesystem {
         self.create_directory("")?;
 
         if !self.dir_children(".")?.count() == 0 {
-            return Err("Directory not empty".to_string());
+            return Err(Error::Custom("Directory not empty".to_string()));
         }
 
         self.create_directory("Data")?;
