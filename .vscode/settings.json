@@ -23,5 +23,11 @@
 		"image cache",
 		"error handling"
 	],
-	"rust-analyzer.showUnlinkedFileNotification": false
+	"rust-analyzer.cargo.extraEnv": {
+		"CARGO_PROFILE_RUST_ANALYZER_INHERITS": "dev"
+	},
+	"rust-analyzer.cargo.extraArgs": [
+		"--profile",
+		"rust-analyzer"
+	]
 }
