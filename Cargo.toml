@@ -18,22 +18,43 @@ build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-egui = "0.21"
-eframe = { version = "0.21", features = ["persistence"] }
-egui_extras = { version = "0.21", features = ["svg", "image"] }
-egui-notify = "0.6"
-egui_dock = "0.4"
+egui = "0.22"
+eframe = { version = "0.22", features = [
+    "persistence",
+    "wgpu",
+], default-features = false }
+egui_extras = { version = "0.22", features = ["svg", "image"] }
+egui-notify = { version = "0.7" }
+egui_dock = { version = "0.6", git = "https://github.com/Adanos020/egui_dock" }
+catppuccin-egui = "3.0.0"
+
+cgmath = "0.18"
 
 image = { version = "0.24", features = ["jpeg", "png"] }
 
 strum = { version = "0.24.1", features = ["derive"] }
-enum-as-inner = "0.5.1"
+enum-as-inner = "0.6"
 num-traits = "0.2"
 num-derive = "0.3"
+bitflags = "2.3"
+ouroboros = "0.15"
 
 git-version = "0.3"
 
 once_cell = "1.17"
+parking_lot = { version = "0.12", features = [
+    "deadlock_detection",
+    "hardware-lock-elision",
+] }
+atomic_refcell = "0.1.9"
+dashmap = "5.4.0"
+crossbeam = "0.8"
+
+futures = "0.3"
+poll-promise = { version = "0.2.0", features = [
+    "smol",
+], git = "https://github.com/EmbarkStudios/poll-promise" }
+surf = "2.3.2"
 
 slab = { version = "0.4", features = ["serde"] }
 
@@ -44,15 +65,15 @@ syntect = { version = "5.0", features = [
 rand = "0.8.5"
 
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
-
-
-async-trait = "0.1"
-futures = "0.3"
+notify = "5.1"
+rfd = "0.11"
+camino = "1.1"
 
 bytemuck = "1"
 
 color-eyre = "0.6"
 eyre = "0.6"
+thiserror = "1.0"
 
 paste = "1.0"
 cfg-if = "1.0.0"
@@ -62,53 +83,19 @@ alox-48 = { version = "*", path = "alox-48" }
 ron = "0.8.0"
 
 tracing = "0.1.37"
-catppuccin-egui = "2.0.1"
-
-rmxp-types = { version = "*", path = "rmxp-types" }
+tracing-subscriber = "0.3"
 
 itertools = "0.10"
-indextree = "4.6.0"
-atomic_refcell = "0.1.9"
+static_assertions = "1.1.0"
 
-[features]
-default = ["generic-tilemap"]
-generic-tilemap = []
+rodio = { version = "0.17.1" }
 
-# native:
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tracing-subscriber = "0.3"
-rodio = { version = "0.17.0", features = [
-    "symphonia-all",
-], default-features = false }
-poll-promise = { version = "0.2.0", features = ["smol"] }
-async-fs = "1.6.0"
-surf = "2.3.2"
-rfd = "0.11"
+rmxp-types = { version = "*", path = "rmxp-types" }
 luminol-term = { version = "*", path = "luminol-term" }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.46.0", features = ["Win32_System_Registry"] }
 winreg = "0.11.0"
-
-# web:
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-console_error_panic_hook = "0.1"
-tracing-wasm = "0.2"
-wasm-bindgen = "0.2.84"
-wasm-bindgen-futures = "0.4"
-js-sys = "0.3"
-web-sys = { version = "0.3" }
-rodio = { version = "0.17.0", features = [
-    "wasm-bindgen",
-    "symphonia-all",
-], default-features = false }
-poll-promise = { version = "0.2.0", features = ["web"] }
-# FIXME: Use time
-fluvio-wasm-timer = "0.2.5"
-surf = { version = "2.3.2", default-features = false, features = [
-    "wasm-client",
-] }
-
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"
@@ -117,10 +104,14 @@ winres = "0.1"
 OriginalFilename = "Luminol.exe"
 ProductName = "Luminol"
 
+[features]
+
+
 # Fast and performant.
 [profile.release]
 opt-level = 3
 lto = "fat"
+debug = true
 
 # Enable only a small amount of optimization in debug mode
 [profile.dev]
@@ -137,13 +128,6 @@ opt-level = 3
 members = ["alox-48", "rmxp-types", "luminol-term"]
 
 [patch.crates-io]
-poll-promise = { git = "https://github.com/EmbarkStudios/poll-promise", rev = "8c4d0d6e4d693cf54e9306950cb2f6d271c77080" }
-egui_dock = { git = "https://github.com/Adanos020/egui_dock" }
-# js-sys = { git = "https://github.com/Speak2Erase/wasm-bindgen-filesystem-access-api" }
-# web-sys = { git = "https://github.com/Speak2Erase/wasm-bindgen-filesystem-access-api" }
-# wasm-bindgen = { git = "https://github.com/Speak2Erase/wasm-bindgen-filesystem-access-api" }
-
-
 # If you want to use the bleeding edge version of egui and eframe:
 # egui = { git = "https://github.com/emilk/egui", branch = "master" }
 # eframe = { git = "https://github.com/emilk/egui", branch = "master" }

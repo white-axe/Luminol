@@ -27,14 +27,16 @@ pub struct CommandGeneratorWindow {
     ui_examples: Vec<UiExample>,
 }
 
-impl CommandGeneratorWindow {
-    pub fn new(info: &'static UpdateInfo) -> Self {
+impl Default for CommandGeneratorWindow {
+    fn default() -> Self {
         Self {
-            commands: info.data_cache.commanddb().user.clone(),
+            commands: command_db!().user.clone(),
             ui_examples: vec![],
         }
     }
+}
 
+impl CommandGeneratorWindow {
     /// Updates all of the parameter indexes, if they are assumed
     fn recalculate_parameter_index(parameter: &mut Parameter, passed_index: &mut u8) {
         match parameter {
@@ -86,7 +88,7 @@ impl window::Window for CommandGeneratorWindow {
         egui::Id::new("Luminol Command Maker")
     }
 
-    fn show(&mut self, ctx: &egui::Context, open: &mut bool, info: &'static UpdateInfo) {
+    fn show(&mut self, ctx: &egui::Context, open: &mut bool) {
         egui::Window::new(self.name()).open(open).show(ctx, |ui| {
             egui::ScrollArea::both().show(ui, |ui| {
                 let mut del_index = None;
@@ -214,7 +216,7 @@ impl window::Window for CommandGeneratorWindow {
                     }
 
                     if ui.button("Save").clicked() {
-                        info.data_cache.commanddb().user = self.commands.clone();
+                        command_db!().user = self.commands.clone();
                     }
                 });
             });

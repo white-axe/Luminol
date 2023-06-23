@@ -25,21 +25,32 @@
 #![warn(rust_2018_idioms)]
 #![warn(
     clippy::all,
-    // clippy::pedantic,
     clippy::panic,
     clippy::panic_in_result_fn,
     clippy::panicking_unwrap,
-    // clippy::unwrap_used,
-    clippy::unnecessary_wraps
+    clippy::unnecessary_wraps,
+    // unsafe code is sometimes fine but in general we don't want to use it.
+    unsafe_code,
 )]
+// These may be turned on in the future.
+// #![warn(clippy::unwrap, clippy::pedantic)]
 #![allow(
     clippy::missing_errors_doc,
     clippy::doc_markdown,
     clippy::missing_panics_doc,
     clippy::too_many_lines
 )]
-#![deny(unsafe_code)]
-#![feature(drain_filter, min_specialization)]
+// You must provide a safety doc. DO NOT TURN OFF THESE LINTS.
+#![forbid(clippy::missing_safety_doc, unsafe_op_in_unsafe_fn)]
+// Okay, lemme run through *why* some of these are enabled
+// 1) drain filter
+// drain filter saves on code complexity and unecessary allocations
+// as far as i can tell, it is close to stabilization.
+// 2) min_specialization
+// min_specialization is used in alox-48 to deserialize extra data types.
+// 3) int_roundings
+// int_roundings is close to stabilization.
+#![feature(drain_filter, min_specialization, int_roundings)]
 
 pub use prelude::*;
 
@@ -47,11 +58,13 @@ pub use prelude::*;
 pub mod luminol;
 
 pub mod prelude;
-/// The state Luminol saves on shutdown.
-pub mod saved_state;
 
 /// Audio related structs and funtions.
 pub mod audio;
+
+pub mod config;
+
+pub mod cache;
 
 pub mod components;
 
@@ -65,8 +78,6 @@ pub mod windows;
 /// Stack defined windows that edit values.
 pub mod modals;
 
-/// Structs related to Luminol's internal data.
-pub mod project;
 /// Tabs to be displayed in the center of Luminol.
 pub mod tabs;
 
@@ -78,7 +89,6 @@ pub mod filesystem;
 pub mod lumi;
 
 pub use luminol::Luminol;
-use saved_state::SavedState;
 use tabs::tab::Tab;
 
 /// Embedded icon 256x256 in size.
@@ -101,94 +111,57 @@ pub enum Pencil {
     Fill,
 }
 
-cfg_if::cfg_if! {
-    if #[cfg(not(target_arch = "wasm32"))] {
-        type FSAlias =  filesystem::filesystem_native::Filesystem;
-    } else {
-        type FSAlias = filesystem::filesystem_wasm32::Filesystem;
-    }
-}
-
 /// Passed to windows and widgets when updating.
-pub struct UpdateInfo {
+pub struct State {
     /// Filesystem to be passed around.
-    pub filesystem: FSAlias,
+    pub filesystem: filesystem::ProjectFS,
     /// The data cache.
-    pub data_cache: Cache,
+    pub data_cache: data::Cache,
+    pub image_cache: image_cache::Cache,
     /// Windows that are displayed.
     pub windows: window::Windows,
     /// Tabs that are displayed.
-    pub tabs: tabs::tab::Tabs<Box<dyn Tab>>,
+    pub tabs: tabs::tab::Tabs<Box<dyn Tab + Send>>,
     /// Audio that's played.
     pub audio: audio::Audio,
     /// Toasts to be displayed.
     pub toasts: Toasts,
-    /// The gl context.
-    pub gl: Arc<glow::Context>,
-    /// State to be saved.
-    pub saved_state: RefCell<SavedState>,
+    pub render_state: egui_wgpu::RenderState,
     /// Toolbar state
-    pub toolbar: RefCell<ToolbarState>,
+    pub toolbar: AtomicRefCell<ToolbarState>,
 }
 
-impl UpdateInfo {
+static_assertions::assert_impl_all!(State: Send, Sync);
+
+impl State {
     /// Create a new UpdateInfo.
-    pub fn new(gl: Arc<glow::Context>, state: SavedState) -> Self {
+    pub fn new(render_state: egui_wgpu::RenderState) -> Self {
         Self {
-            filesystem: FSAlias::default(),
-            data_cache: Cache::default(),
+            filesystem: filesystem::ProjectFS::default(),
+            data_cache: data::Cache::default(),
+            image_cache: image_cache::Cache::default(),
             windows: windows::window::Windows::default(),
             tabs: tab::Tabs::new("global_tabs", vec![Box::new(started::Tab::new())]),
             audio: audio::Audio::default(),
             toasts: Toasts::default(),
-            gl,
-            saved_state: RefCell::new(state),
-            toolbar: RefCell::default(),
+            render_state,
+            toolbar: AtomicRefCell::default(),
         }
     }
 }
 
-/// Load a RetainedImage from disk.
-pub async fn load_image_software(
-    path: String,
-    info: &'static UpdateInfo,
-) -> Result<RetainedImage, String> {
-    egui_extras::RetainedImage::from_image_bytes(
-        path.clone(),
-        &info.filesystem.read_bytes(&format!("{path}.png",)).await?,
-    )
-    .map(|i| i.with_options(TextureOptions::NEAREST))
+static STATE: once_cell::sync::OnceCell<State> = once_cell::sync::OnceCell::new();
+
+#[allow(clippy::panic)]
+fn set_state(info: State) {
+    if STATE.set(info).is_err() {
+        panic!("failed to set updateinfo")
+    }
 }
 
-/// Load a gl texture from disk.
-#[allow(clippy::cast_possible_wrap, unsafe_code)]
-pub async fn load_image_hardware(
-    path: String,
-    info: &'static UpdateInfo,
-) -> Result<glow::Texture, String> {
-    use glow::HasContext;
-
-    let image =
-        image::load_from_memory(&info.filesystem.read_bytes(&format!("{path}.png",)).await?)
-            .map_err(|e| e.to_string())?;
-
-    unsafe {
-        let texture = info.gl.create_texture()?;
-        info.gl.bind_texture(glow::TEXTURE_2D, Some(texture));
-
-        info.gl.tex_image_2d(
-            glow::TEXTURE_2D,
-            0,
-            glow::RGBA as _,
-            image.width() as _,
-            image.height() as _,
-            0,
-            glow::RGBA,
-            glow::UNSIGNED_BYTE,
-            Some(image.as_bytes()),
-        );
-        info.gl.generate_mipmap(glow::TEXTURE_2D);
-
-        Ok(texture)
-    }
+#[macro_export]
+macro_rules! state {
+    () => {
+        $crate::STATE.get().expect("failed to get updateinfo")
+    };
 }

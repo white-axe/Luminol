@@ -32,7 +32,7 @@ pub struct Map {
     pub preview_move_route: Option<(i32, MoveRoute)>,
 }
 
-#[derive(Default, Debug, Deserialize, Serialize)]
+#[derive(Default, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename = "RPG::MapInfo")]
 pub struct MapInfo {
     pub name: String,
@@ -41,6 +41,18 @@ pub struct MapInfo {
     pub expanded: bool,
     pub scroll_x: i32,
     pub scroll_y: i32,
+}
+
+impl PartialOrd for MapInfo {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.order.partial_cmp(&other.order)
+    }
+}
+
+impl Ord for MapInfo {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.order.cmp(&other.order)
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -675,7 +687,7 @@ pub struct System {
     pub actor_collapse_se: AudioFile,
     pub enemy_collapse_se: AudioFile,
     pub words: Words,
-    #[serde(skip_deserializing)]
+    // #[serde(skip_deserializing)]
     pub test_battlers: Vec<TestBattler>,
     pub test_troop_id: i32,
     pub start_map_id: i32,
@@ -867,3 +879,17 @@ impl Serialize for Script {
         seq.end()
     }
 }
+
+pub type Actors = NilPadded<Actor>;
+pub type Animations = NilPadded<Animation>;
+pub type Armors = NilPadded<Armor>;
+pub type Classes = NilPadded<Class>;
+pub type CommonEvents = NilPadded<CommonEvent>;
+pub type Enemies = NilPadded<Enemy>;
+pub type Items = NilPadded<Item>;
+pub type MapInfos = std::collections::HashMap<i32, MapInfo>;
+pub type Skills = NilPadded<Skill>;
+pub type States = NilPadded<State>;
+pub type Tilesets = NilPadded<Tileset>;
+pub type Troops = NilPadded<Troop>;
+pub type Weapons = NilPadded<Weapon>;

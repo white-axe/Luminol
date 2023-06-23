@@ -21,8 +21,42 @@
 // TODO: Use eyre!
 use color_eyre::Result;
 
-#[cfg(not(target_arch = "wasm32"))]
 fn main() -> Result<()> {
+    #[cfg(debug_assertions)]
+    std::thread::spawn(|| loop {
+        use std::fmt::Write;
+
+        std::thread::sleep(std::time::Duration::from_secs(5));
+
+        let deadlocks = parking_lot::deadlock::check_deadlock();
+        if deadlocks.is_empty() {
+            continue;
+        }
+
+        rfd::MessageDialog::new()
+            .set_title("Fatal Error")
+            .set_level(rfd::MessageLevel::Error)
+            .set_description(&format!(
+                "Luminol has deadlocked! Please file an issue.\n{} deadlocks detected",
+                deadlocks.len()
+            ))
+            .show();
+        for (i, threads) in deadlocks.iter().enumerate() {
+            let mut description = String::new();
+            for t in threads {
+                writeln!(description, "Thread Id {:#?}", t.thread_id()).unwrap();
+                writeln!(description, "{:#?}", t.backtrace()).unwrap();
+            }
+            rfd::MessageDialog::new()
+                .set_title(&format!("Deadlock #{i}"))
+                .set_level(rfd::MessageLevel::Error)
+                .set_description(&description)
+                .show();
+        }
+
+        std::process::abort();
+    });
+
     // Log to stdout (if you run with `RUST_LOG=debug`).
     tracing_subscriber::fmt::init();
 
@@ -43,6 +77,18 @@ fn main() -> Result<()> {
             height: image.height(),
             rgba: image.into_bytes(),
         }),
+        wgpu_options: eframe::egui_wgpu::WgpuConfiguration {
+            supported_backends: eframe::wgpu::util::backend_bits_from_env()
+                .unwrap_or(eframe::wgpu::Backends::PRIMARY),
+            device_descriptor: luminol::Arc::new(|_| {
+                eframe::wgpu::DeviceDescriptor {
+                    label: Some("luminol device descriptor"),
+                    // features: eframe::wgpu::Features::POLYGON_MODE_LINE,
+                    ..Default::default()
+                }
+            }),
+            ..Default::default()
+        },
         ..Default::default()
     };
 
@@ -104,33 +150,5 @@ fn setup_file_assocs() -> std::io::Result<()> {
        let (open_key, _) = app_key.create_subkey("shell\\open\\command")?;
        open_key.set_value("", &command)?;
     */
-    Ok(())
-}
-
-// when compiling to web using trunk.
-#[cfg(target_arch = "wasm32")]
-fn main() -> Result<()> {
-    let (panic, _) = color_eyre::config::HookBuilder::new().into_hooks();
-    std::panic::set_hook(Box::new(move |info| {
-        let report = panic.panic_report(info);
-
-        web_sys::console::log_1(&js_sys::JsString::from(report.to_string()));
-    }));
-
-    // Redirect tracing to console.log and friends:
-    tracing_wasm::set_as_global_default();
-
-    let web_options = eframe::WebOptions::default();
-
-    wasm_bindgen_futures::spawn_local(async {
-        eframe::start_web(
-            "the_canvas_id", // hardcode it
-            web_options,
-            Box::new(|cc| Box::new(luminol::Luminol::new(cc))),
-        )
-        .await
-        .expect("failed to start eframe");
-    });
-
     Ok(())
 }

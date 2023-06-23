@@ -19,8 +19,7 @@ pub mod about;
 /// The common event editor.
 pub mod common_event_edit;
 /// Config window
-pub mod config;
-#[cfg(not(target_arch = "wasm32"))]
+pub mod config_window;
 /// Playtest console
 pub mod console;
 /// The event editor.
