@@ -38,6 +38,7 @@ pub mod new_project;
 pub mod script_edit;
 /// The sound test.
 pub mod sound_test;
+pub mod system;
 /// Traits and structs related to windows.
 pub mod window;
 

@@ -179,6 +179,10 @@ impl TopBar {
                 if ui.button("Sound Test").clicked() {
                     state.windows.add_window(sound_test::Window::default());
                 }
+
+                if ui.button("System").clicked() {
+                    state.windows.add_window(system::Window::default());
+                }
             });
         });
 

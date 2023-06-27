@@ -619,33 +619,33 @@ pub struct CommonEvent {
     pub list: Vec<EventCommand>,
 }
 
-#[derive(Default, Debug, Deserialize, Serialize)]
+#[derive(Default, Debug, Deserialize, Serialize, Clone)]
 #[serde(rename = "RPG::System::Words")]
 #[serde(default)]
 pub struct Words {
-    gold: String,
-    hp: String,
-    sp: String,
-    str: String,
-    dex: String,
-    agi: String,
-    int: String,
-    atk: String,
-    pdef: String,
-    mdef: String,
-    weapon: String,
-    armor1: String,
-    armor2: String,
-    armor3: String,
-    armor4: String,
-    attack: String,
-    skill: String,
-    guard: String,
-    item: String,
-    equip: String,
+    pub gold: String,
+    pub hp: String,
+    pub sp: String,
+    pub str: String,
+    pub dex: String,
+    pub agi: String,
+    pub int: String,
+    pub atk: String,
+    pub pdef: String,
+    pub mdef: String,
+    pub weapon: String,
+    pub armor1: String,
+    pub armor2: String,
+    pub armor3: String,
+    pub armor4: String,
+    pub attack: String,
+    pub skill: String,
+    pub guard: String,
+    pub item: String,
+    pub equip: String,
 }
 
-#[derive(Default, Debug, Deserialize, Serialize)]
+#[derive(Default, Debug, Deserialize, Serialize, Clone)]
 #[serde(rename = "RPG::System::TestBattler")]
 pub struct TestBattler {
     actor_id: i32,
@@ -657,7 +657,7 @@ pub struct TestBattler {
     armor4_id: i32,
 }
 
-#[derive(Default, Debug, Deserialize, Serialize)]
+#[derive(Default, Debug, Deserialize, Serialize, Clone)]
 #[serde(default)] // ??? rmxp???
 #[serde(rename = "RPG::System")]
 pub struct System {
