@@ -66,7 +66,7 @@ rand = "0.8.5"
 
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
 notify = "5.1"
-rfd = "0.11"
+rfd = { git = "https://github.com/somedevfox/rfd" }
 camino = "1.1"
 
 bytemuck = "1"
@@ -93,6 +93,12 @@ rodio = { version = "0.17.1" }
 command-lib = { version = "*", path = "command-lib" }
 rmxp-types = { version = "*", path = "rmxp-types" }
 luminol-term = { version = "*", path = "luminol-term" }
+
+# Internationalization and Localization
+i18n-embed = { version = "0.13.9", features = ["fluent-system", "desktop-requester"] }
+i18n-embed-fl = "0.6.7"
+locale-codes = "0.3.0"
+rust-embed  = "6.7.0"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.46.0", features = ["Win32_System_Registry"] }
