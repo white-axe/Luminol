@@ -14,7 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
-use crate::prelude::*;
+use crate::{fl, prelude::*};
 
 use super::{
     archiver::Archiver, host::HostFS, overlay::Overlay, path_cache::PathCache, DirEntry, Error,
@@ -136,7 +136,7 @@ impl ProjectFS {
         let state = self.state.borrow();
         match &*state {
             State::Unloaded => {
-                ui.label("Unloaded");
+                ui.label(fl!("unloaded"));
             }
             State::HostLoaded(fs) => {
                 ui.label("Host Filesystem Loaded");
