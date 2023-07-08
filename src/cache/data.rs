@@ -14,9 +14,10 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
-
+use crate::fl;
 use crate::prelude::*;
 use core::ops::{Deref, DerefMut};
+use dashmap::DashMap;
 
 #[derive(Default, Debug)]
 pub struct Cache {
@@ -79,98 +80,49 @@ impl Cache {
             return Err("Unable to load scripts, tried scripts file from config, then xScripts, then Scripts".to_string());
         };
 
-        let actors = AtomicRefCell::new(
-            filesystem
-                .read_data(format!("Data/Actors.{ext}"))
-                .map_err(|e| format!("Failed to load Actors.{ext}: {e}"))?,
-        );
-        let animations = AtomicRefCell::new(
-            filesystem
-                .read_data(format!("Data/Animations.{ext}"))
-                .map_err(|e| format!("Failed to load Animations.{ext}: {e}"))?,
-        );
-        let armors = AtomicRefCell::new(
-            filesystem
-                .read_data(format!("Data/Armors.{ext}"))
-                .map_err(|e| format!("Failed to load Armors.{ext}: {e}"))?,
-        );
-        let classes = AtomicRefCell::new(
-            filesystem
-                .read_data(format!("Data/Classes.{ext}"))
-                .map_err(|e| format!("Failed to load Classes.{ext}: {e}"))?,
-        );
-        let common_events = AtomicRefCell::new(
-            filesystem
-                .read_data(format!("Data/CommonEvents.{ext}"))
-                .map_err(|e| format!("Failed to load CommonEvents.{ext}: {e}"))?,
-        );
-        let enemies = AtomicRefCell::new(
-            filesystem
-                .read_data(format!("Data/Enemies.{ext}"))
-                .map_err(|e| format!("Failed to load Enemies.{ext}: {e}"))?,
-        );
-        let items = AtomicRefCell::new(
-            filesystem
-                .read_data(format!("Data/Items.{ext}"))
-                .map_err(|e| format!("Failed to load Items.{ext}: {e}"))?,
-        );
-        let mapinfos = AtomicRefCell::new(
-            filesystem
-                .read_data(format!("Data/MapInfos.{ext}"))
-                .map_err(|e| format!("Failed to load MapInfos.{ext}: {e}"))?,
-        );
-        let skills = AtomicRefCell::new(
-            filesystem
-                .read_data(format!("Data/Skills.{ext}"))
-                .map_err(|e| format!("Failed to load Skills.{ext}: {e}"))?,
-        );
-        let states = AtomicRefCell::new(
-            filesystem
-                .read_data(format!("Data/States.{ext}"))
-                .map_err(|e| format!("Failed to load States.{ext}: {e}"))?,
-        );
-        let system = AtomicRefCell::new(
-            filesystem
-                .read_data(format!("Data/System.{ext}"))
-                .map_err(|e| format!("Failed to load System.{ext}: {e}"))?,
-        );
-        let tilesets = AtomicRefCell::new(
-            filesystem
-                .read_data(format!("Data/Tilesets.{ext}"))
-                .map_err(|e| format!("Failed to load Tilesets.{ext}: {e}"))?,
-        );
-        let troops = AtomicRefCell::new(
-            filesystem
-                .read_data(format!("Data/Troops.{ext}"))
-                .map_err(|e| format!("Failed to load Troops.{ext}: {e}"))?,
-        );
-        let weapons = AtomicRefCell::new(
-            filesystem
-                .read_data(format!("Data/Weapons.{ext}"))
-                .map_err(|e| format!("Failed to load Weapons.{ext}: {e}"))?,
-        );
+        || -> Result<(), (&str, String)> {
+            macro_rules! load_rxdata {
+                ($name:expr) => {
+                    AtomicRefCell::new(
+                        filesystem
+                            .read_data(format!("Data/{}.{ext}", $name))
+                            .map_err(|e| ($name, e))?,
+                    )
+                };
+            }
 
-        *self.state.borrow_mut() = State::Loaded {
-            actors,
-            animations,
-            armors,
-            classes,
-            common_events,
-            enemies,
-            items,
-            mapinfos,
-            skills,
-            states,
-            system,
-            tilesets,
-            troops,
-            weapons,
+            *self.state.borrow_mut() = State::Loaded {
+                actors: load_rxdata!("Actors"),
+                animations: load_rxdata!("Animations"),
+                armors: load_rxdata!("Armors"),
+                classes: load_rxdata!("Classes"),
+                common_events: load_rxdata!("CommonEvents"),
+                enemies: load_rxdata!("Enemies"),
+                items: load_rxdata!("Items"),
+                mapinfos: load_rxdata!("MapInfos"),
+                skills: load_rxdata!("Skills"),
+                states: load_rxdata!("States"),
+                system: load_rxdata!("System"),
+                tilesets: load_rxdata!("Tilesets"),
+                troops: load_rxdata!("Troops"),
+                weapons: load_rxdata!("Weapons"),
 
-            maps: Default::default(),
-            scripts: AtomicRefCell::new(scripts),
-        };
+                scripts: AtomicRefCell::new(scripts),
+                maps: DashMap::new(),
+            };
 
-        Ok(())
+            Ok(())
+        }()
+        .map_err(|(file_name, why)| {
+            format!(
+                "{}",
+                fl!(
+                    "toast_error_loading_rxdata",
+                    file_path = format!("Data/{file_name}.{ext}"),
+                    why = why
+                )
+            )
+        })
     }
 
     pub fn rxdata_ext(&self) -> &'static str {
