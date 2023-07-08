@@ -86,6 +86,8 @@ pub mod filesystem;
 /// The code for handling lumi, the friendly world machine!
 pub mod lumi;
 
+pub mod i18n;
+
 pub use luminol::Luminol;
 use tabs::tab::Tab;
 
