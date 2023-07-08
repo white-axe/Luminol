@@ -17,7 +17,7 @@
 
 use egui_extras::RetainedImage;
 
-use crate::prelude::*;
+use crate::{fl, prelude::*};
 
 /// The event editor window.
 pub struct Window {
@@ -62,9 +62,11 @@ impl Window {
 
 impl window::Window for Window {
     fn name(&self) -> String {
-        format!(
-            "Event: {}, {} in Map {}",
-            self.event.name, self.id, self.map_id
+        fl!(
+            "window_event_title_label",
+            name = self.event.name.clone(),
+            id = self.id,
+            map_id = self.map_id
         )
     }
 
@@ -82,10 +84,10 @@ impl window::Window for Window {
                 ui.horizontal(|ui| {
                     ui.text_edit_singleline(&mut self.event.name);
 
-                    ui.button("New page").clicked();
-                    ui.button("Copy page").clicked();
-                    ui.button("Paste page").clicked();
-                    ui.button("Clear page").clicked();
+                    ui.button(fl!("window_event_new_page_btn")).clicked();
+                    ui.button(fl!("window_event_copy_page_btn")).clicked();
+                    ui.button(fl!("window_event_paste_page_btn")).clicked();
+                    ui.button(fl!("window_event_clear_page_btn")).clicked();
                 });
 
                 ui.separator();
@@ -104,9 +106,21 @@ impl window::Window for Window {
                 ui.separator();
 
                 ui.horizontal(|ui| {
-                    ui.selectable_value(&mut self.viewed_tab, 0, "Configuration");
-                    ui.selectable_value(&mut self.viewed_tab, 1, "Graphic");
-                    ui.selectable_value(&mut self.viewed_tab, 2, "Commands");
+                    ui.selectable_value(
+                        &mut self.viewed_tab,
+                        0,
+                        fl!("window_event_tab_configuration_sv"),
+                    );
+                    ui.selectable_value(
+                        &mut self.viewed_tab,
+                        1,
+                        fl!("window_event_tab_graphic_sv"),
+                    );
+                    ui.selectable_value(
+                        &mut self.viewed_tab,
+                        2,
+                        fl!("window_event_tab_commands_sv"),
+                    );
                 });
 
                 ui.separator();
@@ -117,10 +131,13 @@ impl window::Window for Window {
                     0 => {
                         ui.horizontal(|ui| {
                             ui.vertical(|ui| {
-                                ui.label("Condition");
+                                ui.label(fl!("window_event_conf_condition_label"));
                                 ui.group(|ui| {
                                     ui.horizontal(|ui| {
-                                        ui.checkbox(&mut page.condition.switch1_valid, "Switch");
+                                        ui.checkbox(
+                                            &mut page.condition.switch1_valid,
+                                            fl!("window_event_conf_switch_cb"),
+                                        );
 
                                         ui.add_enabled_ui(page.condition.switch1_valid, |ui| {
                                             switch::Modal::new(
@@ -139,7 +156,10 @@ impl window::Window for Window {
                                     });
 
                                     ui.horizontal(|ui| {
-                                        ui.checkbox(&mut page.condition.switch2_valid, "Switch");
+                                        ui.checkbox(
+                                            &mut page.condition.switch2_valid,
+                                            fl!("window_event_conf_switch_cb"),
+                                        );
 
                                         ui.add_enabled_ui(page.condition.switch2_valid, |ui| {
                                             switch::Modal::new(
@@ -158,7 +178,10 @@ impl window::Window for Window {
                                     });
 
                                     ui.horizontal(|ui| {
-                                        ui.checkbox(&mut page.condition.variable_valid, "Variable");
+                                        ui.checkbox(
+                                            &mut page.condition.variable_valid,
+                                            fl!("window_event_conf_variable_cb"),
+                                        );
 
                                         ui.add_enabled_ui(page.condition.variable_valid, |ui| {
                                             variable::Modal::new(
@@ -181,13 +204,13 @@ impl window::Window for Window {
                                                 &mut page.condition.variable_value,
                                             ),
                                         );
-                                        ui.label("or above");
+                                        ui.label(fl!("window_event_conf_or_above_label"));
                                     });
 
                                     ui.horizontal(|ui| {
                                         ui.checkbox(
                                             &mut page.condition.self_switch_valid,
-                                            "Self Switch",
+                                            fl!("window_event_conf_self_switch_cb"),
                                         );
                                         ui.add_enabled_ui(page.condition.self_switch_valid, |ui| {
                                             egui::ComboBox::new(
@@ -195,7 +218,7 @@ impl window::Window for Window {
                                                     "event_{}_{}_self_switch_combo",
                                                     self.id, self.map_id
                                                 ),
-                                                "is on",
+                                                fl!("window_event_conf_is_on_label"),
                                             )
                                             .selected_text(page.condition.self_switch_ch.clone())
                                             .show_ui(
@@ -266,27 +289,58 @@ impl window::Window for Window {
 
                                 ui.horizontal(|ui| {
                                     ui.vertical(|ui| {
-                                        ui.label("Options");
+                                        ui.label(fl!("window_event_conf_options_label"));
                                         ui.group(|ui| {
-                                            ui.checkbox(&mut page.step_anime, "Move Animation");
-                                            ui.checkbox(&mut page.walk_anime, "Stop Animation");
-                                            ui.checkbox(&mut page.direction_fix, "Direction Fix");
-                                            ui.checkbox(&mut page.through, "Through");
-                                            ui.checkbox(&mut page.always_on_top, "Always on Top");
+                                            ui.checkbox(
+                                                &mut page.step_anime,
+                                                fl!("window_event_conf_option_move_anim_cb"),
+                                            );
+                                            ui.checkbox(
+                                                &mut page.walk_anime,
+                                                fl!("window_event_conf_option_stop_anim_cb"),
+                                            );
+                                            ui.checkbox(
+                                                &mut page.direction_fix,
+                                                fl!("window_event_conf_option_direction_fix_cb"),
+                                            );
+                                            ui.checkbox(
+                                                &mut page.through,
+                                                fl!("window_event_conf_option_through_cb"),
+                                            );
+                                            ui.checkbox(
+                                                &mut page.always_on_top,
+                                                fl!("window_event_conf_option_aot_cb"),
+                                            );
                                         });
                                     });
 
                                     ui.vertical(|ui| {
-                                        ui.label("Trigger");
+                                        ui.label(fl!("window_event_conf_trigger_label"));
                                         ui.group(|ui| {
-                                            ui.radio_value(&mut page.trigger, 0, "Action Button");
-                                            ui.radio_value(&mut page.trigger, 1, "Player Touch");
-                                            ui.radio_value(&mut page.trigger, 2, "Event Touch");
-                                            ui.radio_value(&mut page.trigger, 3, "Autorun");
+                                            ui.radio_value(
+                                                &mut page.trigger,
+                                                0,
+                                                fl!("window_event_conf_trigger_action_btn_rv"),
+                                            );
+                                            ui.radio_value(
+                                                &mut page.trigger,
+                                                1,
+                                                fl!("window_event_conf_trigger_player_touch_rv"),
+                                            );
+                                            ui.radio_value(
+                                                &mut page.trigger,
+                                                2,
+                                                fl!("window_event_conf_trigger_event_touch_rv"),
+                                            );
+                                            ui.radio_value(
+                                                &mut page.trigger,
+                                                3,
+                                                fl!("window_event_conf_trigger_autorun_rv"),
+                                            );
                                             ui.radio_value(
                                                 &mut page.trigger,
                                                 4,
-                                                "Parallel Process",
+                                                fl!("window_event_conf_trigger_parallel_proc_rv"),
                                             );
                                         });
                                     })
@@ -343,7 +397,7 @@ impl window::Window for Window {
                                 .uv(uv),
                             )
                         } else {
-                            ui.button("Add image")
+                            ui.button(fl!("window_event_graphic_add_image_btn"))
                         }
                         .clicked()
                         {
@@ -369,9 +423,9 @@ impl window::Window for Window {
                 ui.separator();
 
                 ui.horizontal(|ui| {
-                    let ok_clicked = ui.button("Ok").clicked();
-                    let apply_clicked = ui.button("Apply").clicked();
-                    let cancel_clicked = ui.button("Cancel").clicked();
+                    let ok_clicked = ui.button(fl!("ok")).clicked();
+                    let apply_clicked = ui.button(fl!("apply")).clicked();
+                    let cancel_clicked = ui.button(fl!("cancel")).clicked();
 
                     if apply_clicked || ok_clicked {
                         let mut map = state!().data_cache.map(self.map_id);

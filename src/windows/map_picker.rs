@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::prelude::*;
+use crate::{fl, prelude::*};
 use std::collections::HashMap;
 
 /// The map picker window.
@@ -85,7 +85,7 @@ impl window::Window for Window {
 
     fn show(&mut self, ctx: &egui::Context, open: &mut bool) {
         let mut window_open = true;
-        egui::Window::new("Map Picker")
+        egui::Window::new(fl!("window_map_picker_title_label"))
             .open(&mut window_open)
             .show(ctx, |ui| {
                 egui::ScrollArea::both()
@@ -110,7 +110,7 @@ impl window::Window for Window {
                         children_data.entry(0).or_default(); // If there is no `0` entry (i.e. there are no maps) then add one.
 
                         // Now we can actually render all maps.
-                        egui::CollapsingHeader::new("root")
+                        egui::CollapsingHeader::new(fl!("window_map_picker_root_label"))
                             .default_open(true)
                             .show(ui, |ui| {
                                 // There will always be a map `0`.

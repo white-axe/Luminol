@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::prelude::*;
+use crate::{fl, prelude::*};
 
 /// The confg window
 pub struct Window {}
@@ -24,7 +24,7 @@ impl Window {}
 
 impl window::Window for Window {
     fn name(&self) -> String {
-        "Local Luminol Config".to_string()
+        fl!("window_config_title_label")
     }
 
     fn id(&self) -> egui::Id {
@@ -35,12 +35,12 @@ impl window::Window for Window {
         egui::Window::new(self.name()).open(open).show(ctx, |ui| {
             let mut config = project_config!();
 
-            ui.label("Project name");
+            ui.label(fl!("window_config_proj_name_label"));
             ui.text_edit_singleline(&mut config.project_name);
-            ui.label("Scripts path");
+            ui.label(fl!("window_config_scripts_path_label"));
             ui.text_edit_singleline(&mut config.scripts_path);
-            ui.checkbox(&mut config.use_ron, "Use RON (Rusty Object Notation)");
-            egui::ComboBox::from_label("RGSS Version")
+            ui.checkbox(&mut config.use_ron, fl!("window_config_use_ron_cb"));
+            egui::ComboBox::from_label(fl!("window_config_rgss_ver_label"))
                 .selected_text(config.rgss_ver.to_string())
                 .show_ui(ui, |ui| {
                     for ver in config::RGSSVer::iter() {
@@ -48,7 +48,7 @@ impl window::Window for Window {
                     }
                 });
 
-            ui.label("Playtest Executable");
+            ui.label(fl!("window_config_playtest_exe_btn"));
             ui.text_edit_singleline(&mut config.playtest_exe);
         });
     }

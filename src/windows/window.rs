@@ -17,6 +17,8 @@
 
 use parking_lot::Mutex;
 
+use crate::fl;
+
 /// A window management system to handle heap allocated windows
 ///
 /// Will deny any duplicated window titles and is not specialized like modals
@@ -70,7 +72,7 @@ pub trait Window {
 
     /// Optionally used as the title of the window.
     fn name(&self) -> String {
-        "Untitled Window".to_string()
+        fl!("window_untitled_title")
     }
 
     /// Required to prevent duplication.

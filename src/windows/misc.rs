@@ -15,6 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::fl;
+
 use super::window::Window;
 
 /// Egui inspection window.
@@ -23,7 +25,7 @@ pub struct EguiInspection {}
 
 impl Window for EguiInspection {
     fn name(&self) -> String {
-        "Egui Inspection".to_string()
+        fl!("window_egui_inspec_title_label")
     }
 
     fn id(&self) -> egui::Id {
@@ -43,7 +45,7 @@ pub struct EguiMemory {}
 
 impl Window for EguiMemory {
     fn name(&self) -> String {
-        "Egui Memory".to_string()
+        fl!("window_egui_memory_title_label")
     }
 
     fn id(&self) -> egui::Id {

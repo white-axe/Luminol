@@ -14,7 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
-use crate::prelude::*;
+use crate::{fl, prelude::*};
 
 /// Database - Items management window.
 pub struct Window {
@@ -42,7 +42,7 @@ impl Default for Window {
             Err(why) => {
                 state!()
                     .toasts
-                    .error(format!("Error while reading `Graphics/Icons`: {why}"));
+                    .error(fl!("toast_error_reading_icons", why = why.to_string()));
                 Vec::new()
             }
         };
@@ -62,7 +62,10 @@ impl Default for Window {
 
 impl window::Window for Window {
     fn name(&self) -> String {
-        format!("Editing item {}", self.items[self.selected_item].name)
+        fl!(
+            "window_items_title_label",
+            name = self.items[self.selected_item].name.clone()
+        )
     }
 
     fn id(&self) -> egui::Id {
@@ -97,7 +100,7 @@ impl window::Window for Window {
             .open(open)
             .show(ctx, |ui| {
                 egui::SidePanel::left(egui::Id::new("item_edit_sidepanel")).show_inside(ui, |ui| {
-                    ui.label("Items");
+                    ui.label(fl!("items"));
                     egui::ScrollArea::both().max_height(600.).show_rows(
                         ui,
                         ui.text_style_height(&egui::TextStyle::Body),
@@ -113,39 +116,39 @@ impl window::Window for Window {
                         },
                     );
 
-                    if ui.button("Change maximum...").clicked() {
+                    if ui.button(fl!("window_items_change_max_btn")).clicked() {
                         eprintln!("`Change maximum...` button trigger");
                     }
                 });
                 let selected_item = &mut self.items[self.selected_item];
                 egui::Grid::new("item_edit_central_grid").show(ui, |ui| {
                     ui.add(Field::new(
-                        "Name",
+                        fl!("name"),
                         egui::TextEdit::singleline(&mut selected_item.name),
                     ));
 
                     ui.add(Field::new(
-                        "Icon",
+                        fl!("icon"),
                         CallbackButton::new(selected_item.icon_name.clone())
                             .on_click(|| self.icon_picker_open = !self.icon_picker_open),
                     ));
                     ui.end_row();
 
                     ui.add(Field::new(
-                        "Description",
+                        fl!("description"),
                         egui::TextEdit::singleline(&mut selected_item.description),
                     ));
                     ui.end_row();
 
                     ui.add(Field::new(
-                        "Scope",
+                        fl!("scope"),
                         EnumMenuButton::new(selected_item.scope, rpg::ItemScope::None, |scope| {
                             selected_item.scope = scope as i32;
                         }),
                     ));
 
                     ui.add(Field::new(
-                        "Occasion",
+                        fl!("occasion"),
                         EnumMenuButton::new(
                             selected_item.occasion,
                             rpg::ItemOccasion::Always,
@@ -157,23 +160,23 @@ impl window::Window for Window {
                     ui.end_row();
 
                     ui.add(Field::new(
-                        "User Animation",
+                        fl!("window_items_user_anim_field"),
                         NilPaddedMenu::new(&mut selected_item.animation1_id, &*animations),
                     ));
                     ui.add(Field::new(
-                        "Target Animation",
+                        fl!("window_items_target_anim_field"),
                         NilPaddedMenu::new(&mut selected_item.animation2_id, &*animations),
                     ));
                     ui.end_row();
 
                     ui.add(Field::new(
-                        "Menu Use SE",
+                        fl!("window_items_menu_se_field"),
                         CallbackButton::new(selected_item.menu_se.name.clone()).on_click(|| {
                             self.menu_se_picker_open = true;
                         }),
                     ));
                     ui.add(Field::new(
-                        "Common Event",
+                        fl!("common_event"),
                         NilPaddedMenu::new(&mut selected_item.common_event_id, &*common_events),
                     ));
                     ui.end_row();
@@ -189,7 +192,7 @@ impl window::Window for Window {
                     );
                 }
                 if self.menu_se_picker_open {
-                    egui::Window::new("Menu Sound Effect Picker")
+                    egui::Window::new(fl!("window_items_msep_label"))
                         .id(egui::Id::new("menu_se_picker"))
                         .show(ctx, |ui| {
                             self.menu_se_picker.ui(ui);
