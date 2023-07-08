@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::fl;
 use crate::prelude::*;
 
 use crate::Pencil;
@@ -39,7 +40,7 @@ impl TopBar {
         let state = state!();
         egui::widgets::global_dark_light_mode_switch(ui);
 
-        ui.checkbox(&mut self.fullscreen, "Fullscreen");
+        ui.checkbox(&mut self.fullscreen, fl!("fullscreen"));
 
         frame.set_fullscreen(self.fullscreen);
 
@@ -53,39 +54,39 @@ impl TopBar {
 
         ui.separator();
 
-        ui.menu_button("File", |ui| {
+        ui.menu_button(fl!("topbar_file_section"), |ui| {
             ui.label(if let Some(path) = state.filesystem.project_path() {
-                format!("Current project:\n{}", path)
+                fl!("topbar_file_current_proj_label", path = path.to_string())
             } else {
-                "No project open".to_string()
+                fl!("topbar_file_no_proj_open_label")
             });
 
-            if ui.button("New Project").clicked() {
+            if ui.button(fl!("new_project")).clicked() {
                 state.windows.add_window(new_project::Window::default());
             }
 
-            open_project |= ui.button("Open Project").clicked();
+            open_project |= ui.button(fl!("open_project")).clicked();
 
             ui.separator();
 
             ui.add_enabled_ui(state.filesystem.project_loaded(), |ui| {
-                if ui.button("Project Config").clicked() {
+                if ui.button(fl!("topbar_file_proj_config_btn")).clicked() {
                     state.windows.add_window(config_window::Window {});
                 }
 
-                if ui.button("Close Project").clicked() {
+                if ui.button(fl!("topbar_file_close_proj_btn")).clicked() {
                     state.windows.clean_windows();
                     state.tabs.clean_tabs(|t| t.requires_filesystem());
                     state.filesystem.unload_project();
                 }
 
-                save_project |= ui.button("Save Project").clicked();
+                save_project |= ui.button(fl!("topbar_file_save_proj_btn")).clicked();
             });
 
             ui.separator();
 
             ui.add_enabled_ui(state.filesystem.project_loaded(), |ui| {
-                if ui.button("Command Maker").clicked() {
+                if ui.button(fl!("topbar_file_command_maker_btn")).clicked() {
                     state
                         .windows
                         .add_window(crate::command_gen::CommandGeneratorWindow::default());
@@ -94,19 +95,19 @@ impl TopBar {
 
             ui.separator();
 
-            if ui.button("Quit").clicked() {
+            if ui.button(fl!("topbar_file_quit_btn")).clicked() {
                 frame.close();
             }
         });
 
         ui.separator();
 
-        ui.menu_button("Appearance", |ui| {
+        ui.menu_button(fl!("topbar_appearance_section"), |ui| {
             // Or these together so if one OR the other is true the window shows.
-            self.egui_settings_open =
-                ui.button("Egui Settings").clicked() || self.egui_settings_open;
+            self.egui_settings_open = ui.button(fl!("topbar_appearance_egui_conf_btn")).clicked()
+                || self.egui_settings_open;
 
-            ui.menu_button("Catppuccin theme", |ui| {
+            ui.menu_button(fl!("topbar_appearance_egui_catppuccin_section"), |ui| {
                 if ui.button("Frappe").clicked() {
                     catppuccin_egui::set_theme(ui.ctx(), catppuccin_egui::FRAPPE);
                 }
@@ -124,10 +125,10 @@ impl TopBar {
             });
 
             let theme = &mut global_config!().theme;
-            ui.menu_button("Code Theme", |ui| {
+            ui.menu_button(fl!("topbar_appearance_code_theme_section"), |ui| {
                 theme.ui(ui);
 
-                ui.label("Code sample");
+                ui.label(fl!("topbar_appearance_code_sample_label"));
                 ui.label(syntax_highlighting::highlight(
                     ui.ctx(),
                     *theme,
@@ -144,10 +145,8 @@ impl TopBar {
             });
 
             if ui
-                .button("Clear Loaded Textures")
-                .on_hover_text(
-                    "You may need to reopen maps/windows for any changes to take effect.",
-                )
+                .button(fl!("topbar_appearance_clt_btn"))
+                .on_hover_text(fl!("topbar_appearance_clt_onhover_label"))
                 .clicked()
             {
                 state.image_cache.clear();
@@ -156,27 +155,27 @@ impl TopBar {
 
         ui.separator();
 
-        ui.menu_button("Data", |ui| {
+        ui.menu_button(fl!("topbar_data_section"), |ui| {
             ui.add_enabled_ui(state.filesystem.project_loaded(), |ui| {
-                if ui.button("Maps").clicked() {
+                if ui.button(fl!("maps")).clicked() {
                     state.windows.add_window(map_picker::Window::default());
                 }
 
-                if ui.button("Items").clicked() {
+                if ui.button(fl!("items")).clicked() {
                     state.windows.add_window(items::Window::default());
                 }
 
-                if ui.button("Common Events").clicked() {
+                if ui.button(fl!("common_events")).clicked() {
                     state
                         .windows
                         .add_window(common_event_edit::Window::default());
                 }
 
-                if ui.button("Scripts").clicked() {
+                if ui.button(fl!("scripts")).clicked() {
                     state.windows.add_window(script_edit::Window::default());
                 }
 
-                if ui.button("Sound Test").clicked() {
+                if ui.button(fl!("scripts")).clicked() {
                     state.windows.add_window(sound_test::Window::default());
                 }
             });
@@ -184,30 +183,30 @@ impl TopBar {
 
         ui.separator();
 
-        ui.menu_button("Help", |ui| {
-            if ui.button("About...").clicked() {
+        ui.menu_button(fl!("topbar_help_section"), |ui| {
+            if ui.button(format!("{}...", fl!("about"))).clicked() {
                 state.windows.add_window(about::Window::default());
             };
 
             ui.separator();
 
-            if ui.button("Egui Inspection").clicked() {
+            if ui.button(fl!("topbar_egui_inspection_btn")).clicked() {
                 state.windows.add_window(misc::EguiInspection::default());
             }
 
-            if ui.button("Egui Memory").clicked() {
+            if ui.button(fl!("topbar_egui_memory_btn")).clicked() {
                 state.windows.add_window(misc::EguiMemory::default());
             }
 
             let mut debug_on_hover = ui.ctx().debug_on_hover();
-            ui.toggle_value(&mut debug_on_hover, "Debug on hover");
+            ui.toggle_value(&mut debug_on_hover, fl!("topbar_debug_on_hover_tv"));
             ui.ctx().set_debug_on_hover(debug_on_hover);
         });
 
         ui.separator();
 
         ui.add_enabled_ui(state.filesystem.project_loaded(), |ui| {
-            if ui.button("Playtest").clicked() {
+            if ui.button(fl!("topbar_playtest_btn")).clicked() {
                 let mut cmd = luminol_term::CommandBuilder::new("steamshim");
                 cmd.cwd(state.filesystem.project_path().expect("project not loaded"));
 
@@ -220,13 +219,13 @@ impl TopBar {
 
                 match result {
                     Ok(w) => state.windows.add_window(w),
-                    Err(e) => state.toasts.error(format!(
-                        "error starting game (tried steamshim.exe and then game.exe): {e}"
-                    )),
+                    Err(e) => state
+                        .toasts
+                        .error(fl!("toast_error_starting_game", why = e.to_string())),
                 }
             }
 
-            if ui.button("Terminal").clicked() {
+            if ui.button(fl!("topbar_terminal_btn")).clicked() {
                 #[cfg(windows)]
                 let shell = "powershell";
                 #[cfg(unix)]
@@ -236,14 +235,16 @@ impl TopBar {
 
                 match crate::windows::console::Console::new(cmd) {
                     Ok(w) => state.windows.add_window(w),
-                    Err(e) => state.toasts.error(format!("error starting shell: {e}")),
+                    Err(e) => state
+                        .toasts
+                        .error(fl!("toast_error_starting_shell", why = e.to_string())),
                 }
             }
         });
 
         ui.separator();
 
-        ui.label("Brush:");
+        ui.label(format!("{}:", fl!("topbar_brush_label")));
 
         let mut toolbar = state.toolbar.borrow_mut();
         for brush in Pencil::iter() {
@@ -252,7 +253,7 @@ impl TopBar {
 
         let ctx = ui.ctx();
         // Because style_ui makes a new style, AND we can't pass the style to a dedicated window, we handle the logic here.
-        egui::Window::new("Egui Settings")
+        egui::Window::new(fl!("topbar_egui_settings_label"))
             .open(&mut self.egui_settings_open)
             .show(ui.ctx(), |ui| {
                 ctx.style_ui(ui);
@@ -266,9 +267,9 @@ impl TopBar {
         }
 
         if save_project {
-            state.toasts.info("Saving project...");
+            state.toasts.info(fl!("toast_info_saving_proj"));
             match state.data_cache.save() {
-                Ok(_) => state.toasts.info("Saved project sucessfully!"),
+                Ok(_) => state.toasts.info(fl!("toast_info_saved_proj")),
                 Err(e) => state.toasts.error(e),
             }
         }
@@ -276,7 +277,7 @@ impl TopBar {
         if self.open_project_promise.is_some() {
             if let Some(r) = self.open_project_promise.as_ref().unwrap().ready() {
                 match r {
-                    Ok(_) => state.toasts.info("Opened project successfully!"),
+                    Ok(_) => state.toasts.info(fl!("toast_info_opened_proj")),
                     Err(e) => state.toasts.error(e),
                 }
                 self.open_project_promise = None;
