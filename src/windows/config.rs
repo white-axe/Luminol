@@ -14,8 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
-
-use crate::{fl, prelude::*};
+use crate::{fl, prelude::*, project::RGSSVer};
 
 /// The confg window
 pub struct Window {}
@@ -33,7 +32,7 @@ impl window::Window for Window {
 
     fn show(&mut self, ctx: &egui::Context, open: &mut bool) {
         egui::Window::new(self.name()).open(open).show(ctx, |ui| {
-            let mut config = project_config!();
+            let mut config = state!().data_cache.config();
 
             ui.label(fl!("window_config_proj_name_label"));
             ui.text_edit_singleline(&mut config.project_name);
@@ -43,7 +42,7 @@ impl window::Window for Window {
             egui::ComboBox::from_label(fl!("window_config_rgss_ver_label"))
                 .selected_text(config.rgss_ver.to_string())
                 .show_ui(ui, |ui| {
-                    for ver in config::RGSSVer::iter() {
+                    for ver in RGSSVer::iter() {
                         ui.selectable_value(&mut config.rgss_ver, ver, ver.to_string());
                     }
                 });

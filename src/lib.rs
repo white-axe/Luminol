@@ -51,18 +51,18 @@
 // 3) int_roundings
 // int_roundings is close to stabilization.
 #![feature(drain_filter, min_specialization, int_roundings)]
-
+use eframe::glow;
 pub use prelude::*;
 
 /// The main Luminol application.
 pub mod luminol;
 
 pub mod prelude;
+/// The state Luminol saves on shutdown.
+pub mod saved_state;
 
 /// Audio related structs and funtions.
 pub mod audio;
-
-pub mod config;
 
 pub mod cache;
 
@@ -76,6 +76,8 @@ pub mod windows;
 /// Stack defined windows that edit values.
 pub mod modals;
 
+/// Structs related to Luminol's internal data.
+pub mod project;
 /// Tabs to be displayed in the center of Luminol.
 pub mod tabs;
 
@@ -89,6 +91,7 @@ pub mod lumi;
 pub mod i18n;
 
 pub use luminol::Luminol;
+use saved_state::SavedState;
 use tabs::tab::Tab;
 
 /// Embedded icon 256x256 in size.
@@ -114,7 +117,7 @@ pub enum Pencil {
 /// Passed to windows and widgets when updating.
 pub struct State {
     /// Filesystem to be passed around.
-    pub filesystem: filesystem::ProjectFS,
+    pub filesystem: filesystem::Filesystem,
     /// The data cache.
     pub data_cache: data::Cache,
     pub image_cache: image_cache::Cache,
@@ -126,7 +129,10 @@ pub struct State {
     pub audio: audio::Audio,
     /// Toasts to be displayed.
     pub toasts: Toasts,
-    pub render_state: egui_wgpu::RenderState,
+    /// The gl context.
+    pub gl: Arc<glow::Context>,
+    /// State to be saved.
+    pub saved_state: AtomicRefCell<SavedState>,
     /// Toolbar state
     pub toolbar: AtomicRefCell<ToolbarState>,
 }
@@ -135,16 +141,17 @@ static_assertions::assert_impl_all!(State: Send, Sync);
 
 impl State {
     /// Create a new UpdateInfo.
-    pub fn new(render_state: egui_wgpu::RenderState) -> Self {
+    pub fn new(gl: Arc<glow::Context>, state: SavedState) -> Self {
         Self {
-            filesystem: filesystem::ProjectFS::default(),
+            filesystem: filesystem::Filesystem::default(),
             data_cache: data::Cache::default(),
             image_cache: image_cache::Cache::default(),
             windows: windows::window::Windows::default(),
             tabs: tab::Tabs::new("global_tabs", vec![Box::new(started::Tab::new())]),
             audio: audio::Audio::default(),
             toasts: Toasts::default(),
-            render_state,
+            gl,
+            saved_state: AtomicRefCell::new(state),
             toolbar: AtomicRefCell::default(),
         }
     }

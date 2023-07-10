@@ -14,31 +14,11 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
-/// The about window.
-pub mod about;
-/// The common event editor.
-pub mod common_event_edit;
-/// Config window
-pub mod config;
-/// Playtest console
-pub mod console;
-/// The event editor.
-pub mod event_edit;
-/// The Graphic picker.
-pub mod graphic_picker;
-/// The item editor.
-pub mod items;
-/// The map picker.
-pub mod map_picker;
-/// Misc windows.
-pub mod misc;
-/// New project window
-pub mod new_project;
-/// The script editor
-pub mod script_edit;
-/// The sound test.
-pub mod sound_test;
-/// Traits and structs related to windows.
-pub mod window;
 
-pub use window::Window;
+/// The database of commands for this project.
+mod command_db;
+/// Luminol configuration
+mod config;
+
+pub use command_db::CommandDB;
+pub use config::{LocalConfig, RGSSVer};

@@ -12,6 +12,3 @@
 
 #! conventional commits config
 git-conventional-commits.yaml
-
-#! renderdoc
-captures/

@@ -15,18 +15,17 @@
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::project::RGSSVer;
 use crate::{fl, prelude::*};
-use config::{RGSSVer, RMVer};
-
 use std::io::Read;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use strum::IntoEnumIterator;
 
 /// The new project window
 pub struct Window {
     name: String,
     rgss_ver: RGSSVer,
-    editor_ver: RMVer,
     project_promise: Option<poll_promise::Promise<Result<(), String>>>,
     download_executable: bool,
     progress: Arc<Progress>,
@@ -47,7 +46,6 @@ impl Default for Window {
         Self {
             name: fl!("window_new_proj_my_proj_str"),
             rgss_ver: RGSSVer::RGSS1,
-            editor_ver: RMVer::XP,
             project_promise: None,
             download_executable: false,
             progress: Arc::default(),
@@ -111,10 +109,9 @@ impl window::Window for Window {
                             match res {
                                 Ok(_) => *open = false,
                                 Err(e) => {
-                                    state!().toasts.error(fl!(
-                                        "toast_error_creating_proj",
-                                        why = e.to_string()
-                                    ));
+                                    state!()
+                                        .toasts
+                                        .error(fl!("toast_error_creating_proj", why = e.to_string()));
                                     self.project_promise = None;
                                 }
                             }
@@ -143,13 +140,8 @@ impl window::Window for Window {
                         }
                     } else {
                         if ui.button(fl!("ok")).clicked() {
+                            let name = self.name.clone();
                             let rgss_ver = self.rgss_ver;
-                            let config = config::project::Config {
-                                project_name: self.name.clone(),
-                                rgss_ver,
-                                editor_ver: self.editor_ver,
-                                ..Default::default()
-                            };
                             let download_executable = self.download_executable
                                 && matches!(
                                     rgss_ver,
@@ -164,7 +156,8 @@ impl window::Window for Window {
                             self.project_promise =
                                 Some(poll_promise::Promise::spawn_local(async move {
                                     let state = state!();
-                                    let result = state.data_cache.create_project(config).await;
+                                    let result =
+                                        state.filesystem.try_create_project(name, rgss_ver).await;
 
                                     if init_git && result.is_ok() {
                                         use std::process::Command;
@@ -236,6 +229,8 @@ impl Window {
                 _ => unreachable!()
         };
 
+        let rgss_ver = rgss_ver.to_string();
+
         progress.zip_total.store(zip_url.len(), Ordering::Relaxed);
 
         let zips = futures::future::join_all(zip_url.iter().map(|url|
@@ -251,7 +246,7 @@ impl Window {
             let mut response = zip_response.map_err(|e| {
                 fl!(
                     "toast_error_downloading_rgss",
-                    variant = rgss_ver.to_string(),
+                    variant = rgss_ver.clone(),
                     why = e.to_string()
                 )
             })?;
@@ -259,7 +254,7 @@ impl Window {
             let bytes = response.body_bytes().await.map_err(|e| {
                 fl!(
                     "toast_error_getting_body_resp",
-                    variant = rgss_ver.to_string(),
+                    variant = rgss_ver.clone(),
                     why = e.to_string()
                 )
             })?;
@@ -293,22 +288,13 @@ impl Window {
                     file_path = file_path.to_string_lossy()
                 ))?;
 
-                if file_path.is_empty()
-                    || state
-                        .filesystem
-                        .exists(file_path)
-                        .map_err(|e| e.to_string())?
-                {
+                if file_path.is_empty() || state.filesystem.path_exists(file_path) {
                     continue;
                 }
 
                 if file.is_dir() {
-                    state.filesystem.create_dir(file_path).map_err(|e| {
-                        fl!(
-                            "toast_error_create_dir",
-                            file_path = file_path,
-                            why = e.to_string()
-                        )
+                    state.filesystem.create_directory(file_path).map_err(|e| {
+                        fl!("toast_error_create_dir", file_path = file_path, why = e)
                     })?;
                 } else {
                     let mut bytes = Vec::new();
@@ -321,11 +307,11 @@ impl Window {
                                 why = e
                             )
                         })?;
-                    state.filesystem.write(file_path, bytes).map_err(|e| {
+                    state.filesystem.save_data(file_path, bytes).map_err(|e| {
                         fl!(
                             "toast_error_saving_file_data",
                             file_path = file_path,
-                            why = e.to_string()
+                            why = e
                         )
                     })?;
                 }

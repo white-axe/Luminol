@@ -14,7 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
-
+use crate::fl;
 use parking_lot::Mutex;
 use std::hash::Hash;
 
@@ -41,14 +41,16 @@ where
 
     /// Display all tabs.
     pub fn ui(&self, ui: &mut egui::Ui) {
-        egui_dock::DockArea::new(&mut self.tree.lock())
-            .id(self.id)
-            .show_inside(
-                ui,
-                &mut TabViewer {
-                    marker: std::marker::PhantomData,
-                },
-            );
+        ui.group(|ui| {
+            egui_dock::DockArea::new(&mut self.tree.lock())
+                .id(self.id)
+                .show_inside(
+                    ui,
+                    &mut TabViewer {
+                        marker: std::marker::PhantomData,
+                    },
+                );
+        });
     }
 
     /// Add a tab.
@@ -110,7 +112,7 @@ where
 pub trait Tab {
     /// Optionally used as the title of the tab.
     fn name(&self) -> String {
-        "Untitled Window".to_string()
+        fl!("window_untitled_title")
     }
 
     /// Required to prevent duplication.

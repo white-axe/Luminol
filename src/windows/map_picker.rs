@@ -71,9 +71,8 @@ impl Window {
     }
 
     fn create_map_tab(id: i32) {
-        match map::Tab::new(id) {
-            Ok(m) => state!().tabs.add_tab(Box::new(m)),
-            Err(e) => state!().toasts.error(e),
+        if let Some(m) = map::Tab::new(id) {
+            state!().tabs.add_tab(Box::new(m));
         }
     }
 }

@@ -138,7 +138,7 @@ impl tab::Tab for ScriptTab {
     }
 
     fn show(&mut self, ui: &mut egui::Ui) {
-        let theme = global_config!().theme;
+        let theme = state!().saved_state.borrow().theme;
         ui.horizontal(|ui| {
             let mut save_script = false;
 

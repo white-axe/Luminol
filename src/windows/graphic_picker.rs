@@ -29,11 +29,14 @@ pub struct Window {
 
 impl Window {
     #[must_use]
-    pub fn new(icons: Vec<camino::Utf8PathBuf>) -> Self {
+    pub fn new(icons: Vec<String>) -> Self {
         let mut retained_images = Vec::new();
 
-        for mut icon_path in icons {
-            icon_path.set_extension("");
+        for icon_path in icons {
+            let icon_path = icon_path;
+            let split = icon_path.split('.').collect::<Vec<&str>>();
+
+            let icon_path = String::from(split[0]);
 
             let image = match state!()
                 .image_cache
@@ -43,14 +46,14 @@ impl Window {
                 Err(why) => {
                     state!().toasts.error(fl!(
                         "toast_error_cannot_load_icon",
-                        icon_path = icon_path.to_string(),
-                        why = why.to_string()
+                        icon_path = icon_path,
+                        why = why
                     ));
                     continue;
                 }
             };
             retained_images.push(Graphic {
-                name: icon_path.to_string(),
+                name: icon_path,
                 image,
             });
         }

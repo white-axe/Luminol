@@ -77,37 +77,30 @@ impl tab::Tab for Tab {
             {
                 self.load_project_promise = Some(Promise::spawn_local(async move {
                     if let Err(e) = state.filesystem.spawn_project_file_picker().await {
-                        state.toasts.error(fl!("toast_error_load_proj", why = e));
+                        state
+                            .toasts
+                            .error(fl!("toast_error_load_proj", why = e.to_string()));
                     }
                 }));
             }
 
             ui.add_space(100.);
 
-            ui.heading(fl!("tab_started_recent_projects_label"));
+            ui.heading("Recent");
 
-            for path in &global_config!().recent_projects {
+            for path in &state.saved_state.borrow().recent_projects {
                 if ui.button(path).clicked() {
                     let path = path.clone();
 
                     self.load_project_promise = Some(Promise::spawn_local(async move {
-                        if let Err(why) = state.filesystem.load_project(path) {
-                            state.toasts.error(fl!("toast_error_load_proj", why = why));
-                        } else {
-                            state!().toasts.info(fl!(
-                                "toast_info_successful_load",
-                                projectName = state!()
-                                    .filesystem
-                                    .project_path()
-                                    .expect("project not open")
-                                    .to_string()
-                            ));
+                        if let Err(why) = state.filesystem.try_open_project(path) {
+                            state
+                                .toasts
+                                .error(fl!("toast_error_load_proj", why = why.to_string()));
                         }
                     }));
                 }
             }
         }
-
-        state!().filesystem.debug_ui(ui);
     }
 }

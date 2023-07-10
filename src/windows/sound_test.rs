@@ -26,7 +26,7 @@ pub struct SoundTab {
     volume: u8,
     pitch: u8,
     selected_track: String,
-    folder_children: Vec<filesystem::DirEntry>,
+    folder_children: Vec<String>,
 }
 
 impl SoundTab {
@@ -40,7 +40,7 @@ impl SoundTab {
             selected_track: String::new(),
             folder_children: state!()
                 .filesystem
-                .read_dir(format!("Audio/{source}"))
+                .dir_children_strings(format!("Audio/{source}"))
                 .unwrap(),
         }
     }
@@ -128,8 +128,8 @@ impl SoundTab {
                                 if ui
                                     .selectable_value(
                                         &mut self.selected_track,
-                                        entry.file_name().to_string(),
-                                        entry.file_name(),
+                                        entry.clone(),
+                                        entry,
                                     )
                                     .double_clicked()
                                 {

@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Lily Lyons
+// Copyright (C) 2022 Lily Lyons
 //
 // This file is part of Luminol.
 //
@@ -14,31 +14,24 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
-/// The about window.
-pub mod about;
-/// The common event editor.
-pub mod common_event_edit;
-/// Config window
-pub mod config;
-/// Playtest console
-pub mod console;
-/// The event editor.
-pub mod event_edit;
-/// The Graphic picker.
-pub mod graphic_picker;
-/// The item editor.
-pub mod items;
-/// The map picker.
-pub mod map_picker;
-/// Misc windows.
-pub mod misc;
-/// New project window
-pub mod new_project;
-/// The script editor
-pub mod script_edit;
-/// The sound test.
-pub mod sound_test;
-/// Traits and structs related to windows.
-pub mod window;
+use crate::prelude::*;
+use std::collections::VecDeque;
 
-pub use window::Window;
+/// The state saved by Luminol between sessions.
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(default)]
+pub struct SavedState {
+    /// Recently open projects.
+    pub recent_projects: VecDeque<String>,
+    /// The current code theme
+    pub theme: syntax_highlighting::CodeTheme,
+}
+
+impl Default for SavedState {
+    fn default() -> Self {
+        SavedState {
+            recent_projects: VecDeque::with_capacity(10),
+            theme: syntax_highlighting::CodeTheme::default(),
+        }
+    }
+}

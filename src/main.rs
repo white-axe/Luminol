@@ -25,43 +25,22 @@ use luminol::fl;
 fn main() -> Result<()> {
     #[cfg(debug_assertions)]
     std::thread::spawn(|| loop {
-        use std::fmt::Write;
-
         std::thread::sleep(std::time::Duration::from_secs(5));
-
         let deadlocks = parking_lot::deadlock::check_deadlock();
-
         if deadlocks.is_empty() {
             continue;
         }
 
-        rfd::MessageDialog::new()
-            .set_title(fl!("fatal_error"))
-            .set_level(rfd::MessageLevel::Error)
-            .set_description(fl!(
-                "deadlock_detected_description",
-                numOfDeadLocks = deadlocks.len()
-            ))
-            .show();
+        println!("Luminol has deadlocked! Please file an issue.");
+        println!("{} deadlocks detected", deadlocks.len());
         for (i, threads) in deadlocks.iter().enumerate() {
-            let mut description = String::new();
+            println!("Deadlock #{}", i);
             for t in threads {
-                writeln!(
-                    description,
-                    "{}",
-                    fl!("thread_id", id = format!("{:#?}", t.thread_id()))
-                )
-                .unwrap();
-                writeln!(description, "{:#?}", t.backtrace()).unwrap();
+                println!("Thread Id {:#?}", t.thread_id());
+                println!("{:#?}", t.backtrace());
             }
-            rfd::MessageDialog::new()
-                .set_title(fl!("deadlock_detected_title", deadlockIndex = i))
-                .set_level(rfd::MessageLevel::Error)
-                .set_description(&description)
-                .show();
         }
-
-        std::process::abort();
+        std::process::exit(1);
     });
 
     // Log to stdout (if you run with `RUST_LOG=debug`).

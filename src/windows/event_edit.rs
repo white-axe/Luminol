@@ -14,10 +14,8 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
-
-use egui_extras::RetainedImage;
-
 use crate::{fl, prelude::*};
+use egui_extras::RetainedImage;
 
 /// The event editor window.
 pub struct Window {
@@ -428,7 +426,7 @@ impl window::Window for Window {
                     let cancel_clicked = ui.button(fl!("cancel")).clicked();
 
                     if apply_clicked || ok_clicked {
-                        let mut map = state!().data_cache.map(self.map_id);
+                        let mut map = state!().data_cache.get_map(self.map_id);
                         map.events[self.id] = self.event.clone();
                     }
 

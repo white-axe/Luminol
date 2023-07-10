@@ -56,7 +56,10 @@ impl TopBar {
 
         ui.menu_button(fl!("topbar_file_section"), |ui| {
             ui.label(if let Some(path) = state.filesystem.project_path() {
-                fl!("topbar_file_current_proj_label", path = path.to_string())
+                fl!(
+                    "topbar_file_current_proj_label",
+                    path = path.to_string_lossy()
+                )
             } else {
                 fl!("topbar_file_no_proj_open_label")
             });
@@ -71,7 +74,7 @@ impl TopBar {
 
             ui.add_enabled_ui(state.filesystem.project_loaded(), |ui| {
                 if ui.button(fl!("topbar_file_proj_config_btn")).clicked() {
-                    state.windows.add_window(config_window::Window {});
+                    state.windows.add_window(config::Window {});
                 }
 
                 if ui.button(fl!("topbar_file_close_proj_btn")).clicked() {
@@ -124,7 +127,7 @@ impl TopBar {
                 *style = ui.ctx().style();
             });
 
-            let theme = &mut global_config!().theme;
+            let theme = &mut state.saved_state.borrow_mut().theme;
             ui.menu_button(fl!("topbar_appearance_code_theme_section"), |ui| {
                 theme.ui(ui);
 
@@ -268,7 +271,7 @@ impl TopBar {
 
         if save_project {
             state.toasts.info(fl!("toast_info_saving_proj"));
-            match state.data_cache.save() {
+            match state.data_cache.save(&state!().filesystem) {
                 Ok(_) => state.toasts.info(fl!("toast_info_saved_proj")),
                 Err(e) => state.toasts.error(e),
             }

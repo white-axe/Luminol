@@ -14,11 +14,9 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
-use command_lib::{CommandDescription, CommandKind, Index, Parameter};
-
-use ui_example::UiExample;
-
 use crate::{fl, prelude::*};
+use command_lib::{CommandDescription, CommandKind, Index, Parameter};
+use ui_example::UiExample;
 
 pub mod parameter_ui;
 pub mod ui_example;
@@ -31,7 +29,7 @@ pub struct CommandGeneratorWindow {
 impl Default for CommandGeneratorWindow {
     fn default() -> Self {
         Self {
-            commands: command_db!().user.clone(),
+            commands: state!().data_cache.commanddb().user.clone(),
             ui_examples: vec![],
         }
     }
@@ -242,7 +240,7 @@ impl window::Window for CommandGeneratorWindow {
                     }
 
                     if ui.button(fl!("save")).clicked() {
-                        command_db!().user = self.commands.clone();
+                        state!().data_cache.commanddb().user = self.commands.clone();
                     }
                 });
             });

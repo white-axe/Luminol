@@ -14,10 +14,8 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
-
-use parking_lot::Mutex;
-
 use crate::fl;
+use parking_lot::Mutex;
 
 /// A window management system to handle heap allocated windows
 ///
