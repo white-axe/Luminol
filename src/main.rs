@@ -26,6 +26,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 fn main() {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .worker_threads(1)
+        .enable_io()
+        .build()
+        .expect("failed to create tokio runtime");
+    let _gaurd = runtime.enter();
+
     #[cfg(feature = "steamworks")]
     if let Err(e) = luminol::steam::Steamworks::setup() {
         rfd::MessageDialog::new()

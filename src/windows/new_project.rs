@@ -159,7 +159,7 @@ impl window::Window for Window {
                             let branch_name = self.git_branch_name.clone();
 
                             self.project_promise =
-                                Some(poll_promise::Promise::spawn_local(async move {
+                                Some(poll_promise::Promise::spawn_async(async move {
                                     let state = state!();
                                     let result =
                                         state.filesystem.try_create_project(name, rgss_ver).await;
@@ -234,21 +234,23 @@ impl Window {
 
         progress.zip_total.store(zip_url.len(), Ordering::Relaxed);
 
-        let zips = futures::future::join_all(zip_url.iter().map(|url|
-            // surf::get(format!("https://api.allorigins.win/raw?url={url}"))  FIXME: phishing scam, apparently
-            surf::get(url)
-            .middleware(surf::middleware::Redirect::new(10))))
+        let client = reqwest::Client::new();
+
+        let zips = futures::future::join_all(zip_url.iter().map(|&url| {
+            let request = client.get(url).build().expect("Failed to parse url");
+            client.execute(request)
+        }))
         .await;
 
         for (index, zip_response) in zips.into_iter().enumerate() {
             progress.zip_current.store(index, Ordering::Relaxed);
 
             progress.total_progress.store(0, Ordering::Relaxed);
-            let mut response =
+            let response =
                 zip_response.map_err(|e| format!("Error downloading {rgss_ver}: {e}"))?;
 
             let bytes = response
-                .body_bytes()
+                .bytes()
                 .await
                 .map_err(|e| format!("Error getting response body for {rgss_ver}: {e}"))?;
 

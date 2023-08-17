@@ -23,7 +23,7 @@ eframe = { version = "0.21", features = ["persistence"] }
 egui_extras = { version = "0.21", features = ["svg", "image"] }
 egui-notify = "0.6"
 egui_dock = "0.4"
-catppuccin-egui = "2.0.1"
+catppuccin-egui = "=2.0.0"
 
 image = { version = "0.24", features = ["jpeg", "png"] }
 
@@ -43,8 +43,9 @@ atomic_refcell = "0.1.9"
 dashmap = "5.4.0"
 
 futures = "0.3"
-poll-promise = { version = "0.2.0", features = ["smol"] }
-surf = "2.3.2"
+poll-promise = { version = "0.2.0", features = ["tokio"] }
+tokio = { version = "1.32", features = ["rt"] }
+reqwest = "0.11.18"
 
 slab = { version = "0.4", features = ["serde"] }
 
@@ -124,7 +125,7 @@ members = ["alox-48", "command-lib", "rmxp-types", "luminol-term"]
 
 [patch.crates-io]
 poll-promise = { git = "https://github.com/EmbarkStudios/poll-promise", rev = "8c4d0d6e4d693cf54e9306950cb2f6d271c77080" }
-egui_dock = { git = "https://github.com/Adanos020/egui_dock" }
+# egui_dock = { git = "https://github.com/Adanos020/egui_dock" }
 # js-sys = { git = "https://github.com/Speak2Erase/wasm-bindgen-filesystem-access-api" }
 # web-sys = { git = "https://github.com/Speak2Erase/wasm-bindgen-filesystem-access-api" }
 # wasm-bindgen = { git = "https://github.com/Speak2Erase/wasm-bindgen-filesystem-access-api" }

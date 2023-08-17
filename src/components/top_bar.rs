@@ -267,7 +267,7 @@ impl TopBar {
             });
 
         if open_project {
-            self.open_project_promise = Some(Promise::spawn_local(
+            self.open_project_promise = Some(Promise::spawn_async(
                 state.filesystem.spawn_project_file_picker(),
             ));
         }

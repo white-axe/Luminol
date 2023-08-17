@@ -82,7 +82,7 @@ impl tab::Tab for Tab {
                 .button(egui::RichText::new("Open Project").size(20.))
                 .clicked()
             {
-                self.load_project_promise = Some(Promise::spawn_local(async move {
+                self.load_project_promise = Some(Promise::spawn_async(async move {
                     if let Err(e) = state.filesystem.spawn_project_file_picker().await {
                         state
                             .toasts
@@ -95,17 +95,19 @@ impl tab::Tab for Tab {
 
             ui.heading("Recent");
 
-            for path in &state.saved_state.borrow().recent_projects {
+            let saved_state = state.saved_state.borrow();
+            for path in &saved_state.recent_projects {
                 if ui.button(path).clicked() {
                     let path = path.clone();
+                    drop(saved_state);
 
-                    self.load_project_promise = Some(Promise::spawn_local(async move {
-                        if let Err(why) = state.filesystem.try_open_project(path) {
-                            state
-                                .toasts
-                                .error(format!("Error loading the project: {why}"));
-                        }
-                    }));
+                    if let Err(why) = state.filesystem.try_open_project(path) {
+                        state
+                            .toasts
+                            .error(format!("Error loading the project: {why}"));
+                    }
+
+                    break;
                 }
             }
         }
