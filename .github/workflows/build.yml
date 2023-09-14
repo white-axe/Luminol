@@ -5,8 +5,8 @@ on:
 name: Autobuild
 
 jobs:
-  dependencies-ubuntu:
-    name: Dependencies Ubuntu
+  deps-ubuntu:
+    name: Deps Ubuntu
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -32,7 +32,7 @@ jobs:
 
   build-ubuntu:
     name: Build Ubuntu
-    needs: dependencies-ubuntu
+    needs: deps-ubuntu
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -50,7 +50,7 @@ jobs:
         with:
           shared-key: build-ubuntu
       - name: Build luminol (Release)
-        run: cargo build --release --jobs 1
+        run: cargo build --release
       - name: Setup artifact
         run: |
           mkdir -p ${{ github.workspace }}/artifact
@@ -61,8 +61,8 @@ jobs:
           name: luminol-linux
           path: ${{ github.workspace }}/artifact/
 
-  dependencies-windows:
-    name: Dependencies Windows
+  deps-windows:
+    name: Deps Windows
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
@@ -84,7 +84,7 @@ jobs:
 
   build-windows:
     name: Build Windows
-    needs: dependencies-windows
+    needs: deps-windows
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
@@ -98,7 +98,7 @@ jobs:
         with:
           shared-key: build-windows
       - name: Build luminol (Release)
-        run: cargo build --release --jobs 1
+        run: cargo build --release
       - name: Setup artifact
         run: |
           mkdir -p ${{ github.workspace }}/artifact
@@ -109,8 +109,8 @@ jobs:
           name: luminol-windows
           path: ${{ github.workspace }}/artifact/
 
-  dependencies-mac:
-    name: Dependencies MacOS
+  deps-mac:
+    name: Deps MacOS
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
@@ -132,7 +132,7 @@ jobs:
 
   build-mac:
     name: Build MacOS
-    needs: dependencies-mac
+    needs: deps-mac
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
@@ -146,7 +146,7 @@ jobs:
         with:
           shared-key: build-mac
       - name: Build luminol (Release)
-        run: cargo build --release --jobs 1
+        run: cargo build --release
       - name: Setup artifact
         run: |
           mkdir -p ${{ github.workspace }}/artifact
