@@ -5,8 +5,34 @@ on:
 name: Autobuild
 
 jobs:
-  build-ubuntu: 
+  dependencies-ubuntu:
+    name: Dependencies Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Replace main.rs and lib.rs with empty files
+        run: |
+          echo "fn main() {}" > ${{ github.workspace }}/src/main.rs
+          echo "//" > ${{ github.workspace }}/src/lib.rs
+      - name: Install libraries
+        run: |
+          sudo apt update
+          sudo apt install libgtk-3-dev libatk1.0-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev libasound2-dev clang mold -y
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly-2023-09-12
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: build-ubuntu
+      - name: Build dependencies (Release)
+        run: cargo build --release --jobs 1
+
+  build-ubuntu:
     name: Build Ubuntu
+    needs: dependencies-ubuntu
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -21,6 +47,8 @@ jobs:
           toolchain: nightly-2023-09-12
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: build-ubuntu
       - name: Build luminol (Release)
         run: cargo build --release --jobs 1
       - name: Setup artifact
@@ -33,8 +61,30 @@ jobs:
           name: luminol-linux
           path: ${{ github.workspace }}/artifact/
 
-  build-windows: 
+  dependencies-windows:
+    name: Dependencies Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Replace main.rs and lib.rs with empty files
+        run: |
+          echo "fn main() {}" > ${{ github.workspace }}/src/main.rs
+          echo "//" > ${{ github.workspace }}/src/lib.rs
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly-2023-09-12
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: build-windows
+      - name: Build dependencies (Release)
+        run: cargo build --release --jobs 1
+
+  build-windows:
     name: Build Windows
+    needs: dependencies-windows
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
@@ -45,6 +95,8 @@ jobs:
           toolchain: nightly-2023-09-12
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: build-windows
       - name: Build luminol (Release)
         run: cargo build --release --jobs 1
       - name: Setup artifact
@@ -57,8 +109,30 @@ jobs:
           name: luminol-windows
           path: ${{ github.workspace }}/artifact/
 
-  build-mac: 
+  dependencies-mac:
+    name: Dependencies MacOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Replace main.rs and lib.rs with empty files
+        run: |
+          echo "fn main() {}" > ${{ github.workspace }}/src/main.rs
+          echo "//" > ${{ github.workspace }}/src/lib.rs
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly-2023-09-12
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: build-mac
+      - name: Build dependencies (Release)
+        run: cargo build --release --jobs 1
+
+  build-mac:
     name: Build MacOS
+    needs: dependencies-mac
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
@@ -69,6 +143,8 @@ jobs:
           toolchain: nightly-2023-09-12
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: build-mac
       - name: Build luminol (Release)
         run: cargo build --release --jobs 1
       - name: Setup artifact
