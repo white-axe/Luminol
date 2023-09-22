@@ -14,13 +14,24 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
+//
+//     Additional permission under GNU GPL version 3 section 7
+//
+// If you modify this Program, or any covered work, by linking or combining
+// it with Steamworks API by Valve Corporation, containing parts covered by
+// terms of the Steamworks API by Valve Corporation, the licensors of this
+// Program grant you additional permission to convey the resulting work.
 
-pub mod primitives;
+mod quad;
+mod sprite;
+mod tiles;
+mod vertex;
+mod viewport;
 
-mod event;
-mod map;
-mod plane;
+pub use quad::Quad;
+pub use vertex::Vertex;
+pub use viewport::Viewport;
 
-pub use event::Event;
-pub use map::Map;
-pub use plane::Plane;
+pub use sprite::Sprite;
+pub use tiles::Atlas;
+pub use tiles::Tiles;
