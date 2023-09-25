@@ -25,6 +25,11 @@
 // Program grant you additional permission to convey the resulting work.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+use luminol::prelude::*;
+
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
     //let runtime = tokio::runtime::Builder::new_current_thread()
@@ -127,7 +132,13 @@ fn main() {
 }
 
 #[cfg(target_arch = "wasm32")]
-fn main() {
+// Dummy entry point for WebAssembly builds so wasm-bindgen doesn't throw a tantrum
+fn main() {}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+// This is the actual entry point in WebAssembly builds
+pub fn luminol_start() {
     let (panic, _) = color_eyre::config::HookBuilder::new().into_hooks();
     std::panic::set_hook(Box::new(move |info| {
         let report = panic.panic_report(info);
@@ -138,12 +149,15 @@ fn main() {
     // Redirect tracing to console.log and friends:
     tracing_wasm::set_as_global_default();
 
+    // Sleep synchronously for 5 seconds as a demonstration
+    asyncify::luminol_interrupt();
+
     let web_options = eframe::WebOptions::default();
 
     wasm_bindgen_futures::spawn_local(async {
         eframe::WebRunner::new()
             .start(
-                "the_canvas_id", // hardcode it
+                "luminol-canvas",
                 web_options,
                 Box::new(|cc| Box::new(luminol::Luminol::new(cc, std::env::args_os().nth(1)))),
             )

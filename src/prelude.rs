@@ -69,5 +69,8 @@ pub use strum::IntoEnumIterator;
 
 pub use rmxp_types::*;
 
+#[cfg(target_arch = "wasm32")]
+pub use crate::asyncify;
+
 #[cfg(feature = "steamworks")]
 pub use crate::steam::Steamworks;

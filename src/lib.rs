@@ -90,6 +90,10 @@ pub mod filesystem;
 /// The code for handling lumi, the friendly world machine!
 pub mod lumi;
 
+/// Asyncify-based interrupt handler.
+#[cfg(target_arch = "wasm32")]
+pub mod asyncify;
+
 #[cfg(feature = "steamworks")]
 pub mod steam;
 

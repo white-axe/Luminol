@@ -1,0 +1,7 @@
+[build]
+filehash = false
+inject_scripts = false
+
+[[hooks]]
+stage = "post_build"
+command = "./asyncify.sh"
