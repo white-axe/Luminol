@@ -118,7 +118,7 @@ impl tab::Tab for CommonEventTab {
         egui::Id::new("luminol_common_event").with(self.event.id)
     }
 
-    fn show(&mut self, ui: &mut egui::Ui) {
+    fn show(&mut self, ui: &mut egui::Ui, _is_focused: bool) {
         ui.horizontal(|ui| {
             let trigger_types = ["None", "Autorun", "Parallel"];
             egui::ComboBox::new(format!("common_event_{}_trigger", self.event.id), "Trigger")

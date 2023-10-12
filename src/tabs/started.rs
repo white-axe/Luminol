@@ -51,7 +51,7 @@ impl tab::Tab for Tab {
         egui::Id::new("luminol_started_tab")
     }
 
-    fn show(&mut self, ui: &mut egui::Ui) {
+    fn show(&mut self, ui: &mut egui::Ui, _is_focused: bool) {
         let state = state!();
         ui.label(
             egui::RichText::new("Luminol")

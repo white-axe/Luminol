@@ -137,7 +137,7 @@ impl tab::Tab for ScriptTab {
         egui::Id::new("luminol_script_edit").with(self.index)
     }
 
-    fn show(&mut self, ui: &mut egui::Ui) {
+    fn show(&mut self, ui: &mut egui::Ui, _is_focused: bool) {
         let theme = global_config!().theme;
         ui.horizontal(|ui| {
             let mut save_script = false;

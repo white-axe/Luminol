@@ -45,14 +45,19 @@ where
 
     /// Display all tabs.
     pub fn ui(&self, ui: &mut egui::Ui) {
-        egui_dock::DockArea::new(&mut self.tree.lock())
-            .id(self.id)
-            .show_inside(
-                ui,
-                &mut TabViewer {
-                    marker: std::marker::PhantomData,
-                },
-            );
+        let mut tree = self.tree.lock();
+        let focused_id = if ui.memory(|m| m.focus().is_none()) {
+            tree.find_active_focused().map(|(_, t)| t.id())
+        } else {
+            None
+        };
+        egui_dock::DockArea::new(&mut tree).id(self.id).show_inside(
+            ui,
+            &mut TabViewer {
+                focused_id,
+                marker: std::marker::PhantomData,
+            },
+        );
     }
 
     /// Add a tab.
@@ -86,6 +91,8 @@ where
 }
 
 struct TabViewer<T: Tab> {
+    focused_id: Option<egui::Id>,
+
     // we don't actually own any types of T, but we use them in TabViewer
     // *const is used here to avoid needing lifetimes and to indicate to the drop checker that we don't own any types of T
     marker: std::marker::PhantomData<*const T>,
@@ -102,7 +109,13 @@ where
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
-        ui.push_id(tab.id(), |ui| tab.show(ui));
+        let id = tab.id();
+        ui.push_id(id, |ui| {
+            tab.show(
+                ui,
+                self.focused_id.is_some_and(|focused_id| focused_id == id),
+            )
+        });
     }
 
     fn force_close(&mut self, tab: &mut Self::Tab) -> bool {
@@ -121,7 +134,7 @@ pub trait Tab {
     fn id(&self) -> egui::Id;
 
     /// Show this tab.
-    fn show(&mut self, ui: &mut egui::Ui);
+    fn show(&mut self, ui: &mut egui::Ui, is_focused: bool);
 
     /// Does this tab need the filesystem?
     fn requires_filesystem(&self) -> bool {
@@ -151,7 +164,7 @@ impl Tab for Box<dyn Tab + Send> {
         self.as_ref().requires_filesystem()
     }
 
-    fn show(&mut self, ui: &mut egui::Ui) {
-        self.as_mut().show(ui)
+    fn show(&mut self, ui: &mut egui::Ui, is_focused: bool) {
+        self.as_mut().show(ui, is_focused)
     }
 }
