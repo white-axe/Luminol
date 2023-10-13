@@ -550,20 +550,24 @@ impl tab::Tab for Tab {
                                 }
                             }
 
-                            Pencil::Fill
-                                if initial_tile == self.tilepicker.get_tile_from_offset(0, 0) => {}
                             Pencil::Fill => {
+                                let drawing_shape_pos =
+                                    if let Some(drawing_shape_pos) = self.drawing_shape_pos {
+                                        drawing_shape_pos
+                                    } else {
+                                        self.drawing_shape_pos = Some(self.view.cursor_pos);
+                                        self.view.cursor_pos
+                                    };
+
                                 // Use depth-first search to find all of the orthogonally
                                 // contiguous matching tiles
                                 let mut stack = vec![position; 1];
-                                let initial_x = position.0;
-                                let initial_y = position.1;
                                 while let Some(position) = stack.pop() {
                                     self.set_tile(
                                         &mut map,
                                         self.tilepicker.get_tile_from_offset(
-                                            position.0 as i16 - initial_x as i16,
-                                            position.1 as i16 - initial_y as i16,
+                                            position.0 as i16 - drawing_shape_pos.x as i16,
+                                            position.1 as i16 - drawing_shape_pos.y as i16,
                                         ),
                                         position,
                                     );
