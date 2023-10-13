@@ -117,6 +117,7 @@ impl MapView {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn ui(
         &mut self,
         ui: &mut egui::Ui,
@@ -126,6 +127,7 @@ impl MapView {
         drawing_shape: bool,
         drawing_shape_pos: Option<egui::Pos2>,
         force_show_pattern_rect: bool,
+        is_focused: bool,
     ) -> egui::Response {
         // Allocate the largest size we can for the tilemap
         let canvas_rect = ui.max_rect();
@@ -153,21 +155,23 @@ impl MapView {
 
         let ctrl_drag = ui.input(|i| {
             // Handle pan
-            if i.key_pressed(egui::Key::ArrowUp) && self.cursor_pos.y > 0. {
-                self.cursor_pos.y -= 1.0;
-            }
-            if i.key_pressed(egui::Key::ArrowDown)
-                && self.cursor_pos.y < map.data.ysize() as f32 - 1.
-            {
-                self.cursor_pos.y += 1.0;
-            }
-            if i.key_pressed(egui::Key::ArrowLeft) && self.cursor_pos.x > 0. {
-                self.cursor_pos.x -= 1.0;
-            }
-            if i.key_pressed(egui::Key::ArrowRight)
-                && self.cursor_pos.x < map.data.xsize() as f32 - 1.
-            {
-                self.cursor_pos.x += 1.0;
+            if is_focused {
+                if i.key_pressed(egui::Key::ArrowUp) && self.cursor_pos.y > 0. {
+                    self.cursor_pos.y -= 1.0;
+                }
+                if i.key_pressed(egui::Key::ArrowDown)
+                    && self.cursor_pos.y < map.data.ysize() as f32 - 1.
+                {
+                    self.cursor_pos.y += 1.0;
+                }
+                if i.key_pressed(egui::Key::ArrowLeft) && self.cursor_pos.x > 0. {
+                    self.cursor_pos.x -= 1.0;
+                }
+                if i.key_pressed(egui::Key::ArrowRight)
+                    && self.cursor_pos.x < map.data.xsize() as f32 - 1.
+                {
+                    self.cursor_pos.x += 1.0;
+                }
             }
 
             i.modifiers.command && response.dragged_by(egui::PointerButton::Primary)

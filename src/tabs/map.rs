@@ -329,7 +329,7 @@ impl tab::Tab for Tab {
         self.force_close
     }
 
-    fn show(&mut self, ui: &mut egui::Ui, _is_focused: bool) {
+    fn show(&mut self, ui: &mut egui::Ui, is_focused: bool) {
         // Display the toolbar.
         egui::TopBottomPanel::top(format!("map_{}_toolbar", self.id)).show_inside(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
@@ -448,6 +448,7 @@ impl tab::Tab for Tab {
                     self.drawing_shape,
                     self.drawing_shape_pos,
                     matches!(state!().toolbar.borrow().pencil, Pencil::Pen),
+                    is_focused,
                 );
 
                 let layers_max = map.data.zsize();
