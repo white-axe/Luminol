@@ -822,9 +822,7 @@ impl tab::Tab for Tab {
                     }
                 } else if let Some(selected_event_id) = self.view.selected_event_id {
                     if response.double_clicked()
-                        || (response.hovered()
-                            && ui.memory(|m| m.focus().is_none())
-                            && ui.input(|i| i.key_pressed(egui::Key::Enter)))
+                        || (is_focused && ui.input(|i| i.key_pressed(egui::Key::Enter)))
                     {
                         // Double-click/press enter on events to edit them
                         if ui.input(|i| !i.modifiers.command) {
@@ -848,8 +846,7 @@ impl tab::Tab for Tab {
                     }
 
                     // Press delete or backspace to delete the selected event
-                    if response.hovered()
-                        && ui.memory(|m| m.focus().is_none())
+                    if is_focused
                         && ui.input(|i| {
                             i.key_pressed(egui::Key::Delete) || i.key_pressed(egui::Key::Backspace)
                         })
@@ -914,9 +911,7 @@ impl tab::Tab for Tab {
                     // Double-click/press enter on an empty space to add an event
                     // (hold shift to prevent events from being selected)
                     if response.double_clicked()
-                        || (response.hovered()
-                            && ui.memory(|m| m.focus().is_none())
-                            && ui.input(|i| i.key_pressed(egui::Key::Enter)))
+                        || (is_focused && ui.input(|i| i.key_pressed(egui::Key::Enter)))
                     {
                         self.dragging_event = false;
                         self.event_drag_offset = None;
@@ -932,14 +927,16 @@ impl tab::Tab for Tab {
 
                 // Handle undo/redo keypresses
                 let is_dragged_by_primary = response.dragged_by(egui::PointerButton::Primary);
-                let is_undo_pressed = ui.input(|i| {
-                    i.modifiers.command && !i.modifiers.shift && i.key_pressed(egui::Key::Z)
-                });
-                let is_redo_pressed = ui.input(|i| {
-                    i.modifiers.command
-                        && (i.modifiers.shift || i.key_pressed(egui::Key::Y))
-                        && (!i.modifiers.shift || i.key_pressed(egui::Key::Z))
-                });
+                let is_undo_pressed = is_focused
+                    && ui.input(|i| {
+                        i.modifiers.command && !i.modifiers.shift && i.key_pressed(egui::Key::Z)
+                    });
+                let is_redo_pressed = is_focused
+                    && ui.input(|i| {
+                        i.modifiers.command
+                            && (i.modifiers.shift || i.key_pressed(egui::Key::Y))
+                            && (!i.modifiers.shift || i.key_pressed(egui::Key::Z))
+                    });
                 if !is_dragged_by_primary && (is_undo_pressed || is_redo_pressed) {
                     let new_entry = match if is_undo_pressed {
                         self.history.pop_back()
