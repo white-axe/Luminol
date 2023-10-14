@@ -148,40 +148,43 @@ impl Tilepicker {
         let prepare_id = Arc::new(OnceCell::new());
         let paint_id = prepare_id.clone();
 
-        resources.viewport.set_proj(glam::Mat4::orthographic_rh(
-            scroll_rect.left(),
-            scroll_rect.right(),
-            scroll_rect.bottom(),
-            scroll_rect.top(),
-            -1.,
-            1.,
-        ));
-        ui.painter().add(egui::PaintCallback {
-            rect: scroll_rect.translate(canvas_rect.min.to_vec2()),
-            callback: Arc::new(
-                egui_wgpu::CallbackFn::new()
-                    .prepare(move |_, _, _encoder, paint_callback_resources| {
-                        let res_hash: &mut ResourcesSlab = paint_callback_resources
-                            .entry()
-                            .or_insert_with(Default::default);
-                        let id = res_hash.insert(resources.clone());
-                        prepare_id.set(id).expect("resources id already set?");
+        let absolute_scroll_rect = scroll_rect.translate(canvas_rect.min.to_vec2());
+        if ui.ctx().screen_rect().contains_rect(absolute_scroll_rect) {
+            resources.viewport.set_proj(glam::Mat4::orthographic_rh(
+                scroll_rect.left(),
+                scroll_rect.right(),
+                scroll_rect.bottom(),
+                scroll_rect.top(),
+                -1.,
+                1.,
+            ));
+            ui.painter().add(egui::PaintCallback {
+                rect: absolute_scroll_rect,
+                callback: Arc::new(
+                    egui_wgpu::CallbackFn::new()
+                        .prepare(move |_, _, _encoder, paint_callback_resources| {
+                            let res_hash: &mut ResourcesSlab = paint_callback_resources
+                                .entry()
+                                .or_insert_with(Default::default);
+                            let id = res_hash.insert(resources.clone());
+                            prepare_id.set(id).expect("resources id already set?");
 
-                        vec![]
-                    })
-                    .paint(move |_info, render_pass, paint_callback_resources| {
-                        let res_hash: &ResourcesSlab = paint_callback_resources.get().unwrap();
-                        let id = paint_id.get().copied().expect("resources id is unset");
-                        let resources = &res_hash[id];
-                        let Resources {
-                            tiles, viewport, ..
-                        } = resources.as_ref();
+                            vec![]
+                        })
+                        .paint(move |_info, render_pass, paint_callback_resources| {
+                            let res_hash: &ResourcesSlab = paint_callback_resources.get().unwrap();
+                            let id = paint_id.get().copied().expect("resources id is unset");
+                            let resources = &res_hash[id];
+                            let Resources {
+                                tiles, viewport, ..
+                            } = resources.as_ref();
 
-                        viewport.bind(render_pass);
-                        tiles.draw(viewport, &[true], None, render_pass);
-                    }),
-            ),
-        });
+                            viewport.bind(render_pass);
+                            tiles.draw(viewport, &[true], None, render_pass);
+                        }),
+                ),
+            });
+        }
 
         let rect = egui::Rect::from_x_y_ranges(
             (self.selected_tiles_left * 32) as f32..=((self.selected_tiles_right + 1) * 32) as f32,
