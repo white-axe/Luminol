@@ -27,7 +27,7 @@ use std::hash::Hash;
 
 /// Helper struct for tabs.
 pub struct Tabs<T> {
-    tree: Mutex<egui_dock::Tree<T>>,
+    state: Mutex<egui_dock::dock_state::DockState<T>>,
     id: egui::Id,
 }
 
@@ -39,54 +39,69 @@ where
     pub fn new(id: impl Hash, tabs: Vec<T>) -> Self {
         Self {
             id: egui::Id::new(id),
-            tree: egui_dock::Tree::new(tabs).into(),
+            state: egui_dock::dock_state::DockState::new(tabs).into(),
         }
     }
 
     /// Display all tabs.
     pub fn ui(&self, ui: &mut egui::Ui) {
-        let mut tree = self.tree.lock();
+        let mut style = egui_dock::Style::from_egui(ui.style());
+        style.overlay.surface_fade_opacity = 1.;
+
+        let mut state = self.state.lock();
         let focused_id = if ui.memory(|m| m.focus().is_none()) {
-            tree.find_active_focused().map(|(_, t)| t.id())
+            state.find_active_focused().map(|(_, t)| t.id())
         } else {
             None
         };
-        egui_dock::DockArea::new(&mut tree).id(self.id).show_inside(
-            ui,
-            &mut TabViewer {
-                focused_id,
-                marker: std::marker::PhantomData,
-            },
-        );
+        egui_dock::DockArea::new(&mut state)
+            .id(self.id)
+            .style(style)
+            .show_inside(
+                ui,
+                &mut TabViewer {
+                    focused_id,
+                    marker: std::marker::PhantomData,
+                },
+            );
     }
 
     /// Add a tab.
     pub fn add_tab(&self, tab: T) {
-        let mut tree = self.tree.lock();
-        for n in tree.iter() {
+        let mut state = self.state.lock();
+        for n in state.iter_nodes() {
             if let egui_dock::Node::Leaf { tabs, .. } = n {
                 if tabs.iter().any(|t| t.id() == tab.id()) {
                     return;
                 }
             }
         }
-        tree.push_to_focused_leaf(tab);
+        state.push_to_focused_leaf(tab);
     }
 
     /// Removes tabs that the provided closure returns `false` when called.
     pub fn clean_tabs<F: FnMut(&mut T) -> bool>(&self, mut f: F) {
-        let mut tree = self.tree.lock();
-        for node in tree.iter_mut() {
-            if let egui_dock::Node::Leaf { tabs, .. } = node {
-                tabs.retain_mut(&mut f)
+        let mut i = 0;
+        let mut state = self.state.lock();
+        loop {
+            let Some(surface) = state.get_surface_mut(egui_dock::SurfaceIndex(i)) else {
+                break;
+            };
+            if let Some(tree) = surface.node_tree_mut() {
+                for node in tree.iter_mut() {
+                    if let egui_dock::Node::Leaf { tabs, .. } = node {
+                        tabs.retain_mut(&mut f);
+                    }
+                }
             }
+            i += 1;
         }
     }
 
     /// Returns the name of the focused tab.
     pub fn focused_name(&self) -> Option<String> {
-        let mut tree = self.tree.lock();
-        tree.find_active().map(|(_, t)| t.name())
+        let mut state = self.state.lock();
+        state.find_active_focused().map(|(_, t)| t.name())
     }
 }
 

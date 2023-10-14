@@ -25,7 +25,7 @@ eframe = { version = "0.22", features = [
 ], default-features = false }
 egui_extras = { version = "0.22", features = ["svg", "image"] }
 egui-notify = { version = "0.9" } # temporary patch
-egui_dock = { version = "0.6" }
+egui_dock = { version = "0.7.3" }
 catppuccin-egui = "3.0.0"
 
 glam = { version = "0.24", features = ["bytemuck"] }
