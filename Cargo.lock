@@ -2815,6 +2815,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+ "wgpu",
  "windows 0.51.1",
  "winreg 0.51.0",
  "winres",
