@@ -41,9 +41,7 @@ impl Viewport {
                     .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                         label: Some("tilemap viewport buffer"),
                         contents: bytemuck::cast_slice(&[proj]),
-                        usage: wgpu::BufferUsages::STORAGE
-                            | wgpu::BufferUsages::COPY_DST
-                            | wgpu::BufferUsages::UNIFORM,
+                        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
                     });
             let bind_group = render_state
                 .device

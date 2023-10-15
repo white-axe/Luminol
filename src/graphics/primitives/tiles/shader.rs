@@ -85,12 +85,12 @@ impl Shader {
                         // Viewport + Autotiles
                         wgpu::PushConstantRange {
                             stages: wgpu::ShaderStages::VERTEX,
-                            range: 0..(64 + 36),
+                            range: 0..(64 + 48),
                         },
                         // Fragment
                         wgpu::PushConstantRange {
                             stages: wgpu::ShaderStages::FRAGMENT,
-                            range: (64 + 36)..(64 + 36 + 4),
+                            range: (64 + 48)..(64 + 48 + 4),
                         },
                     ],
                 })

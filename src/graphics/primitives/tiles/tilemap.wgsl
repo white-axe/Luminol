@@ -21,9 +21,9 @@ struct Viewport {
 }
 
 struct Autotiles {
+    frame_counts: array<vec4<u32>, 2>,
     animation_index: u32,
     max_frame_count: u32,
-    frame_counts: array<u32, 7>
 }
 
 @vertex
@@ -68,7 +68,8 @@ fn vs_main(vertex: VertexInput, instance: InstanceInput) -> VertexOutput {
     }
 
     if is_autotile {
-        let frame_count = HOST.autotiles.frame_counts[instance.tile_id / 48 - 1];
+        let autotile_type = instance.tile_id / 48 - 1;
+        let frame_count = HOST.autotiles.frame_counts[autotile_type / 4][autotile_type % 4];
         let frame = HOST.autotiles.animation_index % frame_count;
         atlas_tile_position.x += f32(frame * 256u);
     }
