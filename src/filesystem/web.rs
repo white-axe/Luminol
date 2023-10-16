@@ -110,6 +110,74 @@ impl FileSystem {
             .expect("FileSystem sender cannot be initialized twice");
     }
 
+    /// Initializes a receiver for receiving directories that the user dragged and dropped onto the
+    /// given `HtmlElement`.
+    pub fn setup_drag_and_drop_receiver(
+        element: web_sys::HtmlElement,
+    ) -> mpsc::UnboundedReceiver<Self> {
+        let (tx, rx) = mpsc::unbounded_channel();
+
+        // We need to intercept and cancel dragover events in order for this element to be a valid
+        // drop target
+        {
+            let callback: Closure<dyn Fn(_)> = Closure::new(move |e: web_sys::DragEvent| {
+                e.prevent_default();
+            });
+
+            element
+                .add_event_listener_with_callback("dragover", callback.as_ref().unchecked_ref())
+                .expect("failed to register event listener for drag-and-drop dragover");
+            callback.forget();
+        }
+
+        // This is the actual event handler
+        {
+            let callback: Closure<dyn Fn(_)> = Closure::new(move |e: web_sys::DragEvent| {
+                e.stop_propagation();
+                e.prevent_default();
+                let Some(data_transfer) = e.data_transfer() else {
+                    return;
+                };
+                let Some(item) = data_transfer.items().get(0) else {
+                    return;
+                };
+                let tx = tx.clone();
+                wasm_bindgen_futures::spawn_local(async move {
+                    if bindings::filesystem_supported() {
+                        let handle = bindings::get_as_file_system_handle(&item).await;
+                        if !matches!(handle.kind(), web_sys::FileSystemHandleKind::Directory) {
+                            return;
+                        }
+                        let handle = handle.unchecked_into::<web_sys::FileSystemDirectoryHandle>();
+                        let idb_key = random_key();
+                        let idb_ok = {
+                            let idb_key = idb_key.as_str();
+                            idb(IdbTransactionMode::Readwrite, |store| {
+                                store.put_key_val_owned(idb_key, &handle)
+                            })
+                            .await
+                            .is_ok()
+                        };
+                        if idb_ok {
+                            if let Some(dir) = Self::_from_idb_key(idb_key).await {
+                                let _ = tx.send(dir);
+                            }
+                        }
+                    } else {
+                        todo!();
+                    }
+                });
+            });
+
+            element
+                .add_event_listener_with_callback("drop", callback.as_ref().unchecked_ref())
+                .expect("failed to register event listener for drag-and-drop drop");
+            callback.forget();
+        }
+
+        rx
+    }
+
     /// Returns whether or not the user's browser supports the JavaScript File System API.
     pub fn filesystem_supported() -> bool {
         let (oneshot_tx, oneshot_rx) = oneshot::channel();
@@ -147,6 +215,10 @@ impl FileSystem {
         if !Self::filesystem_supported() {
             return None;
         }
+        Self::_from_idb_key(idb_key).await
+    }
+
+    async fn _from_idb_key(idb_key: String) -> Option<Self> {
         let (oneshot_tx, oneshot_rx) = oneshot::channel();
         filesystem_tx_or_die()
             .send(FileSystemCommand(FileSystemCommandInner::DirFromIdb(
@@ -398,6 +470,67 @@ impl std::io::Seek for File {
     }
 }
 
+async fn to_future<T>(promise: js_sys::Promise) -> Result<T, js_sys::Error>
+where
+    T: JsCast,
+{
+    wasm_bindgen_futures::JsFuture::from(promise)
+        .await
+        .map(|t| t.unchecked_into())
+        .map_err(|e| e.unchecked_into())
+}
+
+async fn get_subdir(
+    dir: &web_sys::FileSystemDirectoryHandle,
+    path_iter: &mut camino::Iter<'_>,
+) -> Option<web_sys::FileSystemDirectoryHandle> {
+    let mut dir = dir.clone();
+    loop {
+        let Some(path_element) = path_iter.next() else {
+            return Some(dir);
+        };
+        if let Ok(subdir) = to_future(dir.get_directory_handle(path_element)).await {
+            dir = subdir;
+        } else {
+            return None;
+        }
+    }
+}
+
+async fn idb<R>(
+    mode: IdbTransactionMode,
+    f: impl Fn(IdbObjectStore<'_>) -> Result<R, web_sys::DomException>,
+) -> Result<R, web_sys::DomException> {
+    let mut db_req = IdbDatabase::open_u32("astrabit.luminol", 1)?;
+
+    // Create store for our directory handles if it doesn't exist
+    db_req.set_on_upgrade_needed(Some(|e: &IdbVersionChangeEvent| {
+        if e.db()
+            .object_store_names()
+            .find(|n| n == "filesystem.dir_handles")
+            .is_none()
+        {
+            e.db().create_object_store("filesystem.dir_handles")?;
+        }
+        Ok(())
+    }));
+
+    let db = db_req.into_future().await?;
+    let tx = db.transaction_on_one_with_mode("filesystem.dir_handles", mode)?;
+    let store = tx.object_store("filesystem.dir_handles")?;
+    let r = f(store);
+    tx.await.into_result()?;
+    r
+}
+
+fn random_key() -> String {
+    rand::thread_rng()
+        .sample_iter(rand::distributions::Alphanumeric)
+        .take(42) // This should be enough to avoid collisions
+        .map(char::from)
+        .collect::<String>()
+}
+
 pub fn setup_main_thread_hooks(mut filesystem_rx: mpsc::UnboundedReceiver<FileSystemCommand>) {
     wasm_bindgen_futures::spawn_local(async move {
         web_sys::window().expect("cannot run `setup_main_thread_hooks()` outside of main thread");
@@ -411,59 +544,6 @@ pub fn setup_main_thread_hooks(mut filesystem_rx: mpsc::UnboundedReceiver<FileSy
 
         let mut dirs: slab::Slab<web_sys::FileSystemDirectoryHandle> = slab::Slab::new();
         let mut files: slab::Slab<FileHandle> = slab::Slab::new();
-
-        async fn to_future<T>(promise: js_sys::Promise) -> Result<T, js_sys::Error>
-        where
-            T: JsCast,
-        {
-            wasm_bindgen_futures::JsFuture::from(promise)
-                .await
-                .map(|t| t.unchecked_into())
-                .map_err(|e| e.unchecked_into())
-        }
-
-        async fn get_subdir(
-            dir: &web_sys::FileSystemDirectoryHandle,
-            path_iter: &mut camino::Iter<'_>,
-        ) -> Option<web_sys::FileSystemDirectoryHandle> {
-            let mut dir = dir.clone();
-            loop {
-                let Some(path_element) = path_iter.next() else {
-                    return Some(dir);
-                };
-                if let Ok(subdir) = to_future(dir.get_directory_handle(path_element)).await {
-                    dir = subdir;
-                } else {
-                    return None;
-                }
-            }
-        }
-
-        async fn idb<R>(
-            mode: IdbTransactionMode,
-            f: impl Fn(IdbObjectStore<'_>) -> Result<R, web_sys::DomException>,
-        ) -> Result<R, web_sys::DomException> {
-            let mut db_req = IdbDatabase::open_u32("astrabit.luminol", 1)?;
-
-            // Create store for our directory handles if it doesn't exist
-            db_req.set_on_upgrade_needed(Some(|e: &IdbVersionChangeEvent| {
-                if e.db()
-                    .object_store_names()
-                    .find(|n| n == "filesystem.dir_handles")
-                    .is_none()
-                {
-                    e.db().create_object_store("filesystem.dir_handles")?;
-                }
-                Ok(())
-            }));
-
-            let db = db_req.into_future().await?;
-            let tx = db.transaction_on_one_with_mode("filesystem.dir_handles", mode)?;
-            let store = tx.object_store("filesystem.dir_handles")?;
-            let r = f(store);
-            tx.await.into_result()?;
-            r
-        }
 
         loop {
             let Some(command) = filesystem_rx.recv().await else {
@@ -532,11 +612,7 @@ pub fn setup_main_thread_hooks(mut filesystem_rx: mpsc::UnboundedReceiver<FileSy
                 FileSystemCommandInner::DirPicker(oneshot_tx) => {
                     if let Ok(dir) = bindings::show_directory_picker().await {
                         // Try to insert the handle into IndexedDB
-                        let idb_key = rand::thread_rng()
-                            .sample_iter(rand::distributions::Alphanumeric)
-                            .take(42) // This should be enough to avoid collisions
-                            .map(char::from)
-                            .collect::<String>();
+                        let idb_key = random_key();
                         let idb_ok = {
                             let idb_key = idb_key.as_str();
                             idb(IdbTransactionMode::Readwrite, |store| {
@@ -590,11 +666,7 @@ pub fn setup_main_thread_hooks(mut filesystem_rx: mpsc::UnboundedReceiver<FileSy
                     };
 
                     // Try to insert the handle into IndexedDB
-                    let idb_key = rand::thread_rng()
-                        .sample_iter(rand::distributions::Alphanumeric)
-                        .take(42) // This should be enough to avoid collisions
-                        .map(char::from)
-                        .collect::<String>();
+                    let idb_key = random_key();
                     let idb_ok = {
                         let idb_key = idb_key.as_str();
                         idb(IdbTransactionMode::Readwrite, |store| {

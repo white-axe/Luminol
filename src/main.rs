@@ -134,10 +134,10 @@ const CANVAS_ID: &str = "luminol-canvas";
 struct WorkerData {
     audio: luminol::audio::AudioWrapper,
     prefers_color_scheme_dark: Option<bool>,
-    filesystem_tx: mpsc::UnboundedSender<filesystem::web::FileSystemCommand>,
     output_tx: mpsc::UnboundedSender<luminol::web::WebWorkerRunnerOutput>,
     event_rx: mpsc::UnboundedReceiver<egui::Event>,
     custom_event_rx: mpsc::UnboundedReceiver<luminol::web::WebWorkerRunnerEvent>,
+    drag_and_drop_rx: mpsc::UnboundedReceiver<filesystem::web::FileSystem>,
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -197,6 +197,10 @@ pub fn luminol_main_start() {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
     let (custom_event_tx, custom_event_rx) = mpsc::unbounded_channel();
 
+    filesystem::web::FileSystem::setup_filesystem_sender(filesystem_tx);
+    let drag_and_drop_rx =
+        filesystem::web::FileSystem::setup_drag_and_drop_receiver(canvas.clone().into());
+
     filesystem::web::setup_main_thread_hooks(filesystem_rx);
     luminol::web::web_worker_runner::setup_main_thread_hooks(
         canvas,
@@ -208,10 +212,10 @@ pub fn luminol_main_start() {
     *WORKER_DATA.borrow_mut() = Some(WorkerData {
         audio: luminol::audio::Audio::default().into(),
         prefers_color_scheme_dark,
-        filesystem_tx,
         output_tx,
         event_rx,
         custom_event_rx,
+        drag_and_drop_rx,
     });
 
     let mut worker_options = web_sys::WorkerOptions::new();
@@ -237,15 +241,23 @@ pub async fn luminol_worker_start(canvas: web_sys::OffscreenCanvas) {
     let WorkerData {
         audio,
         prefers_color_scheme_dark,
-        filesystem_tx,
         output_tx,
         event_rx,
         custom_event_rx,
+        mut drag_and_drop_rx,
     } = WORKER_DATA.borrow_mut().take().unwrap();
 
-    filesystem::web::FileSystem::setup_filesystem_sender(filesystem_tx);
-
     let web_options = eframe::WebOptions::default();
+
+    // TODO: Actually do something useful with `drag_and_drop_rx`
+    wasm_bindgen_futures::spawn_local(async move {
+        loop {
+            let Some(dir) = drag_and_drop_rx.recv().await else {
+                return;
+            };
+            tracing::info!("{:?}", dir);
+        }
+    });
 
     let runner = luminol::web::WebWorkerRunner::new(
         Box::new(|cc| Box::new(luminol::Luminol::new(cc, None, audio))),

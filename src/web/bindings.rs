@@ -26,6 +26,8 @@ extern "C" {
     pub fn dir_values(dir: &web_sys::FileSystemDirectoryHandle) -> js_sys::AsyncIterator;
     async fn _request_permission(handle: &web_sys::FileSystemHandle) -> JsValue;
     pub fn cross_origin_isolated() -> bool;
+    async fn _get_as_file_system_handle(item: &web_sys::DataTransferItem) -> JsValue;
+    pub fn get_as_entry(item: &web_sys::DataTransferItem) -> Option<web_sys::FileSystemEntry>;
 }
 
 pub async fn show_directory_picker() -> Result<web_sys::FileSystemDirectoryHandle, js_sys::Error> {
@@ -37,4 +39,10 @@ pub async fn show_directory_picker() -> Result<web_sys::FileSystemDirectoryHandl
 
 pub async fn request_permission(handle: &web_sys::FileSystemHandle) -> bool {
     _request_permission(handle).await.is_truthy()
+}
+
+pub async fn get_as_file_system_handle(
+    item: &web_sys::DataTransferItem,
+) -> web_sys::FileSystemHandle {
+    _get_as_file_system_handle(item).await.unchecked_into()
 }

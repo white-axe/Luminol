@@ -52,3 +52,14 @@ export async function _request_permission(handle) {
 export function cross_origin_isolated() {
     return crossOriginIsolated === true;
 }
+
+export async function _get_as_file_system_handle(item) {
+    return await item.getAsFileSystemHandle();
+}
+
+export function get_as_entry(item) {
+    if (typeof item.webkitGetAsEntry === 'function') {
+        return item.webkitGetAsEntry();
+    }
+    return item.getAsEntry();
+}
