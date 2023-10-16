@@ -146,7 +146,7 @@ static WORKER_DATA: Lazy<AtomicRefCell<Option<WorkerData>>> =
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-pub fn luminol_main_start() {
+pub fn luminol_main_start(fallback: bool) {
     let (panic_tx, mut panic_rx) = mpsc::unbounded_channel::<()>();
 
     wasm_bindgen_futures::spawn_local(async move {
@@ -225,7 +225,7 @@ pub fn luminol_main_start() {
         .expect("failed to spawn web worker");
 
     let message = js_sys::Array::new();
-    message.push(&JsValue::from("init"));
+    message.push(&JsValue::from(fallback));
     message.push(&wasm_bindgen::memory());
     message.push(&offscreen_canvas);
     let transfer = js_sys::Array::new();
