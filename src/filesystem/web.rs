@@ -164,7 +164,160 @@ impl FileSystem {
                             }
                         }
                     } else {
-                        todo!();
+                        let Some(entry) = bindings::get_as_entry(&item) else {
+                            return;
+                        };
+                        if !entry.is_directory() {
+                            return;
+                        }
+                        let entry = entry.unchecked_into::<web_sys::FileSystemDirectoryEntry>();
+
+                        let mut dir_options = web_sys::FileSystemGetDirectoryOptions::new();
+                        dir_options.create(true);
+                        let mut file_options = web_sys::FileSystemGetFileOptions::new();
+                        file_options.create(true);
+
+                        // Create a new directory as a subdirectory of the
+                        // /astrabit.luminol/filesystem.dir_handles directory in the OPFS
+                        let Ok(dir) = to_future::<web_sys::FileSystemDirectoryHandle>(
+                            web_sys::window()
+                                .unwrap()
+                                .navigator()
+                                .storage()
+                                .get_directory(),
+                        )
+                        .await
+                        else {
+                            tracing::warn!("Unable to access the Origin Private File System");
+                            return;
+                        };
+                        let Ok(dir) = to_future::<web_sys::FileSystemDirectoryHandle>(
+                            dir.get_directory_handle_with_options("astrabit.luminol", &dir_options),
+                        )
+                        .await
+                        else {
+                            return;
+                        };
+                        let Ok(dir) = to_future::<web_sys::FileSystemDirectoryHandle>(
+                            dir.get_directory_handle_with_options(
+                                "filesystem.dir_handles",
+                                &dir_options,
+                            ),
+                        )
+                        .await
+                        else {
+                            return;
+                        };
+                        let key = random_key();
+                        let Ok(dir) = to_future::<web_sys::FileSystemDirectoryHandle>(
+                            dir.get_directory_handle_with_options(&key, &dir_options),
+                        )
+                        .await
+                        else {
+                            return;
+                        };
+
+                        // Recursively copy the contents of the dragged directory into the new OPFS
+                        // directory
+                        let mut stack = Vec::new();
+                        stack.push((entry.create_reader(), dir));
+                        while let Some((reader, dir)) = stack.pop() {
+                            let dir_options = dir_options.clone();
+                            let file_options = file_options.clone();
+                            let (oneshot_tx, oneshot_rx) = oneshot::channel();
+                            let callback = Closure::once(move |maybe_array: JsValue| {
+                                wasm_bindgen_futures::spawn_local(async move {
+                                    if !maybe_array.is_array() {
+                                        oneshot_tx.send(Vec::new()).unwrap();
+                                        return;
+                                    }
+                                    let array = maybe_array.unchecked_into::<js_sys::Array>();
+                                    let length = array.length();
+                                    let mut vec = Vec::with_capacity(length as usize);
+                                    for i in 0..length {
+                                        let entry = array
+                                            .get(i)
+                                            .unchecked_into::<web_sys::FileSystemEntry>();
+                                        let entry_name = entry.name();
+                                        if entry.is_directory() {
+                                            tracing::info!("Pushing directory {:?}", entry_name);
+                                            let Ok(subdir) =
+                                                to_future::<web_sys::FileSystemDirectoryHandle>(
+                                                    dir.get_directory_handle_with_options(
+                                                        &entry_name,
+                                                        &dir_options,
+                                                    ),
+                                                )
+                                                .await
+                                            else {
+                                                continue;
+                                            };
+                                            vec.push((
+                                                entry
+                                                    .unchecked_into::<web_sys::FileSystemDirectoryEntry>()
+                                                    .create_reader(),
+                                                subdir,
+                                            ));
+                                        } else if entry.is_file() {
+                                            tracing::info!("Writing file {:?}", entry_name);
+                                            let maybe_file = {
+                                                let (oneshot_tx, oneshot_rx) = oneshot::channel();
+                                                let callback =
+                                                    Closure::once(move |maybe_file: JsValue| {
+                                                        oneshot_tx.send(maybe_file).unwrap();
+                                                    });
+                                                let callback_ref =
+                                                    callback.as_ref().unchecked_ref();
+                                                entry
+                                                    .unchecked_into::<web_sys::FileSystemFileEntry>(
+                                                    )
+                                                    .file_with_callback_and_callback(
+                                                        callback_ref,
+                                                        callback_ref,
+                                                    );
+                                                oneshot_rx.await.unwrap()
+                                            };
+                                            if !maybe_file.is_instance_of::<web_sys::File>() {
+                                                continue;
+                                            }
+                                            let src_file =
+                                                maybe_file.unchecked_into::<web_sys::File>();
+                                            let Ok(dest_file) =
+                                                to_future::<web_sys::FileSystemFileHandle>(
+                                                    dir.get_file_handle_with_options(
+                                                        &entry_name,
+                                                        &file_options,
+                                                    ),
+                                                )
+                                                .await
+                                            else {
+                                                continue;
+                                            };
+                                            let Ok(writable) =
+                                                to_future::<web_sys::FileSystemWritableFileStream>(
+                                                    dest_file.create_writable(),
+                                                )
+                                                .await
+                                            else {
+                                                continue;
+                                            };
+                                            let _ = to_future::<JsValue>(
+                                                writable.write_with_blob(&src_file).unwrap(),
+                                            )
+                                            .await;
+                                            tracing::info!("Written file {:?}", entry_name);
+                                        }
+                                    }
+                                    oneshot_tx.send(vec).unwrap();
+                                });
+                            });
+                            let callback_ref = callback.as_ref().unchecked_ref();
+                            let _ = reader.read_entries_with_callback_and_callback(
+                                callback_ref,
+                                callback_ref,
+                            );
+                            stack.extend(oneshot_rx.await.unwrap());
+                        }
                     }
                 });
             });
