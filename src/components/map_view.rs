@@ -93,12 +93,7 @@ impl MapView {
             })
             .flatten_ok()
             .try_collect()?;
-        let map = Map::new(
-            map,
-            &Table2::new(map.width, map.height),
-            tileset,
-            use_push_constants,
-        )?;
+        let map = Map::new(map, tileset, use_push_constants)?;
 
         Ok(Self {
             visible_display: false,
