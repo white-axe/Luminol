@@ -153,9 +153,7 @@ impl Map {
         let prepare_id = resource_id;
         let paint_id = prepare_id.clone();
 
-        let fog_enabled = self.fog_enabled;
         let pano_enabled = self.pano_enabled;
-        let coll_enabled = self.coll_enabled;
         let enabled_layers = self.enabled_layers.clone();
 
         let paint_callback = egui_wgpu::CallbackFn::new()
@@ -176,8 +174,6 @@ impl Map {
                     tiles,
                     viewport,
                     panorama,
-                    fog,
-                    collision,
                     ..
                 } = resources.as_ref();
 
@@ -190,6 +186,47 @@ impl Map {
                 }
 
                 tiles.draw(viewport, &enabled_layers, selected_layer, render_pass);
+            });
+
+        painter.add(egui::PaintCallback {
+            rect,
+            callback: Arc::new(paint_callback),
+        });
+    }
+
+    pub fn paint_overlay(&mut self, painter: &egui::Painter, rect: egui::Rect) {
+        let resources = self.resources.clone();
+        let resource_id = Arc::new(OnceCell::new());
+
+        let prepare_id = resource_id;
+        let paint_id = prepare_id.clone();
+
+        let fog_enabled = self.fog_enabled;
+        let coll_enabled = self.coll_enabled;
+
+        let paint_callback = egui_wgpu::CallbackFn::new()
+            .prepare(move |_device, _queue, _encoder, paint_callback_resources| {
+                let res_hash: &mut ResourcesSlab = paint_callback_resources
+                    .entry()
+                    .or_insert_with(Default::default);
+                let id = res_hash.insert(resources.clone());
+                prepare_id.set(id).expect("resources id already set?");
+
+                vec![]
+            })
+            .paint(move |_info, render_pass, paint_callback_resources| {
+                let res_hash: &ResourcesSlab = paint_callback_resources.get().unwrap();
+                let id = paint_id.get().copied().expect("resources id is unset");
+                let resources = &res_hash[id];
+                let Resources {
+                    viewport,
+                    fog,
+                    collision,
+                    ..
+                } = resources.as_ref();
+
+                viewport.bind(render_pass);
+
                 if fog_enabled {
                     if let Some(fog) = fog {
                         fog.draw(viewport, render_pass);
