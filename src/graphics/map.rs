@@ -26,6 +26,7 @@ pub struct Map {
 
     pub fog_enabled: bool,
     pub pano_enabled: bool,
+    pub coll_enabled: bool,
     pub enabled_layers: Vec<bool>,
 }
 
@@ -35,6 +36,7 @@ struct Resources {
     viewport: primitives::Viewport,
     panorama: Option<Plane>,
     fog: Option<Plane>,
+    collision: primitives::Collision,
 }
 
 type ResourcesSlab = slab::Slab<Arc<Resources>>;
@@ -42,12 +44,14 @@ type ResourcesSlab = slab::Slab<Arc<Resources>>;
 impl Map {
     pub fn new(
         map: &rpg::Map,
+        passages: &Table2,
         tileset: &rpg::Tileset,
         use_push_constants: bool,
     ) -> Result<Self, String> {
         let atlas = state!().atlas_cache.load_atlas(tileset)?;
 
         let tiles = primitives::Tiles::new(atlas, &map.data, use_push_constants);
+        let collision = primitives::Collision::new(passages, use_push_constants);
 
         let panorama = if let Some(ref panorama_name) = tileset.panorama_name {
             Some(Plane::new(
@@ -99,18 +103,24 @@ impl Map {
                 viewport,
                 panorama,
                 fog,
+                collision,
             }),
 
             ani_time: None,
 
             fog_enabled: true,
             pano_enabled: true,
+            coll_enabled: false,
             enabled_layers: vec![true; map.data.zsize()],
         })
     }
 
     pub fn set_tile(&self, tile_id: i16, position: (usize, usize, usize)) {
         self.resources.tiles.set_tile(tile_id, position);
+    }
+
+    pub fn set_passage(&self, passage: i16, position: (usize, usize)) {
+        self.resources.collision.set_passage(passage, position);
     }
 
     pub fn set_proj(&self, proj: glam::Mat4) {
@@ -145,6 +155,7 @@ impl Map {
 
         let fog_enabled = self.fog_enabled;
         let pano_enabled = self.pano_enabled;
+        let coll_enabled = self.coll_enabled;
         let enabled_layers = self.enabled_layers.clone();
 
         let paint_callback = egui_wgpu::CallbackFn::new()
@@ -166,6 +177,7 @@ impl Map {
                     viewport,
                     panorama,
                     fog,
+                    collision,
                     ..
                 } = resources.as_ref();
 
@@ -182,6 +194,10 @@ impl Map {
                     if let Some(fog) = fog {
                         fog.draw(viewport, render_pass);
                     }
+                }
+
+                if coll_enabled {
+                    collision.draw(viewport, render_pass);
                 }
             });
 

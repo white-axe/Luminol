@@ -14,26 +14,24 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
-//
-//     Additional permission under GNU GPL version 3 section 7
-//
-// If you modify this Program, or any covered work, by linking or combining
-// it with Steamworks API by Valve Corporation, containing parts covered by
-// terms of the Steamworks API by Valve Corporation, the licensors of this
-// Program grant you additional permission to convey the resulting work.
+use crate::prelude::*;
 
-mod collision;
-mod quad;
-mod sprite;
-mod tiles;
-mod vertex;
-mod viewport;
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable, PartialEq)]
+pub struct Vertex {
+    pub position: glam::Vec3,
+    /// 1: down, 2: left, 4: right, 8: up
+    pub direction: u32,
+}
 
-pub use quad::Quad;
-pub use vertex::Vertex;
-pub use viewport::Viewport;
-
-pub use collision::Collision;
-pub use sprite::Sprite;
-pub use tiles::Atlas;
-pub use tiles::Tiles;
+impl Vertex {
+    const ATTRIBS: [wgpu::VertexAttribute; 2] =
+        wgpu::vertex_attr_array![0 => Float32x3, 1 => Uint32];
+    pub const fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
+        wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &Self::ATTRIBS,
+        }
+    }
+}
