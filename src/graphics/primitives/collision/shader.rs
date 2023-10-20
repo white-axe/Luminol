@@ -71,7 +71,7 @@ impl Shader {
                 .device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: Some("Tilemap Collision Render Pipeline Layout (push constants)"),
-                    bind_group_layouts: &[image_cache::Cache::bind_group_layout()],
+                    bind_group_layouts: &[&DUMMY_LAYOUT],
                     push_constant_ranges: &[
                         // Viewport
                         wgpu::PushConstantRange {
@@ -85,10 +85,7 @@ impl Shader {
                 .device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: Some("Tilemap Collision Render Pipeline Layout (uniforms)"),
-                    bind_group_layouts: &[
-                        image_cache::Cache::bind_group_layout(),
-                        Viewport::layout(),
-                    ],
+                    bind_group_layouts: &[&DUMMY_LAYOUT, Viewport::layout()],
                     push_constant_ranges: &[],
                 })
         };
@@ -122,6 +119,7 @@ impl Shader {
     }
 
     pub fn bind(use_push_constants: bool, render_pass: &mut wgpu::RenderPass<'_>) {
+        render_pass.set_bind_group(0, &DUMMY_BIND_GROUP, &[]);
         if use_push_constants {
             render_pass.set_pipeline(&COLLISION_SHADER_PUSH_CONSTANTS.pipeline)
         } else {
@@ -132,3 +130,26 @@ impl Shader {
 
 static COLLISION_SHADER_PUSH_CONSTANTS: Lazy<Shader> = Lazy::new(|| Shader::new(true));
 static COLLISION_SHADER_UNIFORMS: Lazy<Shader> = Lazy::new(|| Shader::new(false));
+
+static DUMMY_LAYOUT: Lazy<wgpu::BindGroupLayout> = Lazy::new(|| {
+    let render_state = &state!().render_state;
+
+    render_state
+        .device
+        .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: None,
+            entries: &[],
+        })
+});
+
+static DUMMY_BIND_GROUP: Lazy<wgpu::BindGroup> = Lazy::new(|| {
+    let render_state = &state!().render_state;
+
+    render_state
+        .device
+        .create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &DUMMY_LAYOUT,
+            entries: &[],
+        })
+});
