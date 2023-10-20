@@ -197,10 +197,11 @@ impl Tilepicker {
                             ..
                         } = resources.as_ref();
 
-                        viewport.bind(render_pass);
+                        viewport.bind(1, render_pass);
                         tiles.draw(viewport, &[true], None, render_pass);
 
                         if coll_enabled {
+                            viewport.bind(0, render_pass);
                             collision.draw(viewport, render_pass);
                         }
                     }),

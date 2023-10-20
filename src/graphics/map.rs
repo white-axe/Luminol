@@ -178,7 +178,7 @@ impl Map {
                     ..
                 } = resources.as_ref();
 
-                viewport.bind(render_pass);
+                viewport.bind(1, render_pass);
 
                 if pano_enabled {
                     if let Some(panorama) = panorama {
@@ -226,7 +226,7 @@ impl Map {
                     ..
                 } = resources.as_ref();
 
-                viewport.bind(render_pass);
+                viewport.bind(1, render_pass);
 
                 if fog_enabled {
                     if let Some(fog) = fog {
@@ -235,6 +235,7 @@ impl Map {
                 }
 
                 if coll_enabled {
+                    viewport.bind(0, render_pass);
                     collision.draw(viewport, render_pass);
                 }
             });

@@ -135,7 +135,7 @@ impl Event {
                 let resources = &res_hash[id];
                 let Resources { viewport, sprite } = resources.as_ref();
 
-                viewport.bind(render_pass);
+                viewport.bind(1, render_pass);
                 sprite.draw(viewport, render_pass);
             });
         painter.add(egui::PaintCallback {
