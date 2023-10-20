@@ -29,8 +29,6 @@ use std::{cell::RefMut, collections::HashMap, collections::VecDeque};
 use crate::prelude::*;
 use crate::Pencil;
 
-use crate::graphics::primitives::Collision;
-
 const HISTORY_SIZE: usize = 50;
 
 pub struct Tab {
@@ -102,11 +100,12 @@ impl Tab {
         let tileset = &tilesets[map.tileset_id];
 
         let mut passages = Table2::new(map.data.xsize(), map.data.ysize());
-        Collision::calculate_passages(
+        primitives::Collision::calculate_passages(
             &tileset.passages,
             &tileset.priorities,
             &map.data,
-            &map.events,
+            Some(&map.events),
+            (0..map.data.zsize()).rev(),
             |x, y, passage| passages[(x, y)] = passage,
         );
 
@@ -1035,11 +1034,18 @@ impl tab::Tab for Tab {
                 }
 
                 // Update the collision preview
-                crate::graphics::primitives::Collision::calculate_passages(
+                primitives::Collision::calculate_passages(
                     &tileset.passages,
                     &tileset.priorities,
                     &map.data,
-                    &map.events,
+                    if self.view.event_enabled {
+                        Some(&map.events)
+                    } else {
+                        None
+                    },
+                    (0..map.data.zsize())
+                        .filter(|&i| self.view.map.enabled_layers[i])
+                        .rev(),
                     |x, y, passage| {
                         if self.passages[(x, y)] != passage {
                             self.view.map.set_passage(passage, (x, y));
