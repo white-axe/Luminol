@@ -31,13 +31,24 @@ pub struct Collision {
 }
 
 impl Collision {
-    pub fn new(
+    pub fn new(passages: &Table2, use_push_constants: bool) -> Self {
+        let instances = Instances::new(&passages);
+
+        Self {
+            instances,
+            use_push_constants,
+        }
+    }
+
+    /// Determines the passage values for every position on the map, running `f(x, y, passage)` for
+    /// every position.
+    pub fn calculate_passages(
         passages: &Table1,
         priorities: &Table1,
         tiles: &Table3,
         events: &OptionVec<rpg::Event>,
-        use_push_constants: bool,
-    ) -> Self {
+        mut f: impl FnMut(usize, usize, i16),
+    ) {
         let mut event_map = events
             .iter()
             .filter_map(|(_, event)| {
@@ -55,23 +66,19 @@ impl Collision {
             })
             .collect::<HashMap<_, _>>();
 
-        let mut calculated_passages = Table2::new(tiles.xsize(), tiles.ysize());
         for (y, x) in (0..tiles.ysize()).cartesian_product(0..tiles.xsize()) {
             let tile_event = event_map.remove(&(x, y));
 
-            calculated_passages[(x, y)] = Self::calculate_passage(tile_event.into_iter().chain(
-                (0..tiles.zsize()).rev().map(|z| {
-                    let tile_id = tiles[(x, y, z)].try_into().unwrap_or_default();
-                    (passages[tile_id], priorities[tile_id])
-                }),
-            ));
-        }
-
-        let instances = Instances::new(&calculated_passages);
-
-        Self {
-            instances,
-            use_push_constants,
+            f(
+                x,
+                y,
+                Self::calculate_passage(tile_event.into_iter().chain(
+                    (0..tiles.zsize()).rev().map(|z| {
+                        let tile_id = tiles[(x, y, z)].try_into().unwrap_or_default();
+                        (passages[tile_id], priorities[tile_id])
+                    }),
+                )),
+            );
         }
     }
 

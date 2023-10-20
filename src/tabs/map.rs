@@ -29,6 +29,8 @@ use std::{cell::RefMut, collections::HashMap, collections::VecDeque};
 use crate::prelude::*;
 use crate::Pencil;
 
+use crate::graphics::primitives::Collision;
+
 const HISTORY_SIZE: usize = 50;
 
 pub struct Tab {
@@ -67,6 +69,10 @@ pub struct Tab {
     tilemap_undo_cache: Vec<i16>,
     /// The layer tilemap_undo_cache refers to
     tilemap_undo_cache_layer: usize,
+
+    /// This stores the passage values for every position on the map so that we can figure out
+    /// which passage values have changed in the current frame
+    passages: Table2,
 }
 
 // TODO: If we add support for changing event IDs, these need to be added as history entries
@@ -95,9 +101,18 @@ impl Tab {
         let tilesets = state!().data_cache.tilesets();
         let tileset = &tilesets[map.tileset_id];
 
+        let mut passages = Table2::new(map.data.xsize(), map.data.ysize());
+        Collision::calculate_passages(
+            &tileset.passages,
+            &tileset.priorities,
+            &map.data,
+            &map.events,
+            |x, y, passage| passages[(x, y)] = passage,
+        );
+
         Ok(Self {
             id,
-            view: MapView::new(&map, tileset)?,
+            view: MapView::new(&map, tileset, &passages)?,
             tilepicker: Tilepicker::new(tileset)?,
 
             dragging_event: false,
@@ -117,6 +132,8 @@ impl Tab {
             redo_history: Vec::with_capacity(HISTORY_SIZE),
             tilemap_undo_cache: vec![0; map.data.xsize() * map.data.ysize()],
             tilemap_undo_cache_layer: 0,
+
+            passages,
         })
     }
 
@@ -432,6 +449,8 @@ impl tab::Tab for Tab {
             egui::Frame::canvas(ui.style()).show(ui, |ui| {
                 // Get the map.
                 let mut map = state!().data_cache.map(self.id);
+                let tilesets = state!().data_cache.tilesets();
+                let tileset = &tilesets[map.tileset_id];
 
                 // Save the state of the selected layer into the cache
                 if let SelectedLayer::Tiles(tile_layer) = self.view.selected_layer {
@@ -1014,6 +1033,20 @@ impl tab::Tab for Tab {
                         }
                     }
                 }
+
+                // Update the collision preview
+                crate::graphics::primitives::Collision::calculate_passages(
+                    &tileset.passages,
+                    &tileset.priorities,
+                    &map.data,
+                    &map.events,
+                    |x, y, passage| {
+                        if self.passages[(x, y)] != passage {
+                            self.view.map.set_passage(passage, (x, y));
+                            self.passages[(x, y)] = passage;
+                        }
+                    },
+                );
             })
         });
 

@@ -45,18 +45,14 @@ impl Map {
     pub fn new(
         map: &rpg::Map,
         tileset: &rpg::Tileset,
+        passages: &Table2,
         use_push_constants: bool,
     ) -> Result<Self, String> {
         let atlas = state!().atlas_cache.load_atlas(tileset)?;
 
         let tiles = primitives::Tiles::new(atlas, &map.data, use_push_constants);
-        let collision = primitives::Collision::new(
-            &tileset.passages,
-            &tileset.priorities,
-            &map.data,
-            &map.events,
-            use_push_constants,
-        );
+
+        let collision = primitives::Collision::new(passages, use_push_constants);
 
         let panorama = if let Some(ref panorama_name) = tileset.panorama_name {
             Some(Plane::new(

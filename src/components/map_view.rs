@@ -64,7 +64,11 @@ pub enum SelectedLayer {
 }
 
 impl MapView {
-    pub fn new(map: &rpg::Map, tileset: &rpg::Tileset) -> Result<MapView, String> {
+    pub fn new(
+        map: &rpg::Map,
+        tileset: &rpg::Tileset,
+        passages: &Table2,
+    ) -> Result<MapView, String> {
         // Get tilesets.
 
         let use_push_constants = state!()
@@ -93,7 +97,7 @@ impl MapView {
             })
             .flatten_ok()
             .try_collect()?;
-        let map = Map::new(map, tileset, use_push_constants)?;
+        let map = Map::new(map, tileset, passages, use_push_constants)?;
 
         Ok(Self {
             visible_display: false,
