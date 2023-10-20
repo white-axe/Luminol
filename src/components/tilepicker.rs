@@ -36,6 +36,7 @@ pub struct Tilepicker {
 #[derive(Debug)]
 struct Resources {
     tiles: primitives::Tiles,
+    collision: primitives::Collision,
     viewport: primitives::Viewport,
 }
 
@@ -104,8 +105,19 @@ impl Tilepicker {
 
         let tiles = primitives::Tiles::new(atlas, &tilepicker_data, use_push_constants);
 
+        let mut passages = Table2::new(tilepicker_data.xsize(), tilepicker_data.ysize());
+        for (y, x) in (0..tilepicker_data.ysize()).cartesian_product(0..tilepicker_data.xsize()) {
+            passages[(x, y)] =
+                tileset.passages[tilepicker_data[(x, y, 0)].try_into().unwrap_or_default()];
+        }
+        let collision = primitives::Collision::new(&passages, use_push_constants);
+
         Ok(Self {
-            resources: Arc::new(Resources { tiles, viewport }),
+            resources: Arc::new(Resources {
+                tiles,
+                collision,
+                viewport,
+            }),
             ani_time: None,
             selected_tiles_left: 0,
             selected_tiles_top: 0,
@@ -126,7 +138,12 @@ impl Tilepicker {
         }
     }
 
-    pub fn ui(&mut self, ui: &mut egui::Ui, scroll_rect: egui::Rect) -> egui::Response {
+    pub fn ui(
+        &mut self,
+        ui: &mut egui::Ui,
+        scroll_rect: egui::Rect,
+        coll_enabled: bool,
+    ) -> egui::Response {
         let time = ui.ctx().input(|i| i.time);
         if let Some(ani_time) = self.ani_time {
             if time - ani_time >= 16. / 60. {
@@ -174,11 +191,18 @@ impl Tilepicker {
                         let id = paint_id.get().copied().expect("resources id is unset");
                         let resources = &res_hash[id];
                         let Resources {
-                            tiles, viewport, ..
+                            tiles,
+                            viewport,
+                            collision,
+                            ..
                         } = resources.as_ref();
 
                         viewport.bind(render_pass);
                         tiles.draw(viewport, &[true], None, render_pass);
+
+                        if coll_enabled {
+                            collision.draw(viewport, render_pass);
+                        }
                     }),
             ),
         });
