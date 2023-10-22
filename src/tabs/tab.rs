@@ -103,16 +103,10 @@ where
                             is_empty = false;
                         }
 
-                        // Check if the originally focused tab is inside this tree
-                        if let Some(k) = focused_id.and_then(|id| {
-                            tabs.iter().enumerate().find_map(|(i, tab)| {
-                                if tab.id() == id {
-                                    Some(i)
-                                } else {
-                                    None
-                                }
-                            })
-                        }) {
+                        // Check if the originally focused tab is inside this node
+                        if let Some((k, _)) = focused_id
+                            .and_then(|id| tabs.iter().enumerate().find(|(_, tab)| tab.id() == id))
+                        {
                             active_tab = Some((i, j, k));
                         }
                     }
