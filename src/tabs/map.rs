@@ -559,32 +559,27 @@ impl tab::Tab for Tab {
                                         self.drawing_shape_pos = Some(self.view.cursor_pos);
                                         self.view.cursor_pos
                                     };
-                                for y in 0..height {
-                                    for x in 0..width {
-                                        // Skip out-of-bounds tiles
-                                        if ((x == -1 && position.0 == 0)
-                                            || (x == 1 && position.0 + 1 == map.data.xsize()))
-                                            || ((y == -1 && position.1 == 0)
-                                                || (y == 1 && position.1 + 1 == map.data.ysize()))
-                                        {
-                                            continue;
-                                        }
+                                for (y, x) in (0..height).cartesian_product(0..width) {
+                                    let absolute_x = position.0 + x as usize;
+                                    let absolute_y = position.1 + y as usize;
 
-                                        self.set_tile(
-                                            &mut map,
-                                            self.tilepicker.get_tile_from_offset(
-                                                x + (self.view.cursor_pos.x - drawing_shape_pos.x)
-                                                    as i16,
-                                                y + (self.view.cursor_pos.y - drawing_shape_pos.y)
-                                                    as i16,
-                                            ),
-                                            (
-                                                position.0 + x as usize,
-                                                position.1 + y as usize,
-                                                tile_layer,
-                                            ),
-                                        );
+                                    // Skip out-of-bounds tiles
+                                    if absolute_x >= map.data.xsize()
+                                        || absolute_y >= map.data.ysize()
+                                    {
+                                        continue;
                                     }
+
+                                    self.set_tile(
+                                        &mut map,
+                                        self.tilepicker.get_tile_from_offset(
+                                            x + (self.view.cursor_pos.x - drawing_shape_pos.x)
+                                                as i16,
+                                            y + (self.view.cursor_pos.y - drawing_shape_pos.y)
+                                                as i16,
+                                        ),
+                                        (absolute_x, absolute_y, tile_layer),
+                                    );
                                 }
                             }
 
