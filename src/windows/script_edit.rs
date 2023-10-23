@@ -32,7 +32,7 @@ pub struct Window {
 impl Default for Window {
     fn default() -> Self {
         Self {
-            tabs: tab::Tabs::new("script_editor", vec![]),
+            tabs: tab::Tabs::new("script_editor", vec![], false),
         }
     }
 }

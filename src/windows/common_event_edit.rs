@@ -33,7 +33,7 @@ pub struct Window {
 impl Default for Window {
     fn default() -> Self {
         Self {
-            tabs: tab::Tabs::new("common_event_tabs", vec![]),
+            tabs: tab::Tabs::new("common_event_tabs", vec![], false),
             selected_id: 0,
         }
     }

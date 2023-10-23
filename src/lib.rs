@@ -161,7 +161,7 @@ impl State {
             image_cache: image_cache::Cache::default(),
             atlas_cache: atlas::Cache::default(),
             windows: windows::window::Windows::default(),
-            tabs: tab::Tabs::new("global_tabs", vec![Box::new(started::Tab::new())]),
+            tabs: tab::Tabs::new("global_tabs", vec![Box::new(started::Tab::new())], true),
             #[cfg(not(target_arch = "wasm32"))]
             audio: audio::Audio::default(),
             #[cfg(target_arch = "wasm32")]

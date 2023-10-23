@@ -29,6 +29,7 @@ use std::hash::Hash;
 pub struct Tabs<T> {
     state: Mutex<egui_dock::dock_state::DockState<T>>,
     id: egui::Id,
+    allowed_in_windows: bool,
 }
 
 impl<T> Tabs<T>
@@ -36,9 +37,10 @@ where
     T: Tab,
 {
     /// Create a new Tab viewer without any tabs.
-    pub fn new(id: impl Hash, tabs: Vec<T>) -> Self {
+    pub fn new(id: impl Hash, tabs: Vec<T>, allowed_in_windows: bool) -> Self {
         Self {
             id: egui::Id::new(id),
+            allowed_in_windows,
             state: egui_dock::dock_state::DockState::new(tabs).into(),
         }
     }
@@ -67,6 +69,7 @@ where
                         ui,
                         &mut TabViewer {
                             focused_id,
+                            allowed_in_windows: self.allowed_in_windows,
                             marker: std::marker::PhantomData,
                         },
                     );
@@ -154,6 +157,7 @@ where
 
 struct TabViewer<T: Tab> {
     focused_id: Option<egui::Id>,
+    allowed_in_windows: bool,
 
     // we don't actually own any types of T, but we use them in TabViewer
     // *const is used here to avoid needing lifetimes and to indicate to the drop checker that we don't own any types of T
@@ -188,6 +192,10 @@ where
         // We need to disable scroll bars for at least the map editor because otherwise it'll start
         // jiggling when the screen or tab is resized. We're not making that type of game.
         [false, false]
+    }
+
+    fn allowed_in_windows(&self, _tab: &mut Self::Tab) -> bool {
+        self.allowed_in_windows
     }
 }
 
