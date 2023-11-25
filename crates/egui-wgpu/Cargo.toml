@@ -1,16 +1,13 @@
 [package]
 name = "egui-wgpu"
-version = "0.23.0"
+version = "0.24.0"
 description = "Bindings for using egui natively using the wgpu library"
 authors = [
   "Nils Hasenbanck <nils@hasenbanck.de>",
   "embotech <opensource@embotech.com>",
   "Emil Ernerfeldt <emil.ernerfeldt@gmail.com>",
 ]
-edition = "2021"
-rust-version = "1.70"
 homepage = "https://github.com/emilk/egui/tree/master/crates/egui-wgpu"
-license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/emilk/egui/tree/master/crates/egui-wgpu"
 categories = ["gui", "game-development"]
@@ -36,6 +33,7 @@ winit = ["dep:winit"]
 
 
 [dependencies]
+egui.workspace = true
 epaint = { workspace = true, features = [
   "bytemuck",
 ] }
@@ -54,4 +52,4 @@ winit = { version = "0.28", default-features = false, optional = true }
 
 # Native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-puffin = { version = "0.16", optional = true }
+puffin = { workspace = true, optional = true }
