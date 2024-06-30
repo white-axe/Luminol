@@ -306,6 +306,13 @@ pub fn luminol_main_start() {
                     worker.terminate();
                 }
 
+                rayon::spawn_broadcast(|_| {
+                    js_sys::global()
+                        .unchecked_into::<web_sys::DedicatedWorkerGlobalScope>()
+                        .close();
+                    std::arch::wasm32::unreachable();
+                });
+
                 if let (Some(window), Some(closure)) =
                     (web_sys::window(), before_unload_cell.take())
                 {

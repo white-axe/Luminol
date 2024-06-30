@@ -2953,6 +2953,7 @@ dependencies = [
  "oneshot",
  "parking_lot",
  "poll-promise",
+ "rayon",
  "rfd",
  "steamworks",
  "strum",
