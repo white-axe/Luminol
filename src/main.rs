@@ -31,6 +31,9 @@ use std::io::{Read, Write};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
+#[cfg(target_arch = "wasm32")]
+pub use wasm_bindgen_rayon::init_thread_pool;
+
 #[cfg(not(target_arch = "wasm32"))]
 /// Embedded icon 256x256 in size.
 const ICON: &[u8] = luminol_macros::include_asset!("assets/icons/icon.png");

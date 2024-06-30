@@ -60,7 +60,7 @@ categories = ["games"]
 
 # Shared dependencies
 [workspace.dependencies]
-egui = "0.27.2"
+egui = { version = "0.27.2", features = ["rayon"] }
 egui_extras = { version = "0.27.2", features = ["svg", "image"] }
 epaint = "0.27.2"
 
@@ -222,6 +222,7 @@ features = ["web"]
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2.87"
 wasm-bindgen-futures = "=0.4.40"
+wasm-bindgen-rayon = "1.2.1"
 js-sys = "0.3"
 
 oneshot.workspace = true

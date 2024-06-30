@@ -70,6 +70,11 @@ if (typeof window === 'undefined') {
         const url = new URL(request.url);
         url.hash = "";
         url.pathname = url.pathname.trim();
+
+        // Add "/luminol.js" to the end of the request path if this request is same-origin and is being made by workerHelpers.worker.js from wasm-bindgen-rayon
+        // to work around the incorrect relative path at the beginning of workerHelpers.worker.js
+        if (url.origin === self.origin && r.referrer.endsWith("/workerHelpers.worker.js") && r.referrer.includes("/snippets/wasm-bindgen-rayon")) url.pathname += "/luminol.js";
+
         // Unescape escape codes like "%2f"
         url.pathname = decodeURIComponent(url.pathname);
         // Replace backslashes with forward slashes

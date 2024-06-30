@@ -21,9 +21,10 @@ window.restartLuminol = async function() {
     // instead of reinstantiating it
     const invalidator = crypto.randomUUID();
 
-    const { default: wasm_bindgen, luminol_main_start } = await import(`./luminol.js?luminol-invalidator=${invalidator}`);
+    const { default: wasm_bindgen, initThreadPool, luminol_main_start } = await import(`./luminol.js?luminol-invalidator=${invalidator}`);
 
     await wasm_bindgen();
+    await initThreadPool(navigator.hardwareConcurrency);
     luminol_main_start();
 };
 
