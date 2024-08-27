@@ -66,5 +66,7 @@ pub mod skills;
 pub mod sound_test;
 /// The state editor.
 pub mod states;
+/// The troop editor.
+pub mod troops;
 /// The weapon editor.
 pub mod weapons;

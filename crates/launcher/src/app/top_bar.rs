@@ -255,11 +255,11 @@ impl TopBar {
                         .add_window(luminol_ui::windows::enemies::Window::new(update_state));
                 }
 
-                ui.add_enabled_ui(false, |ui| {
-                    if ui.button("Troops [TODO]").clicked() {
-                        todo!();
-                    }
-                });
+                if ui.button("Troops").clicked() {
+                    update_state
+                        .edit_windows
+                        .add_window(luminol_ui::windows::troops::Window::new(update_state));
+                }
             });
         });
 

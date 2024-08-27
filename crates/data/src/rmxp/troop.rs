@@ -32,9 +32,9 @@ pub struct Troop {
 #[derive(alox_48::Deserialize, alox_48::Serialize)]
 #[marshal(class = "RPG::Troop::Member")]
 pub struct Member {
-    #[serde(with = "id_serde")]
-    #[marshal(with = "id_alox")]
-    pub enemy_id: usize,
+    #[serde(with = "optional_id_serde")]
+    #[marshal(with = "optional_id_alox")]
+    pub enemy_id: Option<usize>,
     pub x: i32,
     pub y: i32,
     pub hidden: bool,
