@@ -17,10 +17,15 @@
 
 use luminol_graphics::Renderable;
 
-use luminol_graphics::frame::{FRAME_HEIGHT, FRAME_WIDTH};
+use luminol_graphics::troop::{TROOP_HEIGHT, TROOP_WIDTH};
 
 pub struct TroopView {
     pub troop: luminol_graphics::Troop,
+
+    pub selected_member_index: Option<usize>,
+    pub hovered_member_index: Option<usize>,
+    pub hovered_member_drag_pos: Option<(i32, i32)>,
+    pub hovered_member_drag_offset: Option<egui::Vec2>,
 
     pub pan: egui::Vec2,
 
@@ -46,6 +51,10 @@ impl TroopView {
 
         Self {
             troop: luminol_graphics::Troop::new(&update_state.graphics),
+            selected_member_index: None,
+            hovered_member_index: None,
+            hovered_member_drag_pos: None,
+            hovered_member_drag_offset: None,
             pan,
             scale,
             previous_scale: scale,
@@ -146,26 +155,122 @@ impl TroopView {
         // Draw the grid lines and the border of the view
         ui.painter().line_segment(
             [
-                egui::pos2(-(FRAME_WIDTH as f32 / 2.), 0.) * scale + offset,
-                egui::pos2(FRAME_WIDTH as f32 / 2., 0.) * scale + offset,
+                egui::pos2(-(TROOP_WIDTH as f32 / 2.), 0.) * scale + offset,
+                egui::pos2(TROOP_WIDTH as f32 / 2., 0.) * scale + offset,
             ],
             egui::Stroke::new(1., egui::Color32::DARK_GRAY),
         );
         ui.painter().line_segment(
             [
-                egui::pos2(0., -(FRAME_HEIGHT as f32 / 2.)) * scale + offset,
-                egui::pos2(0., FRAME_HEIGHT as f32 / 2.) * scale + offset,
+                egui::pos2(0., -(TROOP_HEIGHT as f32 / 2.)) * scale + offset,
+                egui::pos2(0., TROOP_HEIGHT as f32 / 2.) * scale + offset,
             ],
             egui::Stroke::new(1., egui::Color32::DARK_GRAY),
         );
         ui.painter().rect_stroke(
             egui::Rect::from_center_size(
                 offset.to_pos2(),
-                egui::vec2(FRAME_WIDTH as f32, FRAME_HEIGHT as f32) * scale,
+                egui::vec2(TROOP_WIDTH as f32, TROOP_HEIGHT as f32) * scale,
             ),
             5.,
             egui::Stroke::new(1., egui::Color32::DARK_GRAY),
         );
+
+        // Find the troop member that the cursor is hovering over; if multiple are hovered we
+        // prioritize the one with the greatest index
+        if response.clicked() {
+            self.selected_member_index = None;
+        }
+        if self.hovered_member_drag_offset.is_none() {
+            self.hovered_member_index = ui
+                .input(|i| !i.modifiers.shift)
+                .then(|| {
+                    self.troop
+                        .members()
+                        .iter()
+                        .map(|(i, member)| (i, (member.rect * scale).translate(offset)))
+                        .rev()
+                        .find_map(|(i, rect)| {
+                            (response.hovered() && ui.rect_contains_pointer(rect)).then(|| {
+                                if response.clicked() {
+                                    // If the hovered member was clicked, make it the selected
+                                    // member
+                                    self.selected_member_index = Some(i);
+                                }
+                                i
+                            })
+                        })
+                })
+                .flatten();
+        }
+
+        let hover_pos_in_troop_coords = response.hover_pos().map(|pos| (pos - offset) / scale);
+
+        if !response.is_pointer_button_down_on()
+            || ui.input(|i| {
+                !i.pointer.button_down(egui::PointerButton::Primary) || i.modifiers.shift
+            })
+        {
+            self.hovered_member_drag_offset = None;
+        } else if let (Some(i), None, true) = (
+            self.hovered_member_index,
+            self.hovered_member_drag_offset,
+            response.drag_started_by(egui::PointerButton::Primary),
+        ) {
+            self.hovered_member_drag_offset = Some(
+                self.troop.members()[i].rect.center_bottom()
+                    + egui::vec2(TROOP_WIDTH as f32 / 2., TROOP_HEIGHT as f32 / 2.)
+                    - hover_pos_in_troop_coords.unwrap(),
+            );
+        }
+
+        if let Some(drag_offset) = self.hovered_member_drag_offset {
+            let pos = hover_pos_in_troop_coords.unwrap() + drag_offset;
+            self.hovered_member_drag_pos = Some((
+                pos.x.clamp(0., TROOP_WIDTH as f32).round_ties_even() as i32,
+                pos.y.clamp(0., TROOP_HEIGHT as f32).round_ties_even() as i32,
+            ));
+        } else {
+            self.hovered_member_drag_pos = None;
+        }
+
+        // Draw a rectangle on the border of every troop member
+        for rect in self
+            .troop
+            .members()
+            .iter()
+            .map(|(_, member)| (member.rect * scale).translate(offset))
+        {
+            ui.painter().rect_stroke(
+                rect,
+                5.,
+                egui::Stroke::new(
+                    1.,
+                    if ui.input(|i| i.modifiers.shift) {
+                        egui::Color32::DARK_GRAY
+                    } else {
+                        egui::Color32::WHITE
+                    },
+                ),
+            );
+        }
+
+        // Draw a yellow rectangle on the border of the hovered member
+        if let Some(i) = self.hovered_member_index {
+            let rect = (self.troop.members()[i].rect * scale).translate(offset);
+            ui.painter()
+                .rect_stroke(rect, 5., egui::Stroke::new(3., egui::Color32::YELLOW));
+        }
+
+        // Draw a magenta rectangle on the border of the selected member
+        if let Some(i) = self.selected_member_index {
+            let rect = (self.troop.members()[i].rect * scale).translate(offset);
+            ui.painter().rect_stroke(
+                rect,
+                5.,
+                egui::Stroke::new(3., egui::Color32::from_rgb(255, 0, 255)),
+            );
+        }
 
         ui.ctx().data_mut(|d| {
             d.insert_persisted(self.data_id, (self.pan, self.scale));

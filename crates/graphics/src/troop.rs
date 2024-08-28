@@ -45,6 +45,11 @@ impl Troop {
         }
     }
 
+    #[inline]
+    pub fn members(&self) -> &OptionVec<Member> {
+        &self.members
+    }
+
     pub fn rebuild_members(
         &mut self,
         graphics_state: &GraphicsState,
@@ -59,6 +64,29 @@ impl Troop {
                 .map(|member| (i, member))
         }));
         self.members = members;
+    }
+
+    pub fn update_member(
+        &mut self,
+        graphics_state: &GraphicsState,
+        troop: &luminol_data::rpg::Troop,
+        member_index: usize,
+    ) {
+        if let Some(member) = troop.members.get(member_index) {
+            if let Some(m) = self.members.get_mut(member_index) {
+                let offset = glam::vec2(
+                    member.x as f32 - (m.rect.width() + TROOP_WIDTH as f32) / 2.,
+                    member.y as f32 - m.rect.height() - TROOP_HEIGHT as f32 / 2.,
+                );
+                m.rect.set_center(egui::pos2(
+                    offset.x + m.rect.width() / 2.,
+                    offset.y + m.rect.height() / 2.,
+                ));
+                m.sprite
+                    .transform
+                    .set_position(&graphics_state.render_state, offset);
+            }
+        }
     }
 
     fn create_member(
