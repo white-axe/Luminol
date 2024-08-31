@@ -22,8 +22,12 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use crate::components::{DatabaseView, Field, OptionalIdComboBox, UiExt};
+use egui::Widget;
+
+use crate::components::{DatabaseView, Field, OptionalIdComboBox, TroopView, UiExt};
 use luminol_graphics::troop::{TROOP_HEIGHT, TROOP_WIDTH};
+
+const HISTORY_SIZE: usize = 50;
 
 /// Database - Troops management window.
 pub struct Window {
@@ -32,9 +36,18 @@ pub struct Window {
     previous_troop: Option<usize>,
     saved_selected_member_index: Option<usize>,
     drag_state: Option<DragState>,
-
-    troop_view: crate::components::TroopView,
+    previous_x: Option<i32>,
+    previous_y: Option<i32>,
+    history: History,
+    needs_update: Option<Update>,
+    troop_view: TroopView,
     view: DatabaseView,
+}
+
+#[derive(Debug)]
+struct Update {
+    member_index: usize,
+    rebuild: bool,
 }
 
 #[derive(Debug)]
@@ -44,6 +57,99 @@ struct DragState {
     original_y: i32,
 }
 
+#[derive(Debug, Default)]
+struct History(luminol_data::OptionVec<HistoryInner>);
+
+#[derive(Debug, Default)]
+struct HistoryInner {
+    undo: std::collections::VecDeque<HistoryEntry>,
+    redo: Vec<HistoryEntry>,
+}
+
+impl History {
+    fn inner(&mut self, troop_index: usize) -> &mut HistoryInner {
+        if !self.0.contains(troop_index) {
+            self.0.insert(troop_index, Default::default());
+        }
+        self.0.get_mut(troop_index).unwrap()
+    }
+
+    fn remove_troop(&mut self, troop_index: usize) {
+        let _ = self.0.try_remove(troop_index);
+    }
+
+    fn push(&mut self, troop_index: usize, entry: HistoryEntry) {
+        let inner = self.inner(troop_index);
+        inner.redo.clear();
+        while inner.undo.len() >= HISTORY_SIZE {
+            inner.undo.pop_front();
+        }
+        inner.undo.push_back(entry);
+    }
+
+    fn undo(&mut self, troop: &mut luminol_data::rpg::Troop) -> Option<Update> {
+        let inner = self.inner(troop.id);
+        let mut entry = inner.undo.pop_back()?;
+        let state = entry.apply(troop);
+        inner.redo.push(entry);
+        Some(state)
+    }
+
+    fn redo(&mut self, troop: &mut luminol_data::rpg::Troop) -> Option<Update> {
+        let inner = self.inner(troop.id);
+        let mut entry = inner.redo.pop()?;
+        let state = entry.apply(troop);
+        inner.undo.push_back(entry);
+        Some(state)
+    }
+}
+
+#[derive(Debug)]
+enum HistoryEntry {
+    EnemyId {
+        member_index: usize,
+        id: Option<usize>,
+    },
+    Properties {
+        member_index: usize,
+        x: i32,
+        y: i32,
+        hidden: bool,
+        immortal: bool,
+    },
+}
+
+impl HistoryEntry {
+    fn apply(&mut self, troop: &mut luminol_data::rpg::Troop) -> Update {
+        match self {
+            Self::EnemyId { member_index, id } => {
+                std::mem::swap(id, &mut troop.members[*member_index].enemy_id);
+                Update {
+                    member_index: *member_index,
+                    rebuild: true,
+                }
+            }
+            Self::Properties {
+                member_index,
+                x,
+                y,
+                hidden,
+                immortal,
+            } => {
+                let member = &mut troop.members[*member_index];
+                std::mem::swap(x, &mut member.x);
+                std::mem::swap(y, &mut member.y);
+                std::mem::swap(hidden, &mut member.hidden);
+                std::mem::swap(immortal, &mut member.immortal);
+                Update {
+                    member_index: *member_index,
+                    rebuild: false,
+                }
+            }
+        }
+    }
+}
+
 impl Window {
     pub fn new(update_state: &luminol_core::UpdateState<'_>) -> Self {
         Self {
@@ -51,7 +157,11 @@ impl Window {
             previous_troop: None,
             saved_selected_member_index: None,
             drag_state: None,
-            troop_view: crate::components::TroopView::new(update_state),
+            previous_x: None,
+            previous_y: None,
+            history: Default::default(),
+            needs_update: None,
+            troop_view: TroopView::new(update_state),
             view: DatabaseView::new(),
         }
     }
@@ -74,6 +184,7 @@ impl luminol_core::Window for Window {
     ) {
         let data = std::mem::take(update_state.data); // take data to avoid borrow checker issues
         let mut troops = data.troops();
+        let troops_len = troops.data.len();
         let enemies = data.enemies();
 
         let mut modified = false;
@@ -98,6 +209,10 @@ impl luminol_core::Window for Window {
                     &mut troops.data,
                     |troop| format!("{:0>4}: {}", troop.id + 1, troop.name),
                     |ui, troops, id, update_state| {
+                        for i in troops.len()..troops_len {
+                            self.history.remove_troop(i);
+                        }
+
                         let troop = &mut troops[id];
                         self.selected_troop_name = Some(troop.name.clone());
 
@@ -114,6 +229,14 @@ impl luminol_core::Window for Window {
                         });
 
                         ui.with_padded_stripe(true, |ui| {
+                            ui.add(Field::new(
+                                "Editor Scale",
+                                egui::Slider::new(&mut self.troop_view.scale, 15.0..=300.0)
+                                    .suffix("%")
+                                    .logarithmic(true)
+                                    .fixed_decimals(0),
+                            ));
+
                             let canvas_rect = egui::Resize::default()
                                 .resizable([false, true])
                                 .min_width(ui.available_width())
@@ -186,21 +309,38 @@ impl luminol_core::Window for Window {
                                     modified = true;
                                 }
                             } else if let Some(drag_state) = self.drag_state.take() {
-                                let x = troop.members[drag_state.member_index].x;
-                                let y = troop.members[drag_state.member_index].y;
-                                troop.members[drag_state.member_index].x = drag_state.original_x;
-                                troop.members[drag_state.member_index].y = drag_state.original_y;
-                                // TODO: push to history
-                                troop.members[drag_state.member_index].x = x;
-                                troop.members[drag_state.member_index].y = y;
+                                self.history.push(
+                                    troop.id,
+                                    HistoryEntry::Properties {
+                                        member_index: drag_state.member_index,
+                                        x: drag_state.original_x,
+                                        y: drag_state.original_y,
+                                        hidden: troop.members[drag_state.member_index].hidden,
+                                        immortal: troop.members[drag_state.member_index].immortal,
+                                    },
+                                );
                             }
 
                             egui::Frame::none().show(ui, |ui| {
                                 if let Some(i) = self.troop_view.selected_member_index {
                                     let mut properties_modified = false;
+                                    let mut properties_need_update = false;
 
                                     ui.label(format!("Member {}", i + 1));
 
+                                    let original_x =
+                                        self.previous_x.unwrap_or_else(|| troop.members[i].x);
+                                    let original_y =
+                                        self.previous_y.unwrap_or_else(|| troop.members[i].y);
+                                    let history_entry = HistoryEntry::Properties {
+                                        member_index: i,
+                                        x: original_x,
+                                        y: original_y,
+                                        hidden: troop.members[i].hidden,
+                                        immortal: troop.members[i].hidden,
+                                    };
+
+                                    let old_enemy_id = troop.members[i].enemy_id;
                                     let changed = ui
                                         .add(Field::new(
                                             "Enemy Type",
@@ -220,6 +360,13 @@ impl luminol_core::Window for Window {
                                         ))
                                         .changed();
                                     if changed {
+                                        self.history.push(
+                                            troop.id,
+                                            HistoryEntry::EnemyId {
+                                                member_index: i,
+                                                id: old_enemy_id,
+                                            },
+                                        );
                                         self.troop_view.troop.rebuild_member(
                                             &update_state.graphics,
                                             update_state.filesystem,
@@ -231,19 +378,45 @@ impl luminol_core::Window for Window {
 
                                     ui.columns(4, |columns| {
                                         properties_modified |= columns[0]
-                                            .add(Field::new(
-                                                "X",
-                                                egui::DragValue::new(&mut troop.members[i].x)
-                                                    .range(0..=TROOP_WIDTH),
-                                            ))
+                                            .add(Field::new("X", |ui: &mut egui::Ui| {
+                                                let mut response =
+                                                    egui::DragValue::new(&mut troop.members[i].x)
+                                                        .range(0..=TROOP_WIDTH)
+                                                        .update_while_editing(false)
+                                                        .ui(ui);
+                                                if response.dragged() {
+                                                    response.changed = false;
+                                                    if self.previous_x.is_none() {
+                                                        self.previous_x = Some(original_x);
+                                                    }
+                                                    properties_need_update = true;
+                                                } else if self.previous_x.is_some() {
+                                                    self.previous_x = None;
+                                                    response.changed = true;
+                                                }
+                                                response
+                                            }))
                                             .changed();
 
                                         properties_modified |= columns[1]
-                                            .add(Field::new(
-                                                "Y",
-                                                egui::DragValue::new(&mut troop.members[i].y)
-                                                    .range(0..=TROOP_HEIGHT),
-                                            ))
+                                            .add(Field::new("Y", |ui: &mut egui::Ui| {
+                                                let mut response =
+                                                    egui::DragValue::new(&mut troop.members[i].y)
+                                                        .range(0..=TROOP_HEIGHT)
+                                                        .update_while_editing(false)
+                                                        .ui(ui);
+                                                if response.dragged() {
+                                                    response.changed = false;
+                                                    if self.previous_y.is_none() {
+                                                        self.previous_y = Some(original_y);
+                                                    }
+                                                    properties_need_update = true;
+                                                } else if self.previous_y.is_some() {
+                                                    self.previous_y = None;
+                                                    response.changed = true;
+                                                }
+                                                response
+                                            }))
                                             .changed();
 
                                         properties_modified |= columns[2]
@@ -265,22 +438,64 @@ impl luminol_core::Window for Window {
                                             .changed();
                                     });
 
-                                    if properties_modified {
+                                    if properties_modified || properties_need_update {
                                         self.troop_view.troop.update_member(
                                             &update_state.graphics,
                                             troop,
                                             i,
                                         );
+                                    }
+                                    if properties_modified {
+                                        self.history.push(troop.id, history_entry);
                                         modified = true;
                                     }
                                 }
                             });
+
+                            if let Some(update) = self.needs_update.take() {
+                                if update.rebuild {
+                                    self.troop_view.troop.rebuild_member(
+                                        &update_state.graphics,
+                                        update_state.filesystem,
+                                        &enemies,
+                                        troop,
+                                        update.member_index,
+                                    );
+                                } else {
+                                    self.troop_view.troop.update_member(
+                                        &update_state.graphics,
+                                        troop,
+                                        update.member_index,
+                                    );
+                                }
+                            }
 
                             ui.allocate_ui_at_rect(canvas_rect, |ui| {
                                 let response = self.troop_view.ui(ui, update_state, clip_rect);
                                 if response.clicked() {
                                     self.saved_selected_member_index =
                                         self.troop_view.selected_member_index;
+                                }
+
+                                if response.has_focus() {
+                                    // Ctrl+Z for undo
+                                    if ui.input(|i| {
+                                        i.modifiers.command
+                                            && !i.modifiers.shift
+                                            && i.key_pressed(egui::Key::Z)
+                                    }) {
+                                        self.needs_update = self.history.undo(troop);
+                                    }
+
+                                    // Ctrl+Y or Ctrl+Shift+Z for redo
+                                    if ui.input(|i| {
+                                        i.modifiers.command
+                                            && (i.key_pressed(egui::Key::Y)
+                                                || (i.modifiers.shift
+                                                    && i.key_pressed(egui::Key::Z)))
+                                    }) {
+                                        self.needs_update = self.history.redo(troop);
+                                    }
                                 }
                             });
                         });
