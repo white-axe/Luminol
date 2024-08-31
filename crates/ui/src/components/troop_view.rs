@@ -177,7 +177,7 @@ impl TroopView {
         );
 
         // Find the troop member that the cursor is hovering over; if multiple are hovered we
-        // prioritize the one with the greatest index
+        // prioritize the one with the lowest index
         if response.clicked() {
             self.selected_member_index = None;
         }
@@ -189,7 +189,6 @@ impl TroopView {
                         .members()
                         .iter()
                         .map(|(i, member)| (i, (member.rect * scale).translate(offset)))
-                        .rev()
                         .find_map(|(i, rect)| {
                             (response.hovered() && ui.rect_contains_pointer(rect)).then(|| {
                                 if response.clicked() {
