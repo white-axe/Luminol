@@ -50,7 +50,26 @@ impl Troop {
         &self.members
     }
 
-    pub fn rebuild_members(
+    pub fn rebuild_member(
+        &mut self,
+        graphics_state: &GraphicsState,
+        filesystem: &impl luminol_filesystem::FileSystem,
+        enemies: &luminol_data::rpg::Enemies,
+        troop: &luminol_data::rpg::Troop,
+        member_index: usize,
+    ) {
+        if let Some(member) = troop
+            .members
+            .get(member_index)
+            .and_then(|member| self.create_member(graphics_state, filesystem, enemies, member))
+        {
+            self.members.insert(member_index, member);
+        } else {
+            let _ = self.members.try_remove(member_index);
+        }
+    }
+
+    pub fn rebuild_all_members(
         &mut self,
         graphics_state: &GraphicsState,
         filesystem: &impl luminol_filesystem::FileSystem,
@@ -85,6 +104,10 @@ impl Troop {
                 m.sprite
                     .transform
                     .set_position(&graphics_state.render_state, offset);
+                m.sprite.graphic.set_opacity(
+                    &graphics_state.render_state,
+                    if member.hidden { 32 } else { 255 },
+                );
             }
         }
     }

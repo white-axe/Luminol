@@ -22,7 +22,8 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use crate::components::{DatabaseView, Field, UiExt};
+use crate::components::{DatabaseView, Field, OptionalIdComboBox, UiExt};
+use luminol_graphics::troop::{TROOP_HEIGHT, TROOP_WIDTH};
 
 /// Database - Troops management window.
 pub struct Window {
@@ -128,7 +129,7 @@ impl luminol_core::Window for Window {
                                 });
 
                             if self.previous_troop != Some(troop.id) {
-                                self.troop_view.troop.rebuild_members(
+                                self.troop_view.troop.rebuild_all_members(
                                     &update_state.graphics,
                                     update_state.filesystem,
                                     &enemies,
@@ -193,6 +194,87 @@ impl luminol_core::Window for Window {
                                 troop.members[drag_state.member_index].x = x;
                                 troop.members[drag_state.member_index].y = y;
                             }
+
+                            egui::Frame::none().show(ui, |ui| {
+                                if let Some(i) = self.troop_view.selected_member_index {
+                                    let mut properties_modified = false;
+
+                                    ui.label(format!("Member {}", i + 1));
+
+                                    let changed = ui
+                                        .add(Field::new(
+                                            "Enemy Type",
+                                            OptionalIdComboBox::new(
+                                                update_state,
+                                                (troop.id, i, "enemy_id"),
+                                                &mut troop.members[i].enemy_id,
+                                                0..enemies.data.len(),
+                                                |id| {
+                                                    enemies.data.get(id).map_or_else(
+                                                        || "".into(),
+                                                        |e| format!("{:0>4}: {}", id + 1, e.name),
+                                                    )
+                                                },
+                                            )
+                                            .allow_none(false),
+                                        ))
+                                        .changed();
+                                    if changed {
+                                        self.troop_view.troop.rebuild_member(
+                                            &update_state.graphics,
+                                            update_state.filesystem,
+                                            &enemies,
+                                            troop,
+                                            i,
+                                        );
+                                    }
+
+                                    ui.columns(4, |columns| {
+                                        properties_modified |= columns[0]
+                                            .add(Field::new(
+                                                "X",
+                                                egui::DragValue::new(&mut troop.members[i].x)
+                                                    .range(0..=TROOP_WIDTH),
+                                            ))
+                                            .changed();
+
+                                        properties_modified |= columns[1]
+                                            .add(Field::new(
+                                                "Y",
+                                                egui::DragValue::new(&mut troop.members[i].y)
+                                                    .range(0..=TROOP_HEIGHT),
+                                            ))
+                                            .changed();
+
+                                        properties_modified |= columns[2]
+                                            .add(Field::new(
+                                                "Hidden",
+                                                egui::Checkbox::without_text(
+                                                    &mut troop.members[i].hidden,
+                                                ),
+                                            ))
+                                            .changed();
+
+                                        modified |= columns[3]
+                                            .add(Field::new(
+                                                "Immortal",
+                                                egui::Checkbox::without_text(
+                                                    &mut troop.members[i].immortal,
+                                                ),
+                                            ))
+                                            .changed();
+                                    });
+
+                                    if properties_modified {
+                                        self.troop_view.troop.update_member(
+                                            &update_state.graphics,
+                                            troop,
+                                            i,
+                                        );
+                                        modified = true;
+                                    }
+                                }
+                            });
 
                             ui.allocate_ui_at_rect(canvas_rect, |ui| {
                                 let response = self.troop_view.ui(ui, update_state, clip_rect);
