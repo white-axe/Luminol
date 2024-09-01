@@ -34,6 +34,7 @@ pub struct Window {
     selected_troop_name: Option<String>,
 
     previous_troop: Option<usize>,
+    previous_enemy_id: usize,
     saved_selected_member_index: Option<usize>,
     drag_state: Option<DragState>,
     previous_x: Option<i32>,
@@ -104,48 +105,39 @@ impl History {
     }
 }
 
-#[derive(Debug)]
-enum HistoryEntry {
-    EnemyId {
-        member_index: usize,
-        id: Option<usize>,
-    },
-    Properties {
-        member_index: usize,
-        x: i32,
-        y: i32,
-        hidden: bool,
-        immortal: bool,
-    },
+#[derive(Debug, Default)]
+struct HistoryEntry {
+    member_index: usize,
+    enemy_id: Option<Option<usize>>,
+    x: i32,
+    y: i32,
+    hidden: bool,
+    immortal: bool,
 }
 
 impl HistoryEntry {
     fn apply(&mut self, troop: &mut luminol_data::rpg::Troop) -> Update {
-        match self {
-            Self::EnemyId { member_index, id } => {
-                std::mem::swap(id, &mut troop.members[*member_index].enemy_id);
-                Update {
-                    member_index: *member_index,
-                    rebuild: true,
-                }
-            }
-            Self::Properties {
-                member_index,
-                x,
-                y,
-                hidden,
-                immortal,
-            } => {
-                let member = &mut troop.members[*member_index];
-                std::mem::swap(x, &mut member.x);
-                std::mem::swap(y, &mut member.y);
-                std::mem::swap(hidden, &mut member.hidden);
-                std::mem::swap(immortal, &mut member.immortal);
-                Update {
-                    member_index: *member_index,
-                    rebuild: false,
-                }
-            }
+        while troop.members.len() <= self.member_index {
+            troop.members.push(Default::default());
+        }
+        let member = &mut troop.members[self.member_index];
+        if let Some(enemy_id) = &mut self.enemy_id {
+            std::mem::swap(enemy_id, &mut member.enemy_id);
+        }
+        std::mem::swap(&mut self.x, &mut member.x);
+        std::mem::swap(&mut self.y, &mut member.y);
+        std::mem::swap(&mut self.hidden, &mut member.hidden);
+        std::mem::swap(&mut self.immortal, &mut member.immortal);
+        while troop
+            .members
+            .last()
+            .is_some_and(|member| member.enemy_id.is_none())
+        {
+            troop.members.pop();
+        }
+        Update {
+            member_index: self.member_index,
+            rebuild: self.enemy_id.is_some(),
         }
     }
 }
@@ -155,6 +147,7 @@ impl Window {
         Self {
             selected_troop_name: None,
             previous_troop: None,
+            previous_enemy_id: 0,
             saved_selected_member_index: None,
             drag_state: None,
             previous_x: None,
@@ -311,8 +304,9 @@ impl luminol_core::Window for Window {
                             } else if let Some(drag_state) = self.drag_state.take() {
                                 self.history.push(
                                     troop.id,
-                                    HistoryEntry::Properties {
+                                    HistoryEntry {
                                         member_index: drag_state.member_index,
+                                        enemy_id: None,
                                         x: drag_state.original_x,
                                         y: drag_state.original_y,
                                         hidden: troop.members[drag_state.member_index].hidden,
@@ -332,8 +326,9 @@ impl luminol_core::Window for Window {
                                         self.previous_x.unwrap_or_else(|| troop.members[i].x);
                                     let original_y =
                                         self.previous_y.unwrap_or_else(|| troop.members[i].y);
-                                    let history_entry = HistoryEntry::Properties {
+                                    let history_entry = HistoryEntry {
                                         member_index: i,
+                                        enemy_id: None,
                                         x: original_x,
                                         y: original_y,
                                         hidden: troop.members[i].hidden,
@@ -362,9 +357,9 @@ impl luminol_core::Window for Window {
                                     if changed {
                                         self.history.push(
                                             troop.id,
-                                            HistoryEntry::EnemyId {
-                                                member_index: i,
-                                                id: old_enemy_id,
+                                            HistoryEntry {
+                                                enemy_id: Some(old_enemy_id),
+                                                ..history_entry
                                             },
                                         );
                                         self.troop_view.troop.rebuild_member(
@@ -452,6 +447,15 @@ impl luminol_core::Window for Window {
                                 }
                             });
 
+                            if let Some(enemy_id) = self
+                                .troop_view
+                                .selected_member_index
+                                .and_then(|i| troop.members.get(i))
+                                .and_then(|member| member.enemy_id)
+                            {
+                                self.previous_enemy_id = enemy_id;
+                            }
+
                             if let Some(update) = self.needs_update.take() {
                                 if update.rebuild {
                                     self.troop_view.troop.rebuild_member(
@@ -471,10 +475,98 @@ impl luminol_core::Window for Window {
                             }
 
                             ui.allocate_ui_at_rect(canvas_rect, |ui| {
-                                let response = self.troop_view.ui(ui, update_state, clip_rect);
+                                let egui::InnerResponse {
+                                    inner: hover_pos,
+                                    response,
+                                } = self.troop_view.ui(ui, update_state, clip_rect);
                                 if response.clicked() {
                                     self.saved_selected_member_index =
                                         self.troop_view.selected_member_index;
+                                }
+
+                                // If the pointer is hovering over the troop view, prevent parent widgets
+                                // from receiving scroll events so that scaling the frame view with the
+                                // scroll wheel doesn't also scroll the scroll area that the troop view is
+                                // in
+                                if response.hovered() {
+                                    ui.ctx()
+                                        .input_mut(|i| i.smooth_scroll_delta = egui::Vec2::ZERO);
+                                }
+
+                                // Create new member on double click
+                                if let Some((x, y)) = hover_pos {
+                                    if response.double_clicked() && !enemies.data.is_empty() {
+                                        while troop
+                                            .members
+                                            .last()
+                                            .is_some_and(|member| member.enemy_id.is_none())
+                                        {
+                                            troop.members.pop();
+                                        }
+                                        let next_member_index = troop.members.len();
+                                        self.history.push(
+                                            troop.id,
+                                            HistoryEntry {
+                                                member_index: next_member_index,
+                                                enemy_id: Some(None),
+                                                ..Default::default()
+                                            },
+                                        );
+                                        troop.members.push(luminol_data::rpg::troop::Member {
+                                            enemy_id: Some(
+                                                self.previous_enemy_id.min(enemies.data.len() - 1),
+                                            ),
+                                            x,
+                                            y,
+                                            hidden: false,
+                                            immortal: false,
+                                        });
+                                        self.needs_update = Some(Update {
+                                            member_index: next_member_index,
+                                            rebuild: true,
+                                        });
+                                        self.troop_view.selected_member_index =
+                                            Some(next_member_index);
+                                        modified = true;
+                                    }
+                                }
+
+                                // Handle pressing delete or backspace to delete frames
+                                if let Some(i) = self.troop_view.selected_member_index {
+                                    if i < troop.members.len()
+                                        && troop.members[i].enemy_id.is_some()
+                                        && response.has_focus()
+                                        && ui.input(|i| {
+                                            i.key_pressed(egui::Key::Delete)
+                                                || i.key_pressed(egui::Key::Backspace)
+                                        })
+                                    {
+                                        let member = std::mem::take(&mut troop.members[i]);
+                                        self.history.push(
+                                            troop.id,
+                                            HistoryEntry {
+                                                member_index: i,
+                                                enemy_id: Some(member.enemy_id),
+                                                x: member.x,
+                                                y: member.y,
+                                                hidden: member.hidden,
+                                                immortal: member.immortal,
+                                            },
+                                        );
+                                        while troop
+                                            .members
+                                            .last()
+                                            .is_some_and(|member| member.enemy_id.is_none())
+                                        {
+                                            troop.members.pop();
+                                        }
+                                        self.needs_update = Some(Update {
+                                            member_index: i,
+                                            rebuild: true,
+                                        });
+                                        self.troop_view.selected_member_index = None;
+                                        modified = true;
+                                    }
                                 }
 
                                 if response.has_focus() {

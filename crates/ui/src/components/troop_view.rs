@@ -67,7 +67,7 @@ impl TroopView {
         ui: &mut egui::Ui,
         update_state: &luminol_core::UpdateState<'_>,
         clip_rect: egui::Rect,
-    ) -> egui::Response {
+    ) -> egui::InnerResponse<Option<(i32, i32)>> {
         let canvas_rect = ui.max_rect();
         let canvas_center = canvas_rect.center();
         ui.set_clip_rect(canvas_rect.intersect(clip_rect));
@@ -275,6 +275,15 @@ impl TroopView {
             d.insert_persisted(self.data_id, (self.pan, self.scale));
         });
 
-        response
+        egui::InnerResponse::new(
+            hover_pos_in_troop_coords.map(|pos| {
+                let pos = pos + egui::vec2(TROOP_WIDTH as f32 / 2., TROOP_HEIGHT as f32 / 2.);
+                (
+                    pos.x.clamp(0., TROOP_WIDTH as f32).round_ties_even() as i32,
+                    pos.y.clamp(0., TROOP_HEIGHT as f32).round_ties_even() as i32,
+                )
+            }),
+            response,
+        )
     }
 }
