@@ -66,9 +66,27 @@ impl Window {
     }
 }
 
+fn iter_parameters(
+    parameters: &luminol_data::Table2,
+    param: usize,
+    range: std::ops::RangeInclusive<usize>,
+    rect: egui::Rect,
+) -> impl std::iter::FusedIterator<Item = egui::Pos2> + Clone + '_ {
+    (1..parameters.ysize()).map(move |i| {
+        rect.left_top()
+            + egui::vec2(
+                ((i - 1) as f32 / (parameters.ysize() - 2) as f32) * rect.width(),
+                ((range.end().saturating_sub(parameters[(param, i)] as usize)) as f32
+                    / range.end().saturating_sub(*range.start()) as f32)
+                    * rect.height(),
+            )
+    })
+}
+
 fn draw_graph(
     ui: &mut egui::Ui,
-    actor: &luminol_data::rpg::Actor,
+    modified: &mut bool,
+    actor: &mut luminol_data::rpg::Actor,
     param: usize,
     range: std::ops::RangeInclusive<usize>,
     color: egui::Color32,
@@ -84,18 +102,32 @@ fn draw_graph(
             }
             ui.set_clip_rect(clip_rect);
 
-            let iter = (1..actor.parameters.ysize()).map(|i| {
-                rect.left_top()
-                    + egui::vec2(
-                        ((i - 1) as f32 / (actor.parameters.ysize() - 2) as f32) * rect.width(),
-                        ((range
-                            .end()
-                            .saturating_sub(actor.parameters[(param, i)] as usize))
-                            as f32
-                            / range.end().saturating_sub(*range.start()) as f32)
-                            * rect.height(),
-                    )
-            });
+            // Handle dragging to edit parameter points
+            let response = ui.allocate_response(rect.size(), egui::Sense::click_and_drag());
+            if response.is_pointer_button_down_on()
+                && ui.input(|i| i.pointer.button_down(egui::PointerButton::Primary))
+            {
+                if let Some(hover_pos) = response.hover_pos() {
+                    let width = 1. / (actor.parameters.ysize() - 2) as f32 * rect.width() * 0.5;
+                    let i = iter_parameters(&actor.parameters, param, range.clone(), rect)
+                        .with_position()
+                        .position(|(iter_pos, p)| {
+                            (iter_pos == itertools::Position::First || hover_pos.x >= p.x - width)
+                                && (iter_pos == itertools::Position::Last
+                                    || hover_pos.x < p.x + width)
+                        })
+                        .unwrap()
+                        + 1;
+                    actor.parameters[(param, i)] = range.end().saturating_sub(
+                        ((hover_pos.y - rect.top()) / rect.height()
+                            * range.end().saturating_sub(*range.start()) as f32)
+                            .round_ties_even() as usize,
+                    ) as i16;
+                    *modified = true;
+                }
+            }
+
+            let iter = iter_parameters(&actor.parameters, param, range, rect);
 
             // Draw the filled part of the graph by drawing a trapezoid for each area horizontally
             // between two points
@@ -633,6 +665,7 @@ impl luminol_core::Window for Window {
                                 columns[0].add(Field::new("Max HP", |ui: &mut egui::Ui| {
                                     draw_graph(
                                         ui,
+                                        &mut modified,
                                         actor,
                                         0,
                                         1..=9999,
@@ -643,6 +676,7 @@ impl luminol_core::Window for Window {
                                 columns[1].add(Field::new("Max SP", |ui: &mut egui::Ui| {
                                     draw_graph(
                                         ui,
+                                        &mut modified,
                                         actor,
                                         1,
                                         1..=9999,
@@ -657,6 +691,7 @@ impl luminol_core::Window for Window {
                                 columns[0].add(Field::new("STR", |ui: &mut egui::Ui| {
                                     draw_graph(
                                         ui,
+                                        &mut modified,
                                         actor,
                                         2,
                                         1..=999,
@@ -667,6 +702,7 @@ impl luminol_core::Window for Window {
                                 columns[1].add(Field::new("DEX", |ui: &mut egui::Ui| {
                                     draw_graph(
                                         ui,
+                                        &mut modified,
                                         actor,
                                         3,
                                         1..=999,
@@ -681,6 +717,7 @@ impl luminol_core::Window for Window {
                                 columns[0].add(Field::new("AGI", |ui: &mut egui::Ui| {
                                     draw_graph(
                                         ui,
+                                        &mut modified,
                                         actor,
                                         4,
                                         1..=999,
@@ -691,6 +728,7 @@ impl luminol_core::Window for Window {
                                 columns[1].add(Field::new("INT", |ui: &mut egui::Ui| {
                                     draw_graph(
                                         ui,
+                                        &mut modified,
                                         actor,
                                         5,
                                         1..=999,
