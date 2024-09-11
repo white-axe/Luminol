@@ -38,7 +38,25 @@ pub struct Window {
     exp_view_is_total: bool,
     exp_view_is_depersisted: bool,
 
+    parameter_edit_state: ParameterEditState,
+
     view: crate::components::DatabaseView,
+}
+
+struct ParameterEditState {
+    param: usize,
+    index: usize,
+    value: i16,
+}
+
+impl Default for ParameterEditState {
+    fn default() -> Self {
+        Self {
+            param: usize::MAX,
+            index: 0,
+            value: 0,
+        }
+    }
 }
 
 impl Window {
@@ -60,6 +78,8 @@ impl Window {
 
             exp_view_is_depersisted: false,
             exp_view_is_total: false,
+
+            parameter_edit_state: Default::default(),
 
             view: crate::components::DatabaseView::new(),
         }
@@ -85,6 +105,7 @@ fn iter_parameters(
 
 fn draw_graph(
     ui: &mut egui::Ui,
+    parameter_edit_state: &mut ParameterEditState,
     modified: &mut bool,
     actor: &mut luminol_data::rpg::Actor,
     param: usize,
@@ -109,7 +130,7 @@ fn draw_graph(
             {
                 if let Some(hover_pos) = response.hover_pos() {
                     let width = 1. / (actor.parameters.ysize() - 2) as f32 * rect.width() * 0.5;
-                    let i = iter_parameters(&actor.parameters, param, range.clone(), rect)
+                    let index = iter_parameters(&actor.parameters, param, range.clone(), rect)
                         .with_position()
                         .position(|(iter_pos, p)| {
                             (iter_pos == itertools::Position::First || hover_pos.x >= p.x - width)
@@ -118,13 +139,44 @@ fn draw_graph(
                         })
                         .unwrap()
                         + 1;
-                    actor.parameters[(param, i)] = range.end().saturating_sub(
+
+                    let index_range = if parameter_edit_state.param != param
+                        || index == parameter_edit_state.index
+                    {
+                        index..=index
+                    } else if index < parameter_edit_state.index {
+                        index..=parameter_edit_state.index - 1
+                    } else {
+                        parameter_edit_state.index + 1..=index
+                    };
+
+                    let start_value = parameter_edit_state.value;
+                    let end_value = range.end().saturating_sub(
                         ((hover_pos.y - rect.top()) / rect.height()
                             * range.end().saturating_sub(*range.start()) as f32)
                             .round_ties_even() as usize,
                     ) as i16;
+
+                    let index_range_len = index_range.end() - index_range.start() + 1;
+                    for (i, index) in index_range.enumerate() {
+                        let i = if index >= parameter_edit_state.index {
+                            i + 1
+                        } else {
+                            index_range_len - i
+                        };
+                        actor.parameters[(param, index)] = start_value
+                            + ((end_value - start_value) as f32
+                                * (i as f32 / index_range_len as f32))
+                                .round_ties_even() as i16;
+                    }
+
+                    parameter_edit_state.param = param;
+                    parameter_edit_state.index = index;
+                    parameter_edit_state.value = end_value;
                     *modified = true;
                 }
+            } else if parameter_edit_state.param == param {
+                *parameter_edit_state = Default::default();
             }
 
             let iter = iter_parameters(&actor.parameters, param, range, rect);
@@ -665,6 +717,7 @@ impl luminol_core::Window for Window {
                                 columns[0].add(Field::new("Max HP", |ui: &mut egui::Ui| {
                                     draw_graph(
                                         ui,
+                                        &mut self.parameter_edit_state,
                                         &mut modified,
                                         actor,
                                         0,
@@ -676,6 +729,7 @@ impl luminol_core::Window for Window {
                                 columns[1].add(Field::new("Max SP", |ui: &mut egui::Ui| {
                                     draw_graph(
                                         ui,
+                                        &mut self.parameter_edit_state,
                                         &mut modified,
                                         actor,
                                         1,
@@ -691,6 +745,7 @@ impl luminol_core::Window for Window {
                                 columns[0].add(Field::new("STR", |ui: &mut egui::Ui| {
                                     draw_graph(
                                         ui,
+                                        &mut self.parameter_edit_state,
                                         &mut modified,
                                         actor,
                                         2,
@@ -702,6 +757,7 @@ impl luminol_core::Window for Window {
                                 columns[1].add(Field::new("DEX", |ui: &mut egui::Ui| {
                                     draw_graph(
                                         ui,
+                                        &mut self.parameter_edit_state,
                                         &mut modified,
                                         actor,
                                         3,
@@ -717,6 +773,7 @@ impl luminol_core::Window for Window {
                                 columns[0].add(Field::new("AGI", |ui: &mut egui::Ui| {
                                     draw_graph(
                                         ui,
+                                        &mut self.parameter_edit_state,
                                         &mut modified,
                                         actor,
                                         4,
@@ -728,6 +785,7 @@ impl luminol_core::Window for Window {
                                 columns[1].add(Field::new("INT", |ui: &mut egui::Ui| {
                                     draw_graph(
                                         ui,
+                                        &mut self.parameter_edit_state,
                                         &mut modified,
                                         actor,
                                         5,
