@@ -65,16 +65,9 @@ impl Default for SelectedTile {
 impl Tilepicker {
     pub fn new(
         update_state: &luminol_core::UpdateState<'_>,
-        map_id: usize, // FIXME
+        tileset: &luminol_data::rpg::Tileset,
+        map_id: Option<usize>,
     ) -> Tilepicker {
-        let map = update_state.data.get_or_load_map(
-            map_id,
-            update_state.filesystem,
-            update_state.project_config.as_ref().unwrap(),
-        );
-        let tilesets = update_state.data.tilesets();
-        let tileset = &tilesets.data[map.tileset_id];
-
         let view = luminol_graphics::Tilepicker::new(
             &update_state.graphics,
             tileset,
@@ -92,7 +85,7 @@ impl Tilepicker {
                 .persistence_id
                 .to_le_bytes(),
         );
-        brush_seed[8..16].copy_from_slice(&(map_id as u64).to_le_bytes());
+        brush_seed[8..16].copy_from_slice(&(map_id.unwrap_or_default() as u64).to_le_bytes());
 
         Self {
             view,

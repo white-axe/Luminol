@@ -125,7 +125,6 @@ impl Tab {
         // *sigh*
         // borrow checker.
         let view = MapView::new(update_state, id)?;
-        let tilepicker = Tilepicker::new(update_state, id);
 
         let map = update_state.data.get_or_load_map(
             id,
@@ -134,6 +133,8 @@ impl Tab {
         );
         let tilesets = update_state.data.tilesets();
         let tileset = &tilesets.data[map.tileset_id];
+
+        let tilepicker = Tilepicker::new(update_state, tileset, Some(id));
 
         let mut passages = luminol_data::Table2::new(map.data.xsize(), map.data.ysize());
         luminol_graphics::Collision::calculate_passages(

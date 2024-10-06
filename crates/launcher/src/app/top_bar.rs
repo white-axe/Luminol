@@ -167,11 +167,11 @@ impl TopBar {
                         .add_window(luminol_ui::windows::map_picker::Window::default());
                 }
 
-                ui.add_enabled_ui(false, |ui| {
-                    if ui.button("Tilesets [TODO]").clicked() {
-                        todo!();
-                    }
-                });
+                if ui.button("Tilesets").clicked() {
+                    update_state
+                        .edit_windows
+                        .add_window(luminol_ui::windows::tilesets::Window::default());
+                }
 
                 if ui.button("Animations").clicked() {
                     update_state
