@@ -50,9 +50,12 @@ impl Map {
         tileset: &luminol_data::rpg::Tileset,
         passages: &luminol_data::Table2,
     ) -> color_eyre::Result<Self> {
-        let atlas = graphics_state
-            .atlas_loader
-            .load_atlas(graphics_state, filesystem, tileset);
+        let atlas = graphics_state.atlas_loader.load_atlas(
+            graphics_state,
+            filesystem,
+            tileset.tileset_name.as_deref(),
+            &tileset.autotile_names,
+        );
 
         let viewport = Viewport::new(
             graphics_state,

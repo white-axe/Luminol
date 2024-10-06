@@ -500,7 +500,7 @@ impl luminol_core::Tab for Tab {
                                 update_state,
                                 &event,
                                 self.id,
-                                map.tileset_id,
+                                tileset,
                             ));
                         }
                     }
@@ -573,7 +573,7 @@ impl luminol_core::Tab for Tab {
                     if response.double_clicked()
                         || (is_focused && ui.input(|i| i.key_pressed(egui::Key::Enter)))
                     {
-                        if let Some(id) = self.add_event(update_state, &mut map) {
+                        if let Some(id) = self.add_event(update_state, &mut map, tileset) {
                             self.push_to_history(
                                 update_state,
                                 &mut map,

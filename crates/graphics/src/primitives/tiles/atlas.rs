@@ -58,9 +58,10 @@ impl Atlas {
     pub fn new(
         graphics_state: &GraphicsState,
         filesystem: &impl luminol_filesystem::FileSystem,
-        tileset: &luminol_data::rpg::Tileset,
+        tileset_name: Option<&camino::Utf8Path>,
+        autotile_names: &[Option<String>],
     ) -> Atlas {
-        let tileset_img = tileset.tileset_name.as_ref().and_then(|tileset_name| {
+        let tileset_img = tileset_name.as_ref().and_then(|tileset_name| {
             let result = filesystem
                 .read(camino::Utf8Path::new("Graphics/Tilesets").join(tileset_name))
                 .and_then(|file| image::load_from_memory(&file).map_err(|e| e.into()))
@@ -80,13 +81,10 @@ impl Atlas {
             .map(|i| i.height() / TILE_SIZE * TILE_SIZE)
             .unwrap_or(256);
 
-        let autotiles = tileset
-            .autotile_names
+        let autotiles = autotile_names
             .iter()
             .map(|s| {
-                if s.is_empty() {
-                    Some(graphics_state.texture_loader.blank_autotile_texture())
-                } else {
+                if let Some(s) = s {
                     graphics_state
                         .texture_loader
                         .load_now_dir(filesystem, "Graphics/Autotiles", s)
@@ -98,6 +96,8 @@ impl Atlas {
                             },
                             Some,
                         )
+                } else {
+                    Some(graphics_state.texture_loader.blank_autotile_texture())
                 }
             })
             .collect_vec();
@@ -278,9 +278,13 @@ impl Atlas {
             }
         }
 
-        let atlas_texture = graphics_state
-            .texture_loader
-            .register_texture(format!("tileset_atlases/{}", tileset.id), atlas_texture);
+        let atlas_texture = graphics_state.texture_loader.register_texture(
+            format!(
+                "tileset_atlases/{}",
+                tileset_name.unwrap_or(&camino::Utf8PathBuf::default())
+            ),
+            atlas_texture,
+        );
 
         Atlas {
             atlas_texture,

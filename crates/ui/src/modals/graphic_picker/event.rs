@@ -75,10 +75,13 @@ impl Modal {
     pub fn new(
         update_state: &UpdateState<'_>,
         graphic: &rpg::Graphic,
-        tileset_id: usize,
+        tileset: &luminol_data::rpg::Tileset,
         id_source: egui::Id,
     ) -> Self {
-        let atlas = update_state.graphics.atlas_loader.get_expect(tileset_id); // atlas should be loaded by this point
+        let atlas = update_state
+            .graphics
+            .atlas_loader
+            .get_expect(tileset.tileset_name.as_deref()); // atlas should be loaded by this point
 
         let viewport = Viewport::new(&update_state.graphics, Default::default());
         let button_sprite = Event::new_standalone(
@@ -99,7 +102,7 @@ impl Modal {
             state: State::Closed,
             id_source,
 
-            tileset_id,
+            tileset_id: tileset.id,
 
             button_sprite,
 
@@ -194,10 +197,12 @@ impl luminol_core::Modal for Modal {
 
 impl Modal {
     fn update_graphic(&mut self, update_state: &UpdateState<'_>, graphic: &rpg::Graphic) {
+        let tilesets = update_state.data.tilesets();
+        let tileset = &tilesets.data[self.tileset_id];
         let atlas = update_state
             .graphics
             .atlas_loader
-            .get_expect(self.tileset_id); // atlas should be loaded by this point
+            .get_expect(tileset.tileset_name.as_deref()); // atlas should be loaded by this point
 
         let viewport = Viewport::new(&update_state.graphics, Default::default());
         self.button_sprite = Event::new_standalone(

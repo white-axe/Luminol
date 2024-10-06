@@ -50,9 +50,12 @@ impl Tilepicker {
         filesystem: &impl luminol_filesystem::FileSystem,
         exclude_autotiles: bool,
     ) -> Self {
-        let atlas = graphics_state
-            .atlas_loader
-            .load_atlas(graphics_state, filesystem, tileset);
+        let atlas = graphics_state.atlas_loader.load_atlas(
+            graphics_state,
+            filesystem,
+            tileset.tileset_name.as_deref(),
+            &tileset.autotile_names,
+        );
 
         let tilepicker_data = if exclude_autotiles {
             (384..(atlas.tileset_height() as i16 / 32 * 8 + 384)).collect_vec()
