@@ -22,7 +22,10 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
+use luminol_core::Modal;
+
 use crate::components::{DatabaseView, Field, Tilepicker, UiExt};
+use crate::modals::graphic_picker::tileset::Modal as TilesetModal;
 
 /// Database - Tilesets management window.
 pub struct Window {
@@ -30,16 +33,21 @@ pub struct Window {
 
     previous_tileset: Option<usize>,
 
+    tileset_modal: TilesetModal,
+
     tilepicker: Option<Tilepicker>,
     view: DatabaseView,
 }
 
-impl Default for Window {
-    fn default() -> Self {
+impl Window {
+    pub fn new(update_state: &luminol_core::UpdateState<'_>) -> Self {
+        let tilesets = update_state.data.tilesets();
+        let tileset = &tilesets.data[0];
         Self {
             selected_tileset_name: None,
             previous_tileset: None,
             tilepicker: None,
+            tileset_modal: TilesetModal::new(tileset, "tileset_graphic_picker".into()),
             view: DatabaseView::new(),
         }
     }
@@ -87,11 +95,7 @@ impl luminol_core::Window for Window {
                     |ui, tilesets, id, update_state| {
                         let tileset = &mut tilesets[id];
                         self.selected_tileset_name = Some(tileset.name.clone());
-
-                        if self.previous_tileset != Some(id) {
-                            self.tilepicker = Some(Tilepicker::new(update_state, tileset, None));
-                        }
-                        let tilepicker = self.tilepicker.as_mut().unwrap();
+                        let mut needs_update = self.previous_tileset != Some(tileset.id);
 
                         ui.with_padded_stripe(false, |ui| {
                             modified |= ui
@@ -103,8 +107,35 @@ impl luminol_core::Window for Window {
                                 .changed();
                         });
 
+                        ui.with_padded_stripe(true, |ui| {
+                            let changed = ui
+                                .add(Field::new(
+                                    "Graphic",
+                                    self.tileset_modal.button(tileset, update_state),
+                                ))
+                                .changed();
+                            if changed {
+                                modified = true;
+                                needs_update = true;
+                            }
+                        });
+
+                        if needs_update {
+                            self.tileset_modal.reset(update_state, tileset);
+                            self.tilepicker = Some(Tilepicker::new(
+                                update_state,
+                                tileset.tileset_name.as_deref(),
+                                &tileset.autotile_names,
+                                &tileset.passages,
+                                None,
+                            ));
+                        }
+
                         egui::ScrollArea::both().show_viewport(ui, |ui, scroll_rect| {
-                            tilepicker.ui(update_state, ui, scroll_rect);
+                            self.tilepicker
+                                .as_mut()
+                                .unwrap()
+                                .ui(update_state, ui, scroll_rect);
                         });
 
                         self.previous_tileset = Some(tileset.id);

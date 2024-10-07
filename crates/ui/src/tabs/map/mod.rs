@@ -134,7 +134,13 @@ impl Tab {
         let tilesets = update_state.data.tilesets();
         let tileset = &tilesets.data[map.tileset_id];
 
-        let tilepicker = Tilepicker::new(update_state, tileset, Some(id));
+        let tilepicker = Tilepicker::new(
+            update_state,
+            tileset.tileset_name.as_deref(),
+            &tileset.autotile_names,
+            &tileset.passages,
+            Some(id),
+        );
 
         let mut passages = luminol_data::Table2::new(map.data.xsize(), map.data.ysize());
         luminol_graphics::Collision::calculate_passages(

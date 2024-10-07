@@ -30,6 +30,7 @@ pub mod animation;
 pub mod basic;
 pub mod event;
 pub mod hue;
+pub mod tileset;
 
 #[derive(Default)]
 enum Selected {

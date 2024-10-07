@@ -46,15 +46,17 @@ pub struct Tilepicker {
 impl Tilepicker {
     pub fn new(
         graphics_state: &GraphicsState,
-        tileset: &luminol_data::rpg::Tileset,
+        tileset_name: Option<&camino::Utf8Path>,
+        autotile_names: &[Option<String>],
+        passages: &luminol_data::Table1,
         filesystem: &impl luminol_filesystem::FileSystem,
         exclude_autotiles: bool,
     ) -> Self {
         let atlas = graphics_state.atlas_loader.load_atlas(
             graphics_state,
             filesystem,
-            tileset.tileset_name.as_deref(),
-            &tileset.autotile_names,
+            tileset_name,
+            autotile_names,
         );
 
         let tilepicker_data = if exclude_autotiles {
@@ -93,27 +95,27 @@ impl Tilepicker {
             tilepicker_data.ysize() as u32,
         );
 
-        let mut passages =
+        let mut computed_passages =
             luminol_data::Table2::new(tilepicker_data.xsize(), tilepicker_data.ysize());
         for x in 0..8 {
-            passages[(x, 0)] = {
+            computed_passages[(x, 0)] = {
                 let tile_id = tilepicker_data[(x, 0, 0)].try_into().unwrap_or_default();
-                if tile_id >= tileset.passages.len() {
+                if tile_id >= passages.len() {
                     0
                 } else {
-                    tileset.passages[tile_id]
+                    passages[tile_id]
                 }
             };
         }
         let length =
-            (passages.len().saturating_sub(8)).min(tileset.passages.len().saturating_sub(384));
-        passages.as_mut_slice()[8..8 + length]
-            .copy_from_slice(&tileset.passages.as_slice()[384..384 + length]);
+            (computed_passages.len().saturating_sub(8)).min(passages.len().saturating_sub(384));
+        computed_passages.as_mut_slice()[8..8 + length]
+            .copy_from_slice(&passages.as_slice()[384..384 + length]);
         let collision = Collision::new(
             graphics_state,
             &viewport,
             Transform::unit(graphics_state),
-            &passages,
+            &computed_passages,
         );
 
         Self {

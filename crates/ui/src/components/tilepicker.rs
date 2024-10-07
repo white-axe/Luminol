@@ -65,12 +65,16 @@ impl Default for SelectedTile {
 impl Tilepicker {
     pub fn new(
         update_state: &luminol_core::UpdateState<'_>,
-        tileset: &luminol_data::rpg::Tileset,
+        tileset_name: Option<&camino::Utf8Path>,
+        autotile_names: &[Option<String>],
+        passages: &luminol_data::Table1,
         map_id: Option<usize>,
     ) -> Tilepicker {
         let view = luminol_graphics::Tilepicker::new(
             &update_state.graphics,
-            tileset,
+            tileset_name,
+            autotile_names,
+            passages,
             update_state.filesystem,
             false,
         );

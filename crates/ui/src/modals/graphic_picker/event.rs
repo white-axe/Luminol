@@ -226,7 +226,9 @@ impl Modal {
 
         let mut tilepicker = Tilepicker::new(
             &update_state.graphics,
-            tileset,
+            tileset.tileset_name.as_deref(),
+            &tileset.autotile_names,
+            &tileset.passages,
             update_state.filesystem,
             true,
         );
