@@ -91,7 +91,6 @@ impl Modal {
             graphic,
             &atlas,
         )
-        .unwrap() // FIXME
         .map(|sprite| ButtonSprite {
             sprite: sprite.sprite,
             sprite_size: sprite.sprite_size,
@@ -212,7 +211,6 @@ impl Modal {
             graphic,
             &atlas,
         )
-        .unwrap() // FIXME
         .map(|sprite| ButtonSprite {
             sprite: sprite.sprite,
             sprite_size: sprite.sprite_size,

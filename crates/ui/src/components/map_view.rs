@@ -105,7 +105,7 @@ impl MapView {
             &map,
             tileset,
             &passages,
-        )?;
+        );
 
         let data_id = egui::Id::new("luminol_map_view")
             .with(
@@ -379,8 +379,7 @@ impl MapView {
                         &self.map.viewport,
                         event,
                         &self.map.atlas,
-                    )
-                    .unwrap(); // FIXME handle
+                    );
                     if let Some(sprite) = sprite {
                         self.map.events.insert(event.id, sprite);
                     } else {
@@ -481,8 +480,7 @@ impl MapView {
                                             graphic,
                                             &self.map.atlas,
                                         )
-                                        .unwrap()
-                                        .unwrap(); // FIXME: handle error
+                                        .unwrap();
                                         PreviewEvent { viewport, sprite }
                                     });
 

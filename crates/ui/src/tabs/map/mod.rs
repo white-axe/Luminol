@@ -95,6 +95,10 @@ pub struct Tab {
 
     /// Asynchronous task used to save the map as an image file
     save_as_image_promise: Option<poll_promise::Promise<color_eyre::Result<()>>>,
+
+    /// Stores the name of the tileset texture used the previous frame so we can detect when the
+    /// user changes it in the tileset editor
+    previous_tileset_name: Option<camino::Utf8PathBuf>,
 }
 
 // TODO: If we add support for changing event IDs, these need to be added as history entries
@@ -193,6 +197,8 @@ impl Tab {
             brush_seed,
 
             save_as_image_promise: None,
+
+            previous_tileset_name: tileset.tileset_name.clone(),
         })
     }
 }
@@ -356,6 +362,43 @@ impl luminol_core::Tab for Tab {
                     });
                 });
         });
+
+        {
+            let map = update_state.data.get_map(self.id);
+            let tilesets = update_state.data.tilesets();
+            let tileset = &tilesets.data[map.tileset_id];
+
+            // Rebuild the map graphics and tilepicker if the tileset texture has changed
+            if tileset.tileset_name != self.previous_tileset_name {
+                let mut passages = luminol_data::Table2::new(map.data.xsize(), map.data.ysize());
+                luminol_graphics::Collision::calculate_passages(
+                    &tileset.passages,
+                    &tileset.priorities,
+                    &map.data,
+                    Some(&map.events),
+                    (0..map.data.zsize()).rev(),
+                    |x, y, passage| passages[(x, y)] = passage,
+                );
+
+                self.view.map = luminol_graphics::Map::new(
+                    &update_state.graphics,
+                    update_state.filesystem,
+                    &map,
+                    tileset,
+                    &passages,
+                );
+
+                self.tilepicker = Tilepicker::new(
+                    update_state,
+                    tileset.tileset_name.as_deref(),
+                    &tileset.autotile_names,
+                    &tileset.passages,
+                    Some(self.id),
+                );
+
+                self.previous_tileset_name.clone_from(&tileset.tileset_name);
+            }
+        }
 
         // Display the tilepicker.
         let spacing = ui.spacing();

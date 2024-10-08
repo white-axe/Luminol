@@ -16,7 +16,6 @@
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 
 use color_eyre::eyre::Context;
-use itertools::Itertools;
 
 use crate::{
     Atlas, Collision, Drawable, Event, GraphicsState, Grid, Plane, Renderable, Tiles, Transform,
@@ -49,7 +48,7 @@ impl Map {
         map: &luminol_data::rpg::Map,
         tileset: &luminol_data::rpg::Tileset,
         passages: &luminol_data::Table2,
-    ) -> color_eyre::Result<Self> {
+    ) -> Self {
         let atlas = graphics_state.atlas_loader.load_atlas(
             graphics_state,
             filesystem,
@@ -137,14 +136,13 @@ impl Map {
         let events = map
             .events
             .iter()
-            .map(|(id, event)| {
+            .filter_map(|(id, event)| {
                 Event::new_map(graphics_state, filesystem, &viewport, event, &atlas)
-                    .map(|opt_e| opt_e.map(|e| (id, e)))
+                    .map(|e| (id, e))
             })
-            .flatten_ok()
-            .try_collect()?;
+            .collect();
 
-        Ok(Self {
+        Self {
             tiles,
             panorama,
             fog,
@@ -161,7 +159,7 @@ impl Map {
             coll_enabled: false,
             grid_enabled: true,
             event_enabled: true,
-        })
+        }
     }
 
     pub fn set_tile(
