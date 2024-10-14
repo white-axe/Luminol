@@ -20,6 +20,8 @@ use luminol_data::OptionVec;
 
 pub const TROOP_WIDTH: usize = 640;
 pub const TROOP_HEIGHT: usize = 320;
+pub const PLACEHOLDER_TEXTURE_WIDTH: usize = 32;
+pub const PLACEHOLDER_TEXTURE_HEIGHT: usize = 32;
 
 pub struct Troop {
     pub viewport: Viewport,
@@ -28,7 +30,7 @@ pub struct Troop {
 }
 
 pub struct Member {
-    pub sprite: Sprite,
+    pub sprite: Option<Sprite>,
     pub rect: egui::Rect,
 }
 
@@ -101,13 +103,15 @@ impl Troop {
                     offset.x + m.rect.width() / 2.,
                     offset.y + m.rect.height() / 2.,
                 ));
-                m.sprite
-                    .transform
-                    .set_position(&graphics_state.render_state, offset);
-                m.sprite.graphic.set_opacity(
-                    &graphics_state.render_state,
-                    if member.hidden { 32 } else { 255 },
-                );
+                if let Some(sprite) = &mut m.sprite {
+                    sprite
+                        .transform
+                        .set_position(&graphics_state.render_state, offset);
+                    sprite.graphic.set_opacity(
+                        &graphics_state.render_state,
+                        if member.hidden { 32 } else { 255 },
+                    );
+                }
             }
         }
     }
@@ -119,42 +123,65 @@ impl Troop {
         enemies: &luminol_data::rpg::Enemies,
         member: &luminol_data::rpg::troop::Member,
     ) -> Option<Member> {
-        member.enemy_id.and_then(|enemy_id| {
-            let filename = enemies.data.get(enemy_id)?.battler_name.as_ref()?;
-            let texture = graphics_state
-                .texture_loader
-                .load_now_dir(filesystem, "Graphics/Battlers", filename)
-                .map_err(|e| {
-                    graphics_state.send_texture_error(
-                        e.wrap_err(format!("Error loading battler graphic {filename:?}")),
-                    );
+        member
+            .enemy_id
+            .map(|enemy_id| {
+                let filename = enemies.data.get(enemy_id)?.battler_name.as_ref()?;
+                let texture = graphics_state
+                    .texture_loader
+                    .load_now_dir(filesystem, "Graphics/Battlers", filename)
+                    .map_err(|e| {
+                        graphics_state.send_texture_error(
+                            e.wrap_err(format!("Error loading battler graphic {filename:?}")),
+                        );
+                    })
+                    .ok()?;
+                let rect = egui::Rect::from_min_max(
+                    egui::Pos2::ZERO,
+                    egui::pos2(
+                        texture.texture.width() as f32,
+                        texture.texture.height() as f32,
+                    ),
+                );
+                let offset = glam::vec2(
+                    member.x as f32 - (texture.texture.width() + TROOP_WIDTH as u32) as f32 / 2.,
+                    member.y as f32 - texture.texture.height() as f32 - TROOP_HEIGHT as f32 / 2.,
+                );
+                Some(Member {
+                    sprite: Some(Sprite::new(
+                        graphics_state,
+                        Quad::new(rect, rect),
+                        0,
+                        if member.hidden { 32 } else { 255 },
+                        luminol_data::BlendMode::Normal,
+                        &texture,
+                        &self.viewport,
+                        Transform::new_position(graphics_state, offset),
+                    )),
+                    rect: rect.translate(egui::vec2(offset.x, offset.y)),
                 })
-                .ok()?;
-            let rect = egui::Rect::from_min_max(
-                egui::Pos2::ZERO,
-                egui::pos2(
-                    texture.texture.width() as f32,
-                    texture.texture.height() as f32,
-                ),
-            );
-            let offset = glam::vec2(
-                member.x as f32 - (texture.texture.width() + TROOP_WIDTH as u32) as f32 / 2.,
-                member.y as f32 - texture.texture.height() as f32 - TROOP_HEIGHT as f32 / 2.,
-            );
-            Some(Member {
-                sprite: Sprite::new(
-                    graphics_state,
-                    Quad::new(rect, rect),
-                    0,
-                    if member.hidden { 32 } else { 255 },
-                    luminol_data::BlendMode::Normal,
-                    &texture,
-                    &self.viewport,
-                    Transform::new_position(graphics_state, offset),
-                ),
-                rect: rect.translate(egui::vec2(offset.x, offset.y)),
             })
-        })
+            .map(|maybe_member| {
+                maybe_member.unwrap_or_else(|| {
+                    let offset = egui::pos2(
+                        member.x as f32
+                            - (PLACEHOLDER_TEXTURE_WIDTH as f32 + TROOP_WIDTH as f32) / 2.,
+                        member.y as f32
+                            - PLACEHOLDER_TEXTURE_HEIGHT as f32
+                            - TROOP_HEIGHT as f32 / 2.,
+                    );
+                    Member {
+                        sprite: None,
+                        rect: egui::Rect::from_min_size(
+                            offset,
+                            egui::vec2(
+                                PLACEHOLDER_TEXTURE_WIDTH as f32,
+                                PLACEHOLDER_TEXTURE_HEIGHT as f32,
+                            ),
+                        ),
+                    }
+                })
+            })
     }
 }
 
@@ -171,7 +198,12 @@ impl Renderable for Troop {
                 .members
                 .iter_mut()
                 .rev()
-                .map(|(_, member)| member.sprite.prepare(graphics_state))
+                .filter_map(|(_, member)| {
+                    member
+                        .sprite
+                        .as_mut()
+                        .map(|sprite| sprite.prepare(graphics_state))
+                })
                 .collect(),
         }
     }

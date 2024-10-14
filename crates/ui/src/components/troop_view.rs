@@ -211,13 +211,14 @@ impl TroopView {
             })
         {
             self.hovered_member_drag_offset = None;
-        } else if let (Some(i), None, true) = (
-            self.hovered_member_index,
+        } else if let (Some(member), None, true) = (
+            self.hovered_member_index
+                .and_then(|i| self.troop.members().get(i)),
             self.hovered_member_drag_offset,
             response.drag_started_by(egui::PointerButton::Primary),
         ) {
             self.hovered_member_drag_offset = Some(
-                self.troop.members()[i].rect.center_bottom()
+                member.rect.center_bottom()
                     + egui::vec2(TROOP_WIDTH as f32 / 2., TROOP_HEIGHT as f32 / 2.)
                     - hover_pos_in_troop_coords.unwrap(),
             );
@@ -255,15 +256,21 @@ impl TroopView {
         }
 
         // Draw a yellow rectangle on the border of the hovered member
-        if let Some(i) = self.hovered_member_index {
-            let rect = (self.troop.members()[i].rect * scale).translate(offset);
+        if let Some(member) = self
+            .hovered_member_index
+            .and_then(|i| self.troop.members().get(i))
+        {
+            let rect = (member.rect * scale).translate(offset);
             ui.painter()
                 .rect_stroke(rect, 5., egui::Stroke::new(3., egui::Color32::YELLOW));
         }
 
         // Draw a magenta rectangle on the border of the selected member
-        if let Some(i) = self.selected_member_index {
-            let rect = (self.troop.members()[i].rect * scale).translate(offset);
+        if let Some(member) = self
+            .selected_member_index
+            .and_then(|i| self.troop.members().get(i))
+        {
+            let rect = (member.rect * scale).translate(offset);
             ui.painter().rect_stroke(
                 rect,
                 5.,

@@ -485,7 +485,7 @@ impl luminol_core::Window for Window {
                                 }
 
                                 // If the pointer is hovering over the troop view, prevent parent widgets
-                                // from receiving scroll events so that scaling the frame view with the
+                                // from receiving scroll events so that scaling the troop view with the
                                 // scroll wheel doesn't also scroll the scroll area that the troop view is
                                 // in
                                 if response.hovered() {
@@ -531,7 +531,7 @@ impl luminol_core::Window for Window {
                                     }
                                 }
 
-                                // Handle pressing delete or backspace to delete frames
+                                // Handle pressing delete or backspace to delete troops
                                 if let Some(i) = self.troop_view.selected_member_index {
                                     if i < troop.members.len()
                                         && troop.members[i].enemy_id.is_some()
