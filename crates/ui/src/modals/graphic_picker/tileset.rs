@@ -75,7 +75,11 @@ impl luminol_core::Modal for Modal {
             } else {
                 "(None)".to_string()
             };
-            let mut response = ui.button(button_text);
+            let mut response = ui
+                .with_cross_justify(|ui| {
+                    ui.add(egui::Button::new(button_text).wrap_mode(egui::TextWrapMode::Truncate))
+                })
+                .inner;
 
             if response.clicked() && !is_open {
                 let entries = Entry::load(update_state, "Graphics/Tilesets".into());
