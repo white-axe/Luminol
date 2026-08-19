@@ -14,7 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
-use crate::{id_alox, id_serde, rpg::EventCommand, RpgOption};
+use crate::{id_alox, id_serde, rpg::EventCommandList, RpgOption};
 
 #[derive(Default, Debug, serde::Deserialize, serde::Serialize)]
 #[derive(alox_48::Deserialize, alox_48::Serialize)]
@@ -45,7 +45,7 @@ pub struct Member {
 pub struct Page {
     pub condition: Condition,
     pub span: i32,
-    pub list: Vec<EventCommand>,
+    pub list: EventCommandList,
 }
 
 #[derive(Default, Debug, serde::Deserialize, serde::Serialize)]

@@ -28,7 +28,7 @@ impl super::CommandView {
         &mut self,
         _ui: &mut egui::Ui,
         _db: &luminol_config::command_db::CommandDB,
-        _commands: &mut Vec<luminol_data::rpg::EventCommand>,
+        _commands: &mut luminol_data::rpg::EventCommandList,
     ) {
         todo!()
     }
