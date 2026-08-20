@@ -22,41 +22,4 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-#[macro_use]
-mod macros;
-mod command_ui;
-mod parameter_ui;
-mod ui;
-
-use std::collections::HashMap;
-
-pub struct CommandView {
-    _selected_index: usize,
-    _window_state: WindowState,
-    _id: egui::Id,
-    _modals: HashMap<u64, bool>, // todo find a better way to handle modals
-}
-
-enum WindowState {
-    None,
-}
-
-impl Default for CommandView {
-    fn default() -> Self {
-        Self {
-            _selected_index: 0,
-            _window_state: WindowState::None,
-            _id: egui::Id::new("command_view"),
-            _modals: HashMap::new(),
-        }
-    }
-}
-
-impl CommandView {
-    pub fn new(id: impl std::hash::Hash) -> Self {
-        Self {
-            _id: egui::Id::new(id),
-            ..Default::default()
-        }
-    }
-}
+pub struct CommandView;

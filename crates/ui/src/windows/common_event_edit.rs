@@ -75,7 +75,6 @@ pub struct CommonEventTab {
     event: luminol_data::rpg::CommonEvent,
     force_close: bool,
     switch_modal: database_modal::SwitchModal,
-    command_view: crate::components::CommandView,
 }
 
 impl luminol_core::Tab for CommonEventTab {
@@ -138,12 +137,8 @@ impl luminol_core::Tab for CommonEventTab {
 
         egui::ScrollArea::both()
             .auto_shrink([false; 2])
-            .show(ui, |ui| {
-                self.command_view.ui(
-                    ui,
-                    &update_state.project_config.as_ref().unwrap().command_db,
-                    &mut self.event.list,
-                );
+            .show(ui, |_ui| {
+                // TODO
             });
     }
 
