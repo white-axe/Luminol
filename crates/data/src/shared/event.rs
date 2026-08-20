@@ -288,6 +288,13 @@ pub struct EventCommand {
     pub sibling_commands: Vec<EventCommand>,
 }
 
+static EVENT_COMMAND_TERMINATOR: EventCommand = EventCommand {
+    code: 0,
+    parameters: Vec::new(),
+    child_commands: Vec::new(),
+    sibling_commands: Vec::new(),
+};
+
 #[derive(Default)]
 struct IndentedEventCommand {
     indent: u64,
@@ -309,8 +316,10 @@ struct EventCommandListIndentedIter<'a> {
         std::slice::Iter<'a, EventCommand>,
         std::slice::Iter<'a, EventCommand>,
         bool,
+        bool,
     )>,
     indent: u64,
+    is_terminated: bool,
 }
 
 struct EventCommandListVisitor;
@@ -320,8 +329,9 @@ struct IndentedEventCommandVisitor;
 impl EventCommandList {
     fn indented_iter(&self) -> EventCommandListIndentedIter<'_> {
         EventCommandListIndentedIter {
-            stack: vec![([].iter(), self.commands.iter(), false)],
+            stack: vec![([].iter(), self.commands.iter(), false, false)],
             indent: 0,
+            is_terminated: false,
         }
     }
 }
@@ -330,18 +340,25 @@ impl<'a> Iterator for EventCommandListIndentedIter<'a> {
     type Item = IndentedEventCommandRef<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let (child_iter, sibling_iter, is_indented) = self.stack.last_mut()?;
+        while let Some((child_iter, sibling_iter, is_indented, is_terminated)) =
+            self.stack.last_mut()
+        {
             if let Some(command) = {
-                let child_command = child_iter.next();
-                if child_command.is_some() {
+                if let Some(command) = child_iter.next() {
                     if !*is_indented {
                         *is_indented = true;
                         self.indent += 1;
                     }
-                    child_command
+                    Some(command)
                 } else {
                     if *is_indented {
+                        if !*is_terminated {
+                            *is_terminated = true;
+                            return Some(IndentedEventCommandRef {
+                                indent: self.indent,
+                                command: &EVENT_COMMAND_TERMINATOR,
+                            });
+                        }
                         *is_indented = false;
                         self.indent -= 1;
                     }
@@ -352,6 +369,7 @@ impl<'a> Iterator for EventCommandListIndentedIter<'a> {
                     command.child_commands.iter(),
                     command.sibling_commands.iter(),
                     false,
+                    false,
                 ));
                 return Some(IndentedEventCommandRef {
                     indent: self.indent,
@@ -360,6 +378,15 @@ impl<'a> Iterator for EventCommandListIndentedIter<'a> {
             } else {
                 self.stack.pop();
             }
+        }
+        if !self.is_terminated {
+            self.is_terminated = true;
+            Some(IndentedEventCommandRef {
+                indent: self.indent,
+                command: &EVENT_COMMAND_TERMINATOR,
+            })
+        } else {
+            None
         }
     }
 }
@@ -464,6 +491,10 @@ impl<'de> serde::de::Visitor<'de> for EventCommandListVisitor {
         while let Some(deserialized_indented_command) =
             seq.next_element::<IndentedEventCommand>()?
         {
+            if deserialized_indented_command.command.code == 0 {
+                // Ignore commands that have code equal to 0; these are terminator commands
+                continue;
+            }
             while stack
                 .last()
                 .is_some_and(|stack_top| deserialized_indented_command.indent <= stack_top.indent)
@@ -496,6 +527,10 @@ impl<'de> alox_48::Visitor<'de> for EventCommandListVisitor {
         while let Some(deserialized_indented_command) =
             seq.next_element::<IndentedEventCommand>()?
         {
+            if deserialized_indented_command.command.code == 0 {
+                // Ignore commands that have code equal to 0; these are terminator commands
+                continue;
+            }
             while stack
                 .last()
                 .is_some_and(|stack_top| deserialized_indented_command.indent <= stack_top.indent)
