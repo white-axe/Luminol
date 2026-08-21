@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use crate::components::{EnumComboBox, EnumMenuButton, EnumRadioList};
+use crate::components::{CommandView, EnumComboBox, EnumMenuButton, EnumRadioList};
 use crate::modals::{
     database_modal::{SwitchModal, VariableModal},
     graphic_picker::event::Modal as GraphicPicker,
@@ -300,6 +300,21 @@ impl luminol_core::Window for Window {
                         });
                     });
                 });
+                ui.add(CommandView::new(
+                    egui::Id::new("luminol_event_page_commands")
+                        .with(
+                            update_state
+                                .project_config
+                                .as_ref()
+                                .expect("project not loaded")
+                                .project
+                                .persistence_id,
+                        )
+                        .with(self.map_id)
+                        .with(self.event_id)
+                        .with(self.selected_page),
+                    &mut page.list.commands,
+                ));
             });
 
         if graphic_modified {

@@ -22,4 +22,49 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-pub struct CommandView;
+pub struct CommandView<'a> {
+    id: egui::Id,
+    commands: &'a mut Vec<luminol_data::rpg::EventCommand>,
+}
+
+impl<'a> CommandView<'a> {
+    pub fn new(
+        id_source: impl std::hash::Hash,
+        commands: &'a mut Vec<luminol_data::rpg::EventCommand>,
+    ) -> Self {
+        Self {
+            id: egui::Id::new(id_source),
+            commands,
+        }
+    }
+
+    fn get_ids_for_command(root_id: egui::Id, command_index: usize) -> (egui::Id, egui::Id) {
+        let root_id = root_id.with(command_index);
+        (root_id.with(0usize), root_id.with(1usize))
+    }
+}
+
+impl egui::Widget for CommandView<'_> {
+    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+        ui.push_id(self.id, |ui| {
+            for (i, command) in self.commands.iter_mut().enumerate() {
+                let (header_id, view_id) = Self::get_ids_for_command(self.id, i);
+
+                let header = egui::collapsing_header::CollapsingState::load_with_default_open(
+                    ui.ctx(),
+                    header_id,
+                    false,
+                );
+
+                let header_response = header.show_header(ui, |ui| {
+                    ui.label(format!("{} Custom Command", command.code));
+                });
+
+                header_response.body(|ui| {
+                    ui.add(Self::new(view_id, &mut command.child_commands));
+                });
+            }
+        })
+        .response
+    }
+}
