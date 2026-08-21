@@ -300,21 +300,7 @@ impl luminol_core::Window for Window {
                         });
                     });
                 });
-                ui.add(CommandView::new(
-                    egui::Id::new("luminol_event_page_commands")
-                        .with(
-                            update_state
-                                .project_config
-                                .as_ref()
-                                .expect("project not loaded")
-                                .project
-                                .persistence_id,
-                        )
-                        .with(self.map_id)
-                        .with(self.event_id)
-                        .with(self.selected_page),
-                    &mut page.list.commands,
-                ));
+                ui.add(CommandView::new(&mut page.list.commands));
             });
 
         if graphic_modified {

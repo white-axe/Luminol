@@ -16,6 +16,7 @@
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 use crate::{id_alox, id_serde, rpg::MoveRoute, BlendMode, ParameterType, Path, RpgOption};
 use alox_48::{SerializeArray, SerializeIvars};
+use rand::Rng;
 use serde::ser::{SerializeMap, SerializeSeq};
 
 #[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
@@ -279,21 +280,58 @@ impl From<SelfSwitch> for String {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug)]
 #[allow(missing_docs)]
 pub struct EventCommand {
+    pub guid: String,
     pub code: u16,
     pub parameters: Vec<ParameterType>,
     pub child_commands: Vec<EventCommand>,
     pub sibling_commands: Vec<EventCommand>,
 }
 
-static EVENT_COMMAND_TERMINATOR: EventCommand = EventCommand {
-    code: 0,
-    parameters: Vec::new(),
-    child_commands: Vec::new(),
-    sibling_commands: Vec::new(),
-};
+impl EventCommand {
+    const fn new() -> Self {
+        Self {
+            guid: String::new(),
+            code: 0,
+            parameters: Vec::new(),
+            child_commands: Vec::new(),
+            sibling_commands: Vec::new(),
+        }
+    }
+
+    fn generate_guid() -> String {
+        rand::thread_rng()
+            .sample_iter(rand::distributions::Alphanumeric)
+            .take(42) // This should be enough to avoid collisions
+            .map(char::from)
+            .collect()
+    }
+}
+
+impl Default for EventCommand {
+    fn default() -> Self {
+        Self {
+            guid: Self::generate_guid(),
+            ..Self::new()
+        }
+    }
+}
+
+impl Clone for EventCommand {
+    fn clone(&self) -> Self {
+        Self {
+            guid: Self::generate_guid(),
+            code: self.code,
+            parameters: self.parameters.clone(),
+            child_commands: self.child_commands.clone(),
+            sibling_commands: self.sibling_commands.clone(),
+        }
+    }
+}
+
+static EVENT_COMMAND_TERMINATOR: EventCommand = EventCommand::new();
 
 #[derive(Default)]
 struct IndentedEventCommand {
