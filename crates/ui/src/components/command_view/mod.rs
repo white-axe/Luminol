@@ -40,7 +40,7 @@ impl egui::Widget for CommandView<'_> {
                     let header = egui::collapsing_header::CollapsingState::load_with_default_open(
                         ui.ctx(),
                         egui::Id::new("luminol_command_view").with(&command.guid),
-                        false,
+                        !command.child_commands.is_empty(),
                     );
 
                     let header_response = header.show_header(ui, |ui| {
