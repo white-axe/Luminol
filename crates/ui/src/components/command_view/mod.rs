@@ -32,9 +32,97 @@ impl<'a> CommandView<'a> {
     }
 }
 
+fn show_parameter_label(ui: &mut egui::Ui, index: usize, type_name: &str) {
+    let index = index + 1;
+    ui.label(format!("Parameter {index} ({type_name})"));
+}
+
+/// Returns whether or not at least one parameter was modified.
+fn show_parameters<'a>(
+    ui: &mut egui::Ui,
+    parameters: impl Iterator<Item = &'a mut luminol_data::ParameterType>,
+) -> bool {
+    let mut modified = false;
+
+    for (i, parameter) in parameters.enumerate() {
+        match parameter {
+            luminol_data::ParameterType::Array(value) => {
+                show_parameter_label(ui, i, "array");
+                let header = egui::collapsing_header::CollapsingState::load_with_default_open(
+                    ui.ctx(),
+                    ui.id().with((i, "array")),
+                    false,
+                );
+                let header_response = header.show_header(ui, |ui| {
+                    ui.label("Contents");
+                });
+                header_response.body(|ui| {
+                    modified |= show_parameters(ui, value.iter_mut());
+                });
+            }
+            luminol_data::ParameterType::None => {
+                show_parameter_label(ui, i, "nil");
+            }
+            luminol_data::ParameterType::Bool(value) => {
+                show_parameter_label(ui, i, "boolean");
+                modified |= ui.checkbox(value, ()).changed();
+            }
+            luminol_data::ParameterType::Integer(value) => {
+                show_parameter_label(ui, i, "integer");
+                modified |= ui.add(egui::DragValue::new(value)).changed();
+            }
+            luminol_data::ParameterType::Float(value) => {
+                show_parameter_label(ui, i, "float");
+                modified |= ui.add(egui::DragValue::new(value)).changed();
+            }
+            luminol_data::ParameterType::String(value) => {
+                show_parameter_label(ui, i, "string");
+                modified |= ui.text_edit_multiline(value).changed();
+            }
+            luminol_data::ParameterType::Color(value) => {
+                show_parameter_label(ui, i, "color");
+                let mut color = [
+                    value.red.clamp(0., 255.) as u8,
+                    value.green.clamp(0., 255.) as u8,
+                    value.blue as u8,
+                    value.alpha as u8,
+                ];
+                if ui
+                    .color_edit_button_srgba_unmultiplied(&mut color)
+                    .changed()
+                {
+                    modified = true;
+                    (value.red, value.green, value.blue, value.alpha) = (
+                        color[0] as f64,
+                        color[1] as f64,
+                        color[2] as f64,
+                        color[3] as f64,
+                    );
+                }
+            }
+            luminol_data::ParameterType::Tone(_value) => {
+                show_parameter_label(ui, i, "tone");
+            }
+            luminol_data::ParameterType::AudioFile(_value) => {
+                show_parameter_label(ui, i, "audio file");
+            }
+            luminol_data::ParameterType::MoveRoute(_value) => {
+                show_parameter_label(ui, i, "move route");
+            }
+            luminol_data::ParameterType::MoveCommand(_value) => {
+                show_parameter_label(ui, i, "move command");
+            }
+        }
+    }
+
+    modified
+}
+
 impl egui::Widget for CommandView<'_> {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
-        egui::Frame::new()
+        let mut modified = false;
+
+        let mut response = egui::Frame::new()
             .show(ui, |ui| {
                 for command in self.commands {
                     let header = egui::collapsing_header::CollapsingState::load_with_default_open(
@@ -48,10 +136,16 @@ impl egui::Widget for CommandView<'_> {
                     });
 
                     header_response.body(|ui| {
-                        ui.add(Self::new(&mut command.child_commands));
+                        modified |= show_parameters(ui, command.parameters.iter_mut());
+                        modified |= ui.add(Self::new(&mut command.child_commands)).changed();
                     });
                 }
             })
-            .response
+            .response;
+
+        if modified {
+            response.mark_changed();
+        }
+        response
     }
 }

@@ -300,7 +300,8 @@ impl luminol_core::Window for Window {
                         });
                     });
                 });
-                ui.add(CommandView::new(&mut page.list.commands));
+
+                modified |= ui.add(CommandView::new(&mut page.list.commands)).changed();
             });
 
         if graphic_modified {
@@ -313,6 +314,7 @@ impl luminol_core::Window for Window {
 
         if modified {
             map.modified = true;
+            update_state.modified.set(true);
         }
     }
 
