@@ -513,6 +513,37 @@ fn push_child_command(
     }
 }
 
+fn deserialize_event_command_list<E>(
+    indented_commands: impl Iterator<Item = Result<IndentedEventCommand, E>>,
+) -> Result<EventCommandList, E> {
+    let mut list = EventCommandList::default();
+    let mut stack = Vec::<IndentedEventCommand>::new();
+
+    for maybe_indented_command in indented_commands {
+        let indented_command = maybe_indented_command?;
+        if indented_command.command.code == 0 {
+            // Ignore commands that have code equal to 0; these are terminator commands
+            continue;
+        }
+
+        while stack
+            .last()
+            .is_some_and(|stack_top| indented_command.indent <= stack_top.indent)
+        {
+            let command = stack.pop().unwrap().command;
+            push_child_command(&mut list, &mut stack, command);
+        }
+
+        stack.push(indented_command);
+    }
+
+    while let Some(stack_top) = stack.pop() {
+        push_child_command(&mut list, &mut stack, stack_top.command);
+    }
+
+    Ok(list)
+}
+
 impl<'de> serde::de::Visitor<'de> for EventCommandListVisitor {
     type Value = EventCommandList;
 
@@ -524,28 +555,7 @@ impl<'de> serde::de::Visitor<'de> for EventCommandListVisitor {
     where
         A: serde::de::SeqAccess<'de>,
     {
-        let mut list = EventCommandList::default();
-        let mut stack = Vec::<IndentedEventCommand>::new();
-        while let Some(deserialized_indented_command) =
-            seq.next_element::<IndentedEventCommand>()?
-        {
-            if deserialized_indented_command.command.code == 0 {
-                // Ignore commands that have code equal to 0; these are terminator commands
-                continue;
-            }
-            while stack
-                .last()
-                .is_some_and(|stack_top| deserialized_indented_command.indent <= stack_top.indent)
-            {
-                let command = stack.pop().unwrap().command;
-                push_child_command(&mut list, &mut stack, command);
-            }
-            stack.push(deserialized_indented_command);
-        }
-        while let Some(stack_top) = stack.pop() {
-            push_child_command(&mut list, &mut stack, stack_top.command);
-        }
-        Ok(list)
+        deserialize_event_command_list(std::iter::from_fn(|| seq.next_element().transpose()))
     }
 }
 
@@ -560,28 +570,7 @@ impl<'de> alox_48::Visitor<'de> for EventCommandListVisitor {
     where
         A: alox_48::ArrayAccess<'de>,
     {
-        let mut list = EventCommandList::default();
-        let mut stack = Vec::<IndentedEventCommand>::new();
-        while let Some(deserialized_indented_command) =
-            seq.next_element::<IndentedEventCommand>()?
-        {
-            if deserialized_indented_command.command.code == 0 {
-                // Ignore commands that have code equal to 0; these are terminator commands
-                continue;
-            }
-            while stack
-                .last()
-                .is_some_and(|stack_top| deserialized_indented_command.indent <= stack_top.indent)
-            {
-                let command = stack.pop().unwrap().command;
-                push_child_command(&mut list, &mut stack, command);
-            }
-            stack.push(deserialized_indented_command);
-        }
-        while let Some(stack_top) = stack.pop() {
-            push_child_command(&mut list, &mut stack, stack_top.command);
-        }
-        Ok(list)
+        deserialize_event_command_list(std::iter::from_fn(|| seq.next_element().transpose()))
     }
 }
 
