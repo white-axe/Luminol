@@ -28,13 +28,13 @@ fn matches(command: &EventCommand) -> bool {
     }
 
     // Must have exactly one parameter, of type string, that doesn't contain any newlines
-    let [argument] = &command.parameters[..] else {
+    let [parameter] = &command.parameters[..] else {
         return false;
     };
-    let ParameterType::String(argument) = argument else {
+    let ParameterType::String(parameter) = parameter else {
         return false;
     };
-    if argument.contains('\n') {
+    if parameter.contains('\n') {
         return false;
     }
 
