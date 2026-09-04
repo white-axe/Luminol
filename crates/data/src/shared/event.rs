@@ -284,6 +284,7 @@ impl From<SelfSwitch> for String {
 #[allow(missing_docs)]
 pub struct EventCommand {
     pub guid: String,
+    pub matches_schema: bool,
     pub code: u16,
     pub parameters: Vec<ParameterType>,
     pub child_commands: Vec<EventCommand>,
@@ -294,6 +295,7 @@ impl EventCommand {
     const fn new() -> Self {
         Self {
             guid: String::new(),
+            matches_schema: false,
             code: 0,
             parameters: Vec::new(),
             child_commands: Vec::new(),
@@ -323,6 +325,7 @@ impl Clone for EventCommand {
     fn clone(&self) -> Self {
         Self {
             guid: Self::generate_guid(),
+            matches_schema: self.matches_schema,
             code: self.code,
             parameters: self.parameters.clone(),
             child_commands: self.child_commands.clone(),
@@ -504,12 +507,27 @@ impl<'de> alox_48::Deserialize<'de> for EventCommandList {
 fn push_child_command(
     commands: &mut EventCommandList,
     stack: &mut [IndentedEventCommand],
-    command: EventCommand,
+    mut command: EventCommand,
 ) {
-    if let Some(stack_top) = stack.last_mut() {
-        stack_top.command.child_commands.push(command);
+    command.matches_schema = super::command::SCHEMAS
+        .get(&command.code)
+        .is_some_and(|schema| schema.matches(&command));
+
+    let child_commands = if let Some(stack_top) = stack.last_mut() {
+        &mut stack_top.command.child_commands
     } else {
-        commands.commands.push(command);
+        &mut commands.commands
+    };
+
+    if let Some(last_child_command) = child_commands.last_mut().and_then(|last_child_command| {
+        super::command::SCHEMAS
+            .get(&last_child_command.code)
+            .is_some_and(|schema| schema.is_sibling(last_child_command, &command))
+            .then_some(last_child_command)
+    }) {
+        last_child_command.sibling_commands.push(command);
+    } else {
+        child_commands.push(command);
     }
 }
 

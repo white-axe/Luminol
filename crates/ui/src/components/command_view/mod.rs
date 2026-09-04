@@ -22,15 +22,42 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
+use luminol_data::{rpg::EventCommand, ParameterType};
+
 pub struct CommandView<'a> {
-    commands: &'a mut Vec<luminol_data::rpg::EventCommand>,
+    commands: &'a mut Vec<EventCommand>,
 }
 
 impl<'a> CommandView<'a> {
-    pub fn new(commands: &'a mut Vec<luminol_data::rpg::EventCommand>) -> Self {
+    pub fn new(commands: &'a mut Vec<EventCommand>) -> Self {
         Self { commands }
     }
 }
+
+trait EventCommandEditor
+where
+    Self: Sync,
+{
+    /// Returns a descriptive name for the given event command.
+    fn name(&'static self, command: &EventCommand) -> String;
+
+    /// Renders the UI for this event command editor.
+    ///
+    /// Remember to mark the response returned by this method as changed if the event command was
+    /// modified by this editor (by calling the `mark_changed` method of the response).
+    ///
+    /// The event command is guaranteed to match the schema for the command's event code (i.e. the
+    /// `matches_schema` field on the command will be `true`). If there is no schema for the
+    /// command's command code, this will never be called.
+    fn ui(&'static self, ui: &mut egui::Ui, command: &mut EventCommand) -> egui::Response;
+}
+
+mod c101;
+
+static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
+    101u16 => &c101::Editor { continuation_code: 401, label: "Show Text" },
+    108u16 => &c101::Editor { continuation_code: 408, label: "Comment" },
+};
 
 fn show_parameter_label(ui: &mut egui::Ui, index: usize, type_name: &str) {
     let index = index + 1;
@@ -131,13 +158,28 @@ impl egui::Widget for CommandView<'_> {
                         !command.child_commands.is_empty(),
                     );
 
+                    let maybe_editor = command
+                        .matches_schema
+                        .then(|| EDITORS.get(&command.code))
+                        .flatten();
+
                     let header_response = header.show_header(ui, |ui| {
-                        ui.label(format!("{} Custom Command", command.code));
+                        if let Some(editor) = maybe_editor {
+                            ui.label(format!("{} {}", command.code, editor.name(command)));
+                        } else {
+                            ui.label(format!("{} Custom Command", command.code));
+                        }
                     });
 
                     header_response.body(|ui| {
-                        modified |= show_parameters(ui, command.parameters.iter_mut());
-                        modified |= ui.add(Self::new(&mut command.child_commands)).changed();
+                        if let Some(editor) = maybe_editor {
+                            ui.push_id(command.code, |ui| {
+                                modified |= editor.ui(ui, command).changed();
+                            });
+                        } else {
+                            modified |= show_parameters(ui, command.parameters.iter_mut());
+                            modified |= ui.add(Self::new(&mut command.child_commands)).changed();
+                        }
                     });
                 }
             })

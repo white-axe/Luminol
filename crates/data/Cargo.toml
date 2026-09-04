@@ -39,5 +39,6 @@ base64 = "0.22.1" # Implementation of the base64 hashing algorithm
 camino.workspace = true
 
 # * Misc * #
+phf.workspace = true # Efficient compile-time constant HashMap
 rand.workspace = true
 flate2 = "1.0"        # DEFLATE compression and decompression exposed as Read/BufRead/Write streams
