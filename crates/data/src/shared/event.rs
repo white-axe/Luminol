@@ -504,30 +504,27 @@ impl<'de> alox_48::Deserialize<'de> for EventCommandList {
     }
 }
 
-fn push_child_command(
-    commands: &mut EventCommandList,
-    stack: &mut [IndentedEventCommand],
-    mut command: EventCommand,
-) {
-    command.matches_schema = super::command::SCHEMAS
-        .get(&command.code)
-        .is_some_and(|schema| schema.matches(&command));
-
-    let child_commands = if let Some(stack_top) = stack.last_mut() {
-        &mut stack_top.command.child_commands
-    } else {
-        &mut commands.commands
-    };
+fn push_child_command(child_commands: &mut Vec<EventCommand>, mut child_command: EventCommand) {
+    if let Some(child_command_last_child_command) = child_command.child_commands.last_mut() {
+        child_command_last_child_command.matches_schema = super::command::SCHEMAS
+            .get(&child_command_last_child_command.code)
+            .is_some_and(|schema| schema.matches(child_command_last_child_command));
+    }
 
     if let Some(last_child_command) = child_commands.last_mut().and_then(|last_child_command| {
         super::command::SCHEMAS
             .get(&last_child_command.code)
-            .is_some_and(|schema| schema.is_sibling(last_child_command, &command))
+            .is_some_and(|schema| schema.is_sibling(last_child_command, &child_command))
             .then_some(last_child_command)
     }) {
-        last_child_command.sibling_commands.push(command);
+        last_child_command.sibling_commands.push(child_command);
     } else {
-        child_commands.push(command);
+        if let Some(last_child_command) = child_commands.last_mut() {
+            last_child_command.matches_schema = super::command::SCHEMAS
+                .get(&last_child_command.code)
+                .is_some_and(|schema| schema.matches(last_child_command));
+        }
+        child_commands.push(child_command);
     }
 }
 
@@ -548,15 +545,27 @@ fn deserialize_event_command_list<E>(
             .last()
             .is_some_and(|stack_top| indented_command.indent <= stack_top.indent)
         {
-            let command = stack.pop().unwrap().command;
-            push_child_command(&mut list, &mut stack, command);
+            let child_command = stack.pop().unwrap().command;
+            push_child_command(
+                stack
+                    .last_mut()
+                    .map(|stack_top| &mut stack_top.command.child_commands)
+                    .unwrap_or(&mut list.commands),
+                child_command,
+            );
         }
 
         stack.push(indented_command);
     }
 
     while let Some(stack_top) = stack.pop() {
-        push_child_command(&mut list, &mut stack, stack_top.command);
+        push_child_command(
+            stack
+                .last_mut()
+                .map(|stack_top| &mut stack_top.command.child_commands)
+                .unwrap_or(&mut list.commands),
+            stack_top.command,
+        );
     }
 
     Ok(list)
