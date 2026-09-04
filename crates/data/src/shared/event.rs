@@ -504,12 +504,29 @@ impl<'de> alox_48::Deserialize<'de> for EventCommandList {
     }
 }
 
-fn push_child_command(child_commands: &mut Vec<EventCommand>, mut child_command: EventCommand) {
-    if let Some(child_command_last_child_command) = child_command.child_commands.last_mut() {
-        child_command_last_child_command.matches_schema = super::command::SCHEMAS
-            .get(&child_command_last_child_command.code)
-            .is_some_and(|schema| schema.matches(child_command_last_child_command));
+fn match_last_child_command_with_schema(child_commands: &mut Vec<EventCommand>) {
+    let Some(last_child_command) = child_commands.last_mut() else {
+        return;
+    };
+
+    last_child_command.matches_schema = super::command::SCHEMAS
+        .get(&last_child_command.code)
+        .is_some_and(|schema| schema.matches(last_child_command));
+
+    if !last_child_command.matches_schema {
+        let mut last_child_command_sibling_commands = Vec::new();
+        std::mem::swap(
+            &mut last_child_command.sibling_commands,
+            &mut last_child_command_sibling_commands,
+        );
+        for child_command in last_child_command_sibling_commands {
+            child_commands.push(child_command);
+        }
     }
+}
+
+fn push_child_command(child_commands: &mut Vec<EventCommand>, mut child_command: EventCommand) {
+    match_last_child_command_with_schema(&mut child_command.child_commands);
 
     if let Some(last_child_command) = child_commands.last_mut().and_then(|last_child_command| {
         super::command::SCHEMAS
@@ -519,11 +536,7 @@ fn push_child_command(child_commands: &mut Vec<EventCommand>, mut child_command:
     }) {
         last_child_command.sibling_commands.push(child_command);
     } else {
-        if let Some(last_child_command) = child_commands.last_mut() {
-            last_child_command.matches_schema = super::command::SCHEMAS
-                .get(&last_child_command.code)
-                .is_some_and(|schema| schema.matches(last_child_command));
-        }
+        match_last_child_command_with_schema(child_commands);
         child_commands.push(child_command);
     }
 }
