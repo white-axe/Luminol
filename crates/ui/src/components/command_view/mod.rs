@@ -34,6 +34,32 @@ impl<'a> CommandView<'a> {
     }
 }
 
+struct EventCommandEditorState<'a>(&'a mut Option<Box<dyn std::any::Any + Send>>);
+
+impl EventCommandEditorState<'_> {
+    /// Calls `closure` with a mutable reference to the state for this event command editor.
+    ///
+    /// If the state for this event command editor has never been retrieved before, it will first be
+    /// set to the value returned by `init_fn`.
+    fn with<R, S, A>(
+        self,
+        mut arg: A,
+        init_fn: impl FnOnce(&A) -> S,
+        closure: impl FnOnce(&mut A, &mut S) -> R,
+    ) -> R
+    where
+        S: 'static + Send,
+    {
+        let state = if let Some(state) = self.0.as_mut().and_then(|state| state.downcast_mut()) {
+            state
+        } else {
+            *self.0 = Some(Box::new(init_fn(&arg)));
+            self.0.as_mut().unwrap().downcast_mut().unwrap()
+        };
+        closure(&mut arg, state)
+    }
+}
+
 trait EventCommandEditor
 where
     Self: Sync,
@@ -49,7 +75,15 @@ where
     /// The event command is guaranteed to match the schema for the command's event code (i.e. the
     /// `matches_schema` field on the command will be `true`). If there is no schema for the
     /// command's command code, this will never be called.
-    fn ui(&'static self, ui: &mut egui::Ui, command: &mut EventCommand) -> egui::Response;
+    ///
+    /// The `state` argument can be used to store state for the event command editor. Call the `with`
+    /// method to retrieve a mutable reference to the state or set a default value for the state.
+    fn ui(
+        &'static self,
+        ui: &mut egui::Ui,
+        state: EventCommandEditorState<'_>,
+        command: &mut EventCommand,
+    ) -> egui::Response;
 }
 
 mod c101;
@@ -174,7 +208,16 @@ impl egui::Widget for CommandView<'_> {
                     header_response.body(|ui| {
                         if let Some(editor) = maybe_editor {
                             ui.push_id(command.code, |ui| {
-                                modified |= editor.ui(ui, command).changed();
+                                let id = ui.id().with("luminol_command_view_state");
+                                let state = ui.data_mut(|d| {
+                                    d.get_temp_mut_or_insert_with(id, || {
+                                        std::sync::Arc::new(parking_lot::Mutex::new(None))
+                                    })
+                                    .clone()
+                                });
+                                modified |= editor
+                                    .ui(ui, EventCommandEditorState(&mut state.lock()), command)
+                                    .changed();
                             });
                         } else {
                             modified |= show_parameters(ui, command.parameters.iter_mut());

@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, ParameterType};
+use super::{EventCommand, EventCommandEditor, EventCommandEditorState, ParameterType};
 use itertools::Itertools;
 
 pub(super) struct Editor {
@@ -35,77 +35,80 @@ impl EventCommandEditor for Editor {
         self.label.into()
     }
 
-    fn ui(&'static self, ui: &mut egui::Ui, command: &mut EventCommand) -> egui::Response {
-        let mut modified = false;
+    fn ui(
+        &'static self,
+        ui: &mut egui::Ui,
+        state: EventCommandEditorState<'_>,
+        command: &mut EventCommand,
+    ) -> egui::Response {
+        state.with(
+            command,
+            |command| {
+                std::iter::once(
+                    match &command.parameters[0] {
+                        ParameterType::String(parameter) => Some(parameter),
+                        _ => None,
+                    }
+                    .unwrap(),
+                )
+                .chain(command.sibling_commands.iter().map(|sibling| {
+                    match &sibling.parameters[0] {
+                        ParameterType::String(parameter) => Some(parameter),
+                        _ => None,
+                    }
+                    .unwrap()
+                }))
+                .join("\n")
+            },
+            |command, state| {
+                let mut modified = false;
 
-        let mut response = egui::Frame::NONE
-            .show(ui, |ui| {
-                let text = ui.data_mut(|d| {
-                    d.get_temp_mut_or_insert_with(ui.id().with("text"), || {
-                        std::sync::Arc::new(parking_lot::Mutex::new(
-                            std::iter::once(
-                                match &command.parameters[0] {
-                                    ParameterType::String(parameter) => Some(parameter),
-                                    _ => None,
-                                }
-                                .unwrap(),
-                            )
-                            .chain(command.sibling_commands.iter().map(|sibling| {
-                                match &sibling.parameters[0] {
-                                    ParameterType::String(parameter) => Some(parameter),
-                                    _ => None,
-                                }
-                                .unwrap()
-                            }))
-                            .join("\n"),
-                        ))
+                let mut response = egui::Frame::NONE
+                    .show(ui, |ui| {
+                        modified |= ui.text_edit_multiline(state).changed();
+
+                        if modified {
+                            for (i, line) in state.split('\n').enumerate() {
+                                line.clone_into(if i == 0 {
+                                    match &mut command.parameters[0] {
+                                        ParameterType::String(parameter) => Some(parameter),
+                                        _ => None,
+                                    }
+                                    .unwrap()
+                                } else {
+                                    let sibling = if let Some(sibling) =
+                                        command.sibling_commands.get_mut(i - 1)
+                                    {
+                                        sibling
+                                    } else {
+                                        command.sibling_commands.push(Default::default());
+                                        let sibling = command.sibling_commands.last_mut().unwrap();
+                                        sibling.code = self.continuation_code;
+                                        sibling
+                                            .parameters
+                                            .push(ParameterType::String(Default::default()));
+                                        sibling
+                                    };
+                                    match &mut sibling.parameters[0] {
+                                        ParameterType::String(parameter) => Some(parameter),
+                                        _ => None,
+                                    }
+                                    .unwrap()
+                                });
+                            }
+
+                            command
+                                .sibling_commands
+                                .truncate(state.matches('\n').count());
+                        }
                     })
-                    .clone()
-                });
-
-                let mut text = text.lock();
-
-                modified |= ui.text_edit_multiline(&mut *text).changed();
+                    .response;
 
                 if modified {
-                    for (i, line) in text.split('\n').enumerate() {
-                        line.clone_into(if i == 0 {
-                            match &mut command.parameters[0] {
-                                ParameterType::String(parameter) => Some(parameter),
-                                _ => None,
-                            }
-                            .unwrap()
-                        } else {
-                            let sibling =
-                                if let Some(sibling) = command.sibling_commands.get_mut(i - 1) {
-                                    sibling
-                                } else {
-                                    command.sibling_commands.push(Default::default());
-                                    let sibling = command.sibling_commands.last_mut().unwrap();
-                                    sibling.code = self.continuation_code;
-                                    sibling
-                                        .parameters
-                                        .push(ParameterType::String(Default::default()));
-                                    sibling
-                                };
-                            match &mut sibling.parameters[0] {
-                                ParameterType::String(parameter) => Some(parameter),
-                                _ => None,
-                            }
-                            .unwrap()
-                        });
-                    }
-
-                    command
-                        .sibling_commands
-                        .truncate(text.matches('\n').count());
+                    response.mark_changed();
                 }
-            })
-            .response;
-
-        if modified {
-            response.mark_changed();
-        }
-        response
+                response
+            },
+        )
     }
 }
