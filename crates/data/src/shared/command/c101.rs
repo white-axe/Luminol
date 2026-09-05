@@ -42,11 +42,11 @@ fn matches(command: &EventCommand) -> bool {
 }
 
 impl EventCommandSchema for Schema {
-    fn matches(&'static self, command: &EventCommand) -> bool {
+    fn matches(&self, command: &EventCommand) -> bool {
         matches(command)
     }
 
-    fn is_sibling(&'static self, _command: &EventCommand, sibling: &EventCommand) -> bool {
+    fn is_sibling(&self, _command: &EventCommand, sibling: &EventCommand) -> bool {
         // Can have zero or more siblings with code `continuation_code`
         sibling.code == self.continuation_code && matches(sibling)
     }

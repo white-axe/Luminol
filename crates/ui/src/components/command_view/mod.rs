@@ -39,10 +39,10 @@ impl<'a> CommandView<'a> {
 
 trait EventCommandEditor
 where
-    Self: Sync,
+    Self: Sync + 'static,
 {
     /// Returns a descriptive name for the given event command.
-    fn name(&'static self, command: &EventCommand) -> String;
+    fn name(&self, command: &EventCommand) -> String;
 
     /// Renders the UI for this event command editor.
     ///
@@ -56,7 +56,7 @@ where
     /// The `state` argument can be used to store state for the event command editor. Call the `with`
     /// method to retrieve a mutable reference to the state or set a default value for the state.
     fn ui(
-        &'static self,
+        &self,
         ui: &mut egui::Ui,
         state: EventCommandEditorState<'_>,
         command: &mut EventCommand,

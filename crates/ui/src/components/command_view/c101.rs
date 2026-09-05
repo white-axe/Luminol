@@ -31,12 +31,12 @@ pub(super) struct Editor {
 }
 
 impl EventCommandEditor for Editor {
-    fn name(&'static self, _command: &EventCommand) -> String {
+    fn name(&self, _command: &EventCommand) -> String {
         self.label.into()
     }
 
     fn ui(
-        &'static self,
+        &self,
         ui: &mut egui::Ui,
         state: EventCommandEditorState<'_>,
         command: &mut EventCommand,

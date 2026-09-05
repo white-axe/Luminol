@@ -20,13 +20,13 @@ use crate::ParameterType;
 
 pub(super) trait EventCommandSchema
 where
-    Self: Sync,
+    Self: Sync + 'static,
 {
     /// Returns true if the given command matches the schema, otherwise false.
     ///
     /// This method is called after all children and siblings are added to the command. Implement
     /// the `is_sibling` method to control which commands can be added as a sibling to this one.
-    fn matches(&'static self, command: &EventCommand) -> bool;
+    fn matches(&self, command: &EventCommand) -> bool;
 
     /// When deserializing commands, this method is called repeatedly to add siblings to a command.
     /// All siblings for which this method returns `true` are added as siblings; the first time this
@@ -34,7 +34,7 @@ where
     ///
     /// The default implementation makes it so that the command cannot have siblings.
     #[allow(unused_variables)]
-    fn is_sibling(&'static self, command: &EventCommand, sibling: &EventCommand) -> bool {
+    fn is_sibling(&self, command: &EventCommand, sibling: &EventCommand) -> bool {
         false
     }
 }
