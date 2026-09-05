@@ -514,12 +514,7 @@ fn match_last_child_command_with_schema(child_commands: &mut Vec<EventCommand>) 
         .is_some_and(|schema| schema.matches(last_child_command));
 
     if !last_child_command.matches_schema {
-        let mut last_child_command_sibling_commands = Vec::new();
-        std::mem::swap(
-            &mut last_child_command.sibling_commands,
-            &mut last_child_command_sibling_commands,
-        );
-        for child_command in last_child_command_sibling_commands {
+        for child_command in std::mem::take(&mut last_child_command.sibling_commands) {
             child_commands.push(child_command);
         }
     }
