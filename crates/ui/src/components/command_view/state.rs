@@ -35,9 +35,9 @@ impl<'a> EventCommandEditorState<'a> {
     /// set to the value returned by `init_fn`.
     pub fn with<R, S, A>(
         self,
-        mut arg: A,
+        arg: A,
         init_fn: impl FnOnce(&A) -> S,
-        closure: impl FnOnce(&mut A, &mut S) -> R,
+        closure: impl FnOnce(A, &mut S) -> R,
     ) -> R
     where
         S: 'static + Send,
@@ -48,6 +48,6 @@ impl<'a> EventCommandEditorState<'a> {
             *self.0 = Some(Box::new(init_fn(&arg)));
             self.0.as_mut().unwrap().downcast_mut().unwrap()
         };
-        closure(&mut arg, state)
+        closure(arg, state)
     }
 }
