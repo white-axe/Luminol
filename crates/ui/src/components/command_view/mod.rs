@@ -24,6 +24,9 @@
 
 use luminol_data::{rpg::EventCommand, ParameterType};
 
+mod state;
+use state::EventCommandEditorState;
+
 pub struct CommandView<'a> {
     commands: &'a mut Vec<EventCommand>,
 }
@@ -31,32 +34,6 @@ pub struct CommandView<'a> {
 impl<'a> CommandView<'a> {
     pub fn new(commands: &'a mut Vec<EventCommand>) -> Self {
         Self { commands }
-    }
-}
-
-struct EventCommandEditorState<'a>(&'a mut Option<Box<dyn std::any::Any + Send>>);
-
-impl EventCommandEditorState<'_> {
-    /// Calls `closure` with a mutable reference to the state for this event command editor.
-    ///
-    /// If the state for this event command editor has never been retrieved before, it will first be
-    /// set to the value returned by `init_fn`.
-    fn with<R, S, A>(
-        self,
-        mut arg: A,
-        init_fn: impl FnOnce(&A) -> S,
-        closure: impl FnOnce(&mut A, &mut S) -> R,
-    ) -> R
-    where
-        S: 'static + Send,
-    {
-        let state = if let Some(state) = self.0.as_mut().and_then(|state| state.downcast_mut()) {
-            state
-        } else {
-            *self.0 = Some(Box::new(init_fn(&arg)));
-            self.0.as_mut().unwrap().downcast_mut().unwrap()
-        };
-        closure(&mut arg, state)
     }
 }
 
@@ -216,7 +193,11 @@ impl egui::Widget for CommandView<'_> {
                                     .clone()
                                 });
                                 modified |= editor
-                                    .ui(ui, EventCommandEditorState(&mut state.lock()), command)
+                                    .ui(
+                                        ui,
+                                        EventCommandEditorState::new(&mut state.lock()),
+                                        command,
+                                    )
                                     .changed();
                             });
                         } else {
