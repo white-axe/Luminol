@@ -46,7 +46,7 @@ impl EventCommandEditor for Editor {
     ) -> egui::Response {
         let mut modified = false;
 
-        let state = state.get_or_insert_with(|| {
+        let text = state.get_or_insert_with(|| {
             std::iter::once(
                 match &command.parameters[0] {
                     ParameterType::String(parameter) => Some(parameter),
@@ -66,10 +66,10 @@ impl EventCommandEditor for Editor {
 
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                modified |= ui.text_edit_multiline(state).changed();
+                modified |= ui.text_edit_multiline(text).changed();
 
                 if modified {
-                    for (i, line) in state.split('\n').enumerate() {
+                    for (i, line) in text.split('\n').enumerate() {
                         line.clone_into(if i == 0 {
                             match &mut command.parameters[0] {
                                 ParameterType::String(parameter) => Some(parameter),
@@ -99,7 +99,7 @@ impl EventCommandEditor for Editor {
 
                     command
                         .sibling_commands
-                        .truncate(state.matches('\n').count());
+                        .truncate(text.matches('\n').count());
                 }
             })
             .response;
