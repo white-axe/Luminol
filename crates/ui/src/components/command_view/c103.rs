@@ -41,52 +41,50 @@ impl EventCommandEditor for Editor {
         state: EventCommandEditorState<'_>,
         command: &mut EventCommand,
     ) -> egui::Response {
+        let mut modified = false;
+
         let id = ui.id();
+        let variable_modal = state.get_or_insert_with(|| {
+            crate::modals::database_modal::VariableModal::new(id.with("variable"))
+        });
 
-        state.with_initializer(
-            || crate::modals::database_modal::VariableModal::new(id.with("variable")),
-            |variable_modal| {
-                let mut modified = false;
-
-                let mut response = egui::Frame::NONE
-                    .show(ui, |ui| {
-                        let mut variable_index = match command.parameters[0] {
-                            ParameterType::Integer(parameter) => Some(parameter),
-                            _ => None,
-                        }
-                        .unwrap() as _;
-                        modified |= {
-                            let changed = ui
-                                .add(variable_modal.button(&mut variable_index, update_state))
-                                .changed();
-                            if changed {
-                                command.parameters[0] = ParameterType::Integer(variable_index as _);
-                            }
-                            changed
-                        };
-
-                        ui.label("Digits");
-
-                        modified |= ui
-                            .add(
-                                egui::DragValue::new(
-                                    match &mut command.parameters[1] {
-                                        ParameterType::Integer(parameter) => Some(parameter),
-                                        _ => None,
-                                    }
-                                    .unwrap(),
-                                )
-                                .range(1..=i32::MAX),
-                            )
-                            .changed();
-                    })
-                    .response;
-
-                if modified {
-                    response.mark_changed();
+        let mut response = egui::Frame::NONE
+            .show(ui, |ui| {
+                let mut variable_index = match command.parameters[0] {
+                    ParameterType::Integer(parameter) => Some(parameter),
+                    _ => None,
                 }
-                response
-            },
-        )
+                .unwrap() as _;
+                modified |= {
+                    let changed = ui
+                        .add(variable_modal.button(&mut variable_index, update_state))
+                        .changed();
+                    if changed {
+                        command.parameters[0] = ParameterType::Integer(variable_index as _);
+                    }
+                    changed
+                };
+
+                ui.label("Digits");
+
+                modified |= ui
+                    .add(
+                        egui::DragValue::new(
+                            match &mut command.parameters[1] {
+                                ParameterType::Integer(parameter) => Some(parameter),
+                                _ => None,
+                            }
+                            .unwrap(),
+                        )
+                        .range(1..=i32::MAX),
+                    )
+                    .changed();
+            })
+            .response;
+
+        if modified {
+            response.mark_changed();
+        }
+        response
     }
 }

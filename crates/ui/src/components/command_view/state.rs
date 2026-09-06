@@ -29,56 +29,30 @@ impl<'a> EventCommandEditorState<'a> {
         Self(inner)
     }
 
-    /// Calls `closure` with a mutable reference to the state for this event command editor.
+    /// Returns a mutable reference to the state for this event command editor.
     ///
     /// If the state for this event command editor has never been retrieved before, it will first be
     /// set to the value returned by `initializer`.
-    ///
-    /// `arg` will be passed to both `initializer` and `closure`. This is useful for avoiding borrow
-    /// checker issues if both `initializer` and `closure` borrow the same variable.
-    pub fn with_initializer_and_arg<R, S, A>(
-        self,
-        mut arg: A,
-        initializer: impl FnOnce(&mut A) -> S,
-        closure: impl FnOnce(A, &mut S) -> R,
-    ) -> R
+    pub fn get_or_insert_with<T>(self, initializer: impl FnOnce() -> T) -> &'a mut T
     where
-        S: Send + 'static,
+        T: Send + 'static,
     {
-        let state = if let Some(state) = self.0.as_mut().and_then(|state| state.downcast_mut()) {
-            state
+        // For some reason, the borrow checker won't allow just using
+        // ```
+        // if let Some(state) = self.0.as_mut().and_then(|state| state.downcast_mut()) {
+        //     state
+        // } else {
+        //     self.0.insert(Box::new(initializer())).downcast_mut().unwrap()
+        // }
+        // ```
+        // even though that would be perfectly safe, so we have to do this instead
+        if self.0.as_ref().is_some_and(|state| state.is::<T>()) {
+            self.0.as_mut().unwrap().downcast_mut().unwrap()
         } else {
             self.0
-                .insert(Box::new(initializer(&mut arg)))
+                .insert(Box::new(initializer()))
                 .downcast_mut()
                 .unwrap()
-        };
-        closure(arg, state)
-    }
-
-    /// Calls `closure` with a mutable reference to the state for this event command editor.
-    ///
-    /// If the state for this event command editor has never been retrieved before, it will first be
-    /// set to the value returned by `initializer`.
-    pub fn with_initializer<R, S>(
-        self,
-        initializer: impl FnOnce() -> S,
-        closure: impl FnOnce(&mut S) -> R,
-    ) -> R
-    where
-        S: Send + 'static,
-    {
-        self.with_initializer_and_arg((), |()| initializer(), |(), state| closure(state))
-    }
-
-    /// Calls `closure` with a mutable reference to the state for this event command editor.
-    ///
-    /// If the state for this event command editor has never been retrieved before, it will first be
-    /// set to the default value.
-    pub fn _with_default<R, S>(self, closure: impl FnOnce(&mut S) -> R) -> R
-    where
-        S: Default + Send + 'static,
-    {
-        self.with_initializer(Default::default, closure)
+        }
     }
 }
