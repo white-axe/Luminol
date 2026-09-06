@@ -22,9 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{
-    EventCommand, EventCommandEditor, EventCommandEditorState, ParameterType, UpdateState,
-};
+use super::{EventCommand, EventCommandEditor, ParameterType, UpdateState};
 use luminol_core::Modal;
 
 pub(super) struct Editor;
@@ -38,13 +36,12 @@ impl EventCommandEditor for Editor {
         &self,
         ui: &mut egui::Ui,
         update_state: &mut UpdateState<'_>,
-        state: EventCommandEditorState<'_>,
         command: &mut EventCommand,
     ) -> egui::Response {
         let mut modified = false;
 
         let id = ui.id();
-        let variable_modal = state.get_or_insert_with(|| {
+        let variable_modal = command.state.get_or_insert_with(|| {
             crate::modals::database_modal::VariableModal::new(id.with("variable"))
         });
 

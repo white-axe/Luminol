@@ -25,9 +25,6 @@
 use crate::UpdateState;
 use luminol_data::{rpg::EventCommand, ParameterType};
 
-mod state;
-use state::EventCommandEditorState;
-
 pub struct CommandView<'this, 'res> {
     update_state: &'this mut UpdateState<'res>,
     commands: &'this mut Vec<EventCommand>,
@@ -60,15 +57,10 @@ where
     /// The event command is guaranteed to match the schema for the command's event code (i.e. the
     /// `matches_schema` field on the command will be `true`). If there is no schema for the
     /// command's command code, this will never be called.
-    ///
-    /// The `state` argument can be used to store state for the event command editor. Call the
-    /// `get_or_insert_with` method of `state` to retrieve a mutable reference to the state or set a
-    /// default value for the state.
     fn ui(
         &self,
         ui: &mut egui::Ui,
         update_state: &mut UpdateState<'_>,
-        state: EventCommandEditorState<'_>,
         command: &mut EventCommand,
     ) -> egui::Response;
 }
@@ -205,23 +197,7 @@ impl egui::Widget for CommandView<'_, '_> {
                     header_response.body(|ui| {
                         if let Some(editor) = maybe_editor {
                             ui.push_id(command.code, |ui| {
-                                let id = ui.id().with("luminol_command_view_state");
-                                let state = ui.data_mut(|d| {
-                                    d.get_temp_mut_or_insert_with(id, || {
-                                        std::sync::Arc::new(parking_lot::Mutex::new(
-                                            EventCommandEditorState::new_sentinel(),
-                                        ))
-                                    })
-                                    .clone()
-                                });
-                                modified |= editor
-                                    .ui(
-                                        ui,
-                                        self.update_state,
-                                        EventCommandEditorState::new(&mut state.lock()),
-                                        command,
-                                    )
-                                    .changed();
+                                modified |= editor.ui(ui, self.update_state, command).changed();
                             });
                         } else {
                             modified |= show_parameters(ui, command.parameters.iter_mut());

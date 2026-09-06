@@ -22,30 +22,26 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-pub(super) struct EventCommandEditorState<'a>(&'a mut Box<dyn std::any::Any + Send>);
+#[derive(Debug)]
+pub struct EventCommandState(Option<Box<dyn std::any::Any + Send + Sync>>);
 
-struct EventCommandEditorStateSentinel;
-
-impl<'a> EventCommandEditorState<'a> {
-    pub fn new_sentinel() -> Box<dyn std::any::Any + Send> {
-        Box::new(EventCommandEditorStateSentinel)
+impl EventCommandState {
+    pub(super) const fn new() -> Self {
+        Self(None)
     }
 
-    pub fn new(inner: &'a mut Box<dyn std::any::Any + Send>) -> Self {
-        Self(inner)
-    }
-
-    /// Returns a mutable reference to the state for this event command editor.
+    /// Returns a mutable reference to the state for this event command. This can be used by the
+    /// event command editors to store UI state for individual commands.
     ///
-    /// If the state for this event command editor has never been retrieved before, it will first be
-    /// set to the value returned by `initializer`.
-    pub fn get_or_insert_with<T>(self, initializer: impl FnOnce() -> T) -> &'a mut T
+    /// If the state for this event command has never been retrieved before, it will first be set to
+    /// the value returned by `initializer`.
+    pub fn get_or_insert_with<T>(&mut self, initializer: impl FnOnce() -> T) -> &mut T
     where
-        T: Send + 'static,
+        T: Send + Sync + 'static,
     {
-        if !self.0.is::<T>() {
-            *self.0 = Box::new(initializer());
+        if self.0.as_ref().is_none_or(|inner| !inner.is::<T>()) {
+            self.0 = Some(Box::new(initializer()));
         }
-        self.0.downcast_mut().unwrap()
+        self.0.as_mut().unwrap().downcast_mut().unwrap()
     }
 }

@@ -35,7 +35,6 @@ impl EventCommandEditor for Editor {
         &self,
         ui: &mut egui::Ui,
         update_state: &mut UpdateState<'_>,
-        _state: super::EventCommandEditorState<'_>,
         command: &mut EventCommand,
     ) -> egui::Response {
         let mut modified = false;

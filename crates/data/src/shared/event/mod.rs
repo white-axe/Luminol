@@ -14,6 +14,9 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
+
+mod state;
+
 use crate::{id_alox, id_serde, rpg::MoveRoute, BlendMode, ParameterType, Path, RpgOption};
 use alox_48::{SerializeArray, SerializeIvars};
 use rand::Rng;
@@ -284,6 +287,7 @@ impl From<SelfSwitch> for String {
 #[allow(missing_docs)]
 pub struct EventCommand {
     pub guid: String,
+    pub state: state::EventCommandState,
     pub matches_schema: bool,
     pub code: u16,
     pub parameters: Vec<ParameterType>,
@@ -295,6 +299,7 @@ impl EventCommand {
     const fn new() -> Self {
         Self {
             guid: String::new(),
+            state: state::EventCommandState::new(),
             matches_schema: false,
             code: 0,
             parameters: Vec::new(),
@@ -325,6 +330,7 @@ impl Clone for EventCommand {
     fn clone(&self) -> Self {
         Self {
             guid: Self::generate_guid(),
+            state: state::EventCommandState::new(),
             matches_schema: self.matches_schema,
             code: self.code,
             parameters: self.parameters.clone(),
