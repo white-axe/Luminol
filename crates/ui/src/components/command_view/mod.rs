@@ -22,18 +22,26 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
+use crate::UpdateState;
 use luminol_data::{rpg::EventCommand, ParameterType};
 
 mod state;
 use state::EventCommandEditorState;
 
-pub struct CommandView<'a> {
-    commands: &'a mut Vec<EventCommand>,
+pub struct CommandView<'this, 'res> {
+    update_state: &'this mut UpdateState<'res>,
+    commands: &'this mut Vec<EventCommand>,
 }
 
-impl<'a> CommandView<'a> {
-    pub fn new(commands: &'a mut Vec<EventCommand>) -> Self {
-        Self { commands }
+impl<'this, 'res> CommandView<'this, 'res> {
+    pub fn new(
+        update_state: &'this mut UpdateState<'res>,
+        commands: &'this mut Vec<EventCommand>,
+    ) -> Self {
+        Self {
+            update_state,
+            commands,
+        }
     }
 }
 
@@ -59,6 +67,7 @@ where
     fn ui(
         &self,
         ui: &mut egui::Ui,
+        update_state: &mut UpdateState<'_>,
         state: EventCommandEditorState<'_>,
         command: &mut EventCommand,
     ) -> egui::Response;
@@ -157,7 +166,7 @@ fn show_parameters<'a>(
     modified
 }
 
-impl egui::Widget for CommandView<'_> {
+impl egui::Widget for CommandView<'_, '_> {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         let mut modified = false;
 
@@ -196,6 +205,7 @@ impl egui::Widget for CommandView<'_> {
                                 modified |= editor
                                     .ui(
                                         ui,
+                                        self.update_state,
                                         EventCommandEditorState::new(&mut state.lock()),
                                         command,
                                     )
@@ -203,7 +213,12 @@ impl egui::Widget for CommandView<'_> {
                             });
                         } else {
                             modified |= show_parameters(ui, command.parameters.iter_mut());
-                            modified |= ui.add(Self::new(&mut command.child_commands)).changed();
+                            modified |= ui
+                                .add(CommandView::new(
+                                    self.update_state,
+                                    &mut command.child_commands,
+                                ))
+                                .changed();
                         }
                     });
                 }

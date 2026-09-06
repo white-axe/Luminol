@@ -22,7 +22,9 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventCommandEditorState, ParameterType};
+use super::{
+    EventCommand, EventCommandEditor, EventCommandEditorState, ParameterType, UpdateState,
+};
 use itertools::Itertools;
 
 pub(super) struct Editor {
@@ -38,6 +40,7 @@ impl EventCommandEditor for Editor {
     fn ui(
         &self,
         ui: &mut egui::Ui,
+        _update_state: &mut UpdateState<'_>,
         state: EventCommandEditorState<'_>,
         command: &mut EventCommand,
     ) -> egui::Response {

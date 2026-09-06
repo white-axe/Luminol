@@ -301,7 +301,9 @@ impl luminol_core::Window for Window {
                     });
                 });
 
-                modified |= ui.add(CommandView::new(&mut page.list.commands)).changed();
+                modified |= ui
+                    .add(CommandView::new(update_state, &mut page.list.commands))
+                    .changed();
             });
 
         if graphic_modified {
