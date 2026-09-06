@@ -74,9 +74,19 @@ where
 }
 
 mod c101;
+mod c102;
+mod c103;
+mod c104;
+mod c105;
+mod c106;
 
 static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
     101u16 => &c101::Editor { continuation_code: 401, label: "Show Text" },
+    102u16 => &c102::Editor,
+    103u16 => &c103::Editor,
+    104u16 => &c104::Editor,
+    105u16 => &c105::Editor,
+    106u16 => &c106::Editor,
     108u16 => &c101::Editor { continuation_code: 408, label: "Comment" },
 };
 

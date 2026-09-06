@@ -60,7 +60,7 @@ impl<'a> EventCommandEditorState<'a> {
     ///
     /// If the state for this event command editor has never been retrieved before, it will first be
     /// set to the value returned by `initializer`.
-    pub fn _with_initializer<R, S>(
+    pub fn with_initializer<R, S>(
         self,
         initializer: impl FnOnce() -> S,
         closure: impl FnOnce(&mut S) -> R,
@@ -79,6 +79,6 @@ impl<'a> EventCommandEditorState<'a> {
     where
         S: Default + Send + 'static,
     {
-        self._with_initializer(Default::default, closure)
+        self.with_initializer(Default::default, closure)
     }
 }

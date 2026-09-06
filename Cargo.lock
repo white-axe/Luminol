@@ -3404,6 +3404,7 @@ dependencies = [
  "luminol-macros",
  "luminol-term",
  "murmur3",
+ "num_enum",
  "once_cell",
  "oneshot",
  "parking_lot",

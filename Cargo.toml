@@ -108,6 +108,7 @@ tracing = "0.1.37" # Structured, event-based, application-level diagnostics
 color-eyre = "0.6.2" # An error report handler for panics, based on the 'eyre' crate
 
 # * Useful procedural macros * #
+num_enum = "0.7.0" # Procedural macros to make inter-operation between primitives and enums easier
 strum = { version = "0.28.0", features = [
     "derive",
 ] } # Useful 'derive' macros for enumerations, like 'EnumString' which converts strings to enum variants
