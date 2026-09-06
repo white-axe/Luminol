@@ -22,10 +22,16 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-pub(super) struct EventCommandEditorState<'a>(&'a mut Option<Box<dyn std::any::Any + Send>>);
+pub(super) struct EventCommandEditorState<'a>(&'a mut Box<dyn std::any::Any + Send>);
+
+struct EventCommandEditorStateSentinel;
 
 impl<'a> EventCommandEditorState<'a> {
-    pub fn new(inner: &'a mut Option<Box<dyn std::any::Any + Send>>) -> Self {
+    pub fn new_sentinel() -> Box<dyn std::any::Any + Send> {
+        Box::new(EventCommandEditorStateSentinel)
+    }
+
+    pub fn new(inner: &'a mut Box<dyn std::any::Any + Send>) -> Self {
         Self(inner)
     }
 
@@ -37,22 +43,9 @@ impl<'a> EventCommandEditorState<'a> {
     where
         T: Send + 'static,
     {
-        // For some reason, the borrow checker won't allow just using
-        // ```
-        // if let Some(state) = self.0.as_mut().and_then(|state| state.downcast_mut()) {
-        //     state
-        // } else {
-        //     self.0.insert(Box::new(initializer())).downcast_mut().unwrap()
-        // }
-        // ```
-        // even though that would be perfectly safe, so we have to do this instead
-        if self.0.as_ref().is_some_and(|state| state.is::<T>()) {
-            self.0.as_mut().unwrap().downcast_mut().unwrap()
-        } else {
-            self.0
-                .insert(Box::new(initializer()))
-                .downcast_mut()
-                .unwrap()
+        if !self.0.is::<T>() {
+            *self.0 = Box::new(initializer());
         }
+        self.0.downcast_mut().unwrap()
     }
 }

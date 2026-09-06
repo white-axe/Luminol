@@ -208,7 +208,9 @@ impl egui::Widget for CommandView<'_, '_> {
                                 let id = ui.id().with("luminol_command_view_state");
                                 let state = ui.data_mut(|d| {
                                     d.get_temp_mut_or_insert_with(id, || {
-                                        std::sync::Arc::new(parking_lot::Mutex::new(None))
+                                        std::sync::Arc::new(parking_lot::Mutex::new(
+                                            EventCommandEditorState::new_sentinel(),
+                                        ))
                                     })
                                     .clone()
                                 });
