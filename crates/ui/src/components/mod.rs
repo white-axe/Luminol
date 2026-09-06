@@ -219,22 +219,40 @@ where
     }
 }
 
-pub struct EnumComboBox<'a, H, T> {
+pub struct EnumComboBox<'a, T, R, H> {
+    phantom_data: std::marker::PhantomData<T>,
+
     id_source: H,
-    reference: &'a mut T,
+    reference: &'a mut R,
 
     max_width: f32,
     wrap_mode: egui::TextWrapMode,
 }
 
-impl<'a, H, T> EnumComboBox<'a, H, T>
+impl<'a, R, H> EnumComboBox<'a, R, R, H>
 where
     H: std::hash::Hash,
 {
     /// Creates a combo box that can be used to change the variant of an enum that implements
     /// `strum::IntoEnumIterator + ToString`.
-    pub fn new(id_source: H, reference: &'a mut T) -> Self {
+    pub fn new(id_source: H, reference: &'a mut R) -> Self {
+        Self::new_impl(id_source, reference)
+    }
+}
+
+impl<'a, T, R, H> EnumComboBox<'a, T, R, H>
+where
+    H: std::hash::Hash,
+{
+    /// Creates a combo box that can be used to change the variant of an enum that implements
+    /// `strum::IntoEnumIterator + ToString`.
+    pub fn new_with_conversion(id_source: H, reference: &'a mut R) -> Self {
+        Self::new_impl(id_source, reference)
+    }
+
+    fn new_impl(id_source: H, reference: &'a mut R) -> Self {
         Self {
+            phantom_data: std::marker::PhantomData,
             id_source,
             reference,
             max_width: f32::INFINITY,
@@ -253,19 +271,25 @@ where
     }
 }
 
-impl<H, T> egui::Widget for EnumComboBox<'_, H, T>
+impl<T, R, H, E> egui::Widget for EnumComboBox<'_, T, R, H>
 where
+    T: TryFrom<R, Error = E> + Into<R> + strum::IntoEnumIterator + ToString,
+    R: Copy,
     H: std::hash::Hash,
-    T: strum::IntoEnumIterator + ToString,
 {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         let mut changed = false;
         let available_width = ui.available_width() - ui.spacing().item_spacing.x;
         let width = self.max_width.min(available_width);
+        let (discriminant, text) = if let Ok(value) = T::try_from(*self.reference) {
+            (Some(std::mem::discriminant(&value)), value.to_string())
+        } else {
+            (None, Default::default())
+        };
         let mut response = egui::ComboBox::from_id_salt(&self.id_source)
             .wrap()
             .width(width)
-            .selected_text(self.reference.to_string())
+            .selected_text(text)
             .show_ui(ui, |ui| {
                 ui.style_mut().wrap_mode = Some(self.wrap_mode);
 
@@ -273,13 +297,14 @@ where
                     ui.with_stripe(i % 2 != 0, |ui| {
                         if ui
                             .selectable_label(
-                                std::mem::discriminant(self.reference)
-                                    == std::mem::discriminant(&variant),
+                                discriminant.is_some_and(|discriminant| {
+                                    discriminant == std::mem::discriminant(&variant)
+                                }),
                                 variant.to_string(),
                             )
                             .clicked()
                         {
-                            *self.reference = variant;
+                            *self.reference = variant.into();
                             changed = true;
                         }
                     });
