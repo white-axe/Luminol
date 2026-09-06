@@ -53,8 +53,9 @@ where
     /// `matches_schema` field on the command will be `true`). If there is no schema for the
     /// command's command code, this will never be called.
     ///
-    /// The `state` argument can be used to store state for the event command editor. Call the `with`
-    /// method to retrieve a mutable reference to the state or set a default value for the state.
+    /// The `state` argument can be used to store state for the event command editor. Call the
+    /// `with_initializer`, `with_initializer_and_arg` or `with_default` method of `state` to
+    /// retrieve a mutable reference to the state or set a default value for the state.
     fn ui(
         &self,
         ui: &mut egui::Ui,

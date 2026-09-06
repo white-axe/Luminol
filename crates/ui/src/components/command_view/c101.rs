@@ -41,7 +41,7 @@ impl EventCommandEditor for Editor {
         state: EventCommandEditorState<'_>,
         command: &mut EventCommand,
     ) -> egui::Response {
-        state.with(
+        state.with_initializer_and_arg(
             command,
             |command| {
                 std::iter::once(

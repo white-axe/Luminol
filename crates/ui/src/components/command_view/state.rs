@@ -32,22 +32,53 @@ impl<'a> EventCommandEditorState<'a> {
     /// Calls `closure` with a mutable reference to the state for this event command editor.
     ///
     /// If the state for this event command editor has never been retrieved before, it will first be
-    /// set to the value returned by `init_fn`.
-    pub fn with<R, S, A>(
+    /// set to the value returned by `initializer`.
+    ///
+    /// `arg` will be passed to both `initializer` and `closure`. This is useful for avoiding borrow
+    /// checker issues if both `initializer` and `closure` borrow the same variable.
+    pub fn with_initializer_and_arg<R, S, A>(
         self,
-        arg: A,
-        init_fn: impl FnOnce(&A) -> S,
+        mut arg: A,
+        initializer: impl FnOnce(&mut A) -> S,
         closure: impl FnOnce(A, &mut S) -> R,
     ) -> R
     where
-        S: 'static + Send,
+        S: Send + 'static,
     {
         let state = if let Some(state) = self.0.as_mut().and_then(|state| state.downcast_mut()) {
             state
         } else {
-            *self.0 = Some(Box::new(init_fn(&arg)));
-            self.0.as_mut().unwrap().downcast_mut().unwrap()
+            self.0
+                .insert(Box::new(initializer(&mut arg)))
+                .downcast_mut()
+                .unwrap()
         };
         closure(arg, state)
+    }
+
+    /// Calls `closure` with a mutable reference to the state for this event command editor.
+    ///
+    /// If the state for this event command editor has never been retrieved before, it will first be
+    /// set to the value returned by `initializer`.
+    pub fn _with_initializer<R, S>(
+        self,
+        initializer: impl FnOnce() -> S,
+        closure: impl FnOnce(&mut S) -> R,
+    ) -> R
+    where
+        S: Send + 'static,
+    {
+        self.with_initializer_and_arg((), |()| initializer(), |(), state| closure(state))
+    }
+
+    /// Calls `closure` with a mutable reference to the state for this event command editor.
+    ///
+    /// If the state for this event command editor has never been retrieved before, it will first be
+    /// set to the default value.
+    pub fn _with_default<R, S>(self, closure: impl FnOnce(&mut S) -> R) -> R
+    where
+        S: Default + Send + 'static,
+    {
+        self._with_initializer(Default::default, closure)
     }
 }
