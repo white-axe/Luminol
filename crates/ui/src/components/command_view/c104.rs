@@ -26,6 +26,7 @@ use super::{
     EventCommand, EventCommandEditor, EventCommandEditorState, ParameterType, UpdateState,
 };
 use crate::components::EnumComboBox;
+use std::marker::PhantomData;
 
 #[derive(
     num_enum::TryFromPrimitive,
@@ -78,8 +79,10 @@ impl EventCommandEditor for Editor {
                 }
                 .unwrap();
                 modified |= ui
-                    .add(EnumComboBox::<Position, _, _>::new_with_conversion(
-                        "position", position,
+                    .add(EnumComboBox::new_with_conversion(
+                        PhantomData::<Position>,
+                        "position",
+                        position,
                     ))
                     .changed();
 
@@ -91,8 +94,10 @@ impl EventCommandEditor for Editor {
                 }
                 .unwrap();
                 modified |= ui
-                    .add(EnumComboBox::<Frame, _, _>::new_with_conversion(
-                        "frame", frame,
+                    .add(EnumComboBox::new_with_conversion(
+                        PhantomData::<Frame>,
+                        "frame",
+                        frame,
                     ))
                     .changed();
             })

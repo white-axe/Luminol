@@ -220,7 +220,7 @@ where
 }
 
 pub struct EnumComboBox<'a, T, R, H> {
-    phantom_data: std::marker::PhantomData<T>,
+    enum_type: std::marker::PhantomData<T>,
 
     id_source: H,
     reference: &'a mut R,
@@ -229,30 +229,33 @@ pub struct EnumComboBox<'a, T, R, H> {
     wrap_mode: egui::TextWrapMode,
 }
 
-impl<'a, R, H> EnumComboBox<'a, R, R, H>
+impl<'a, T, H> EnumComboBox<'a, T, T, H>
 where
+    T: Copy + ToString + strum::IntoEnumIterator,
     H: std::hash::Hash,
 {
-    /// Creates a combo box that can be used to change the variant of an enum that implements
-    /// `strum::IntoEnumIterator + ToString`.
-    pub fn new(id_source: H, reference: &'a mut R) -> Self {
-        Self::new_impl(id_source, reference)
+    /// Creates a combo box that can be used to change the variant of an enum `T` that implements
+    /// `ToString + strum::IntoEnumIterator`.
+    pub fn new(id_source: H, reference: &'a mut T) -> Self {
+        Self::new_with_conversion(std::marker::PhantomData, id_source, reference)
     }
 }
 
-impl<'a, T, R, H> EnumComboBox<'a, T, R, H>
+impl<'a, T, R, H, E> EnumComboBox<'a, T, R, H>
 where
+    T: Into<R> + ToString + strum::IntoEnumIterator,
+    R: TryInto<T, Error = E> + Copy,
     H: std::hash::Hash,
 {
-    /// Creates a combo box that can be used to change the variant of an enum that implements
-    /// `strum::IntoEnumIterator + ToString`.
-    pub fn new_with_conversion(id_source: H, reference: &'a mut R) -> Self {
-        Self::new_impl(id_source, reference)
-    }
-
-    fn new_impl(id_source: H, reference: &'a mut R) -> Self {
+    /// Creates a combo box that can be used to change a value that can be converted to/from an enum
+    /// `T` that implements `strum::IntoEnumIterator + ToString`.
+    pub fn new_with_conversion(
+        enum_type: std::marker::PhantomData<T>,
+        id_source: H,
+        reference: &'a mut R,
+    ) -> Self {
         Self {
-            phantom_data: std::marker::PhantomData,
+            enum_type,
             id_source,
             reference,
             max_width: f32::INFINITY,
@@ -273,15 +276,15 @@ where
 
 impl<T, R, H, E> egui::Widget for EnumComboBox<'_, T, R, H>
 where
-    T: TryFrom<R, Error = E> + Into<R> + strum::IntoEnumIterator + ToString,
-    R: Copy,
+    T: Into<R> + ToString + strum::IntoEnumIterator,
+    R: TryInto<T, Error = E> + Copy,
     H: std::hash::Hash,
 {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         let mut changed = false;
         let available_width = ui.available_width() - ui.spacing().item_spacing.x;
         let width = self.max_width.min(available_width);
-        let (discriminant, text) = if let Ok(value) = T::try_from(*self.reference) {
+        let (discriminant, text) = if let Ok(value) = (*self.reference).try_into() {
             (Some(std::mem::discriminant(&value)), value.to_string())
         } else {
             (None, Default::default())
