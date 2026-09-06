@@ -576,6 +576,8 @@ fn deserialize_event_command_list<E>(
         );
     }
 
+    match_last_child_command_with_schema(&mut list.commands);
+
     Ok(list)
 }
 
