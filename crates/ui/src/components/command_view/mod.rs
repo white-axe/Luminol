@@ -85,6 +85,9 @@ mod c103;
 mod c104;
 mod c105;
 mod c106;
+mod c111;
+mod c112;
+mod c113;
 
 static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
     101u16 => &c101::Editor { continuation_code: 401, label: "Show Text" },
@@ -94,6 +97,10 @@ static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
     105u16 => &c105::Editor,
     106u16 => &c106::Editor,
     108u16 => &c101::Editor { continuation_code: 408, label: "Comment" },
+    111u16 => &c111::Editor,
+    112u16 => &c112::Editor,
+    113u16 => &c113::Editor,
+    355u16 => &c101::Editor { continuation_code: 655, label: "Script" },
 };
 
 fn show_parameter_label(ui: &mut egui::Ui, index: usize, type_name: &str) {
