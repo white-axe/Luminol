@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, ParameterType, UpdateState};
+use super::{EventCommand, EventCommandEditor, EventInfo, ParameterType, UpdateState};
 use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
@@ -62,6 +62,7 @@ impl EventCommandEditor for Editor {
         &self,
         ui: &mut egui::Ui,
         _update_state: &mut UpdateState<'_>,
+        _event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
     ) -> egui::Response {
         let mut modified = false;

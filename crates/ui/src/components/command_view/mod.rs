@@ -25,18 +25,31 @@
 use crate::UpdateState;
 use luminol_data::{rpg::EventCommand, ParameterType};
 
-pub struct CommandView<'this, 'res> {
-    update_state: &'this mut UpdateState<'res>,
+#[derive(Debug, Clone, Copy)]
+pub struct EventInfo<'a> {
+    /// The ID of the map in which the event is located.
+    pub map_id: usize,
+    /// The ID of the event within the current map.
+    pub event_id: usize,
+    /// The name of the event.
+    pub event_name: &'a str,
+}
+
+pub struct CommandView<'this, 'update_state, 'event_info> {
+    update_state: &'this mut UpdateState<'update_state>,
+    event_info: Option<&'this EventInfo<'event_info>>,
     commands: &'this mut Vec<EventCommand>,
 }
 
-impl<'this, 'res> CommandView<'this, 'res> {
+impl<'this, 'update_state, 'event_info> CommandView<'this, 'update_state, 'event_info> {
     pub fn new(
-        update_state: &'this mut UpdateState<'res>,
+        update_state: &'this mut UpdateState<'update_state>,
+        event_info: Option<&'this EventInfo<'event_info>>,
         commands: &'this mut Vec<EventCommand>,
     ) -> Self {
         Self {
             update_state,
+            event_info,
             commands,
         }
     }
@@ -61,6 +74,7 @@ where
         &self,
         ui: &mut egui::Ui,
         update_state: &mut UpdateState<'_>,
+        event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
     ) -> egui::Response;
 }
@@ -172,7 +186,7 @@ fn show_parameters<'a>(
     modified
 }
 
-impl egui::Widget for CommandView<'_, '_> {
+impl egui::Widget for CommandView<'_, '_, '_> {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         let mut modified = false;
 
@@ -201,13 +215,16 @@ impl egui::Widget for CommandView<'_, '_> {
                     header_response.body(|ui| {
                         if let Some(editor) = maybe_editor {
                             ui.push_id(command.code, |ui| {
-                                modified |= editor.ui(ui, self.update_state, command).changed();
+                                modified |= editor
+                                    .ui(ui, self.update_state, self.event_info, command)
+                                    .changed();
                             });
                         } else {
                             modified |= show_parameters(ui, command.parameters.iter_mut());
                             modified |= ui
                                 .add(CommandView::new(
                                     self.update_state,
+                                    self.event_info,
                                     &mut command.child_commands,
                                 ))
                                 .changed();
