@@ -129,6 +129,10 @@ fn show_parameters<'a>(
                 show_parameter_label(ui, i, "string");
                 modified |= ui.text_edit_multiline(value).changed();
             }
+            luminol_data::ParameterType::Symbol(value) => {
+                show_parameter_label(ui, i, "symbol");
+                modified |= ui.text_edit_multiline(value).changed();
+            }
             luminol_data::ParameterType::Color(value) => {
                 show_parameter_label(ui, i, "color");
                 let mut color = [

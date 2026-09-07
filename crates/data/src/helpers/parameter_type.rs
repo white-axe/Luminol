@@ -35,6 +35,7 @@ use crate::shared::{AudioFile, MoveCommand, MoveRoute};
 pub enum ParameterType {
     Integer(i32),
     String(String),
+    Symbol(String),
     Color(Color),
     Tone(Tone),
     AudioFile(AudioFile),
@@ -56,6 +57,7 @@ impl From<alox_48::Value> for ParameterType {
             Value::Integer(v) => Self::Integer(v),
             Value::Float(v) => Self::Float(v),
             Value::String(v) => Self::String(String::from_utf8(v.data).unwrap()),
+            Value::Symbol(v) => Self::Symbol(v.into()),
             Value::Array(v) => Self::Array(v.into_iter().map(|v| v.into()).collect()),
             Value::Bool(v) => Self::Bool(v),
             Value::Userdata(userdata) => match userdata.class.as_str() {
@@ -82,6 +84,7 @@ impl From<ParameterType> for alox_48::Value {
             ParameterType::Integer(v) => Value::Integer(v),
             ParameterType::Float(v) => Value::Float(v),
             ParameterType::String(v) => Value::String(v.into()),
+            ParameterType::Symbol(v) => Value::Symbol(v.into()),
             ParameterType::Array(v) => Value::Array(v.into_iter().map(|v| v.into()).collect()),
             ParameterType::Bool(v) => Value::Bool(v),
             ParameterType::Color(v) => Value::Userdata(v.into()),
