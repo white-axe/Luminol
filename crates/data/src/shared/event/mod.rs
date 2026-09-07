@@ -520,9 +520,8 @@ fn match_last_child_command_with_schema(child_commands: &mut Vec<EventCommand>) 
         .is_some_and(|schema| schema.matches(last_child_command));
 
     if !last_child_command.matches_schema {
-        for child_command in std::mem::take(&mut last_child_command.sibling_commands) {
-            child_commands.push(child_command);
-        }
+        let extra_child_commands = std::mem::take(&mut last_child_command.sibling_commands);
+        child_commands.extend(extra_child_commands);
     }
 }
 
