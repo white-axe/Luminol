@@ -248,7 +248,7 @@ where
     H: std::hash::Hash,
 {
     /// Creates a combo box that can be used to change a value that can be converted to/from an enum
-    /// `T` that implements `strum::IntoEnumIterator + ToString`.
+    /// `T` that implements `ToString + strum::IntoEnumIterator`.
     pub fn new_with_conversion(
         enum_type: std::marker::PhantomData<T>,
         id_source: H,
