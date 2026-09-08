@@ -38,12 +38,11 @@ impl EventCommandEditor for Editor {
         event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
     ) -> egui::Response {
+        let terminator = command.sibling_commands.pop().unwrap();
         let mut modified = false;
 
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                let terminator = command.sibling_commands.pop().unwrap();
-
                 let mut choice_map = std::collections::HashMap::new();
                 for (sibling_index, sibling) in command.sibling_commands.iter().enumerate() {
                     match sibling.code {
@@ -121,11 +120,10 @@ impl EventCommandEditor for Editor {
                         ))
                         .changed();
                 }
-
-                command.sibling_commands.push(terminator);
             })
             .response;
 
+        command.sibling_commands.push(terminator);
         if modified {
             response.mark_changed();
         }

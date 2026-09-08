@@ -313,12 +313,11 @@ impl EventCommandEditor for Editor {
         event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
     ) -> egui::Response {
+        let terminator = command.sibling_commands.pop().unwrap();
         let mut modified = false;
 
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                let terminator = command.sibling_commands.pop().unwrap();
-
                 ui.label("Condition type");
 
                 let branch_type = coerce_to_integer(&mut command.parameters[0]);
@@ -924,11 +923,10 @@ impl EventCommandEditor for Editor {
                 modified |= ui
                     .add(CommandView::new(update_state, event_info, if_false))
                     .changed();
-
-                command.sibling_commands.push(terminator);
             })
             .response;
 
+        command.sibling_commands.push(terminator);
         if modified {
             response.mark_changed();
         }
