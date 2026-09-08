@@ -24,7 +24,6 @@
 
 use super::{CommandView, EventCommand, EventCommandEditor, EventInfo, ParameterType, UpdateState};
 use crate::components::{EnumComboBox, OptionalIdComboBox};
-use luminol_core::Modal;
 use std::marker::PhantomData;
 
 fn coerce_to_integer(parameter: &mut ParameterType) -> &mut i32 {
@@ -316,15 +315,6 @@ impl EventCommandEditor for Editor {
     ) -> egui::Response {
         let mut modified = false;
 
-        let id = ui.id();
-        let (modal_0_1, modal_1_1, modal_1_3) = command.state.get_or_insert_with(|| {
-            (
-                crate::modals::database_modal::SwitchModal::new(id.with((0, 1))),
-                crate::modals::database_modal::VariableModal::new(id.with((1, 1))),
-                crate::modals::database_modal::VariableModal::new(id.with((1, 3))),
-            )
-        });
-
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
                 let terminator = command.sibling_commands.pop().unwrap();
@@ -348,8 +338,24 @@ impl EventCommandEditor for Editor {
 
                         let switch = coerce_to_integer(&mut command.parameters[1]);
                         modified |= {
-                            let mut v = *switch as _;
-                            let changed = ui.add(modal_0_1.button(&mut v, update_state)).changed();
+                            let mut v = *switch as usize;
+                            let system = update_state.data.system();
+                            let changed = ui
+                                .add(OptionalIdComboBox::new(
+                                    update_state,
+                                    (1, 1),
+                                    &mut v,
+                                    1..=system.switches.len(),
+                                    |id| {
+                                        id.checked_sub(1)
+                                            .and_then(|id| system.switches.get(id))
+                                            .map_or_else(
+                                                || "".into(),
+                                                |x| format!("{:0>4}: {}", id, x),
+                                            )
+                                    },
+                                ))
+                                .changed();
                             if changed {
                                 *switch = v as _;
                             }
@@ -375,8 +381,24 @@ impl EventCommandEditor for Editor {
 
                         let variable = coerce_to_integer(&mut command.parameters[1]);
                         modified |= {
-                            let mut v = *variable as _;
-                            let changed = ui.add(modal_1_1.button(&mut v, update_state)).changed();
+                            let mut v = *variable as usize;
+                            let system = update_state.data.system();
+                            let changed = ui
+                                .add(OptionalIdComboBox::new(
+                                    update_state,
+                                    (1, 1),
+                                    &mut v,
+                                    1..=system.variables.len(),
+                                    |id| {
+                                        id.checked_sub(1)
+                                            .and_then(|id| system.variables.get(id))
+                                            .map_or_else(
+                                                || "".into(),
+                                                |x| format!("{:0>4}: {}", id, x),
+                                            )
+                                    },
+                                ))
+                                .changed();
                             if changed {
                                 *variable = v as _;
                             }
@@ -399,9 +421,24 @@ impl EventCommandEditor for Editor {
                         match value_type {
                             1 => {
                                 modified |= {
-                                    let mut v = *value as _;
-                                    let changed =
-                                        ui.add(modal_1_3.button(&mut v, update_state)).changed();
+                                    let mut v = *value as usize;
+                                    let system = update_state.data.system();
+                                    let changed = ui
+                                        .add(OptionalIdComboBox::new(
+                                            update_state,
+                                            (1, 3),
+                                            &mut v,
+                                            1..=system.variables.len(),
+                                            |id| {
+                                                id.checked_sub(1)
+                                                    .and_then(|id| system.variables.get(id))
+                                                    .map_or_else(
+                                                        || "".into(),
+                                                        |x| format!("{:0>4}: {}", id, x),
+                                                    )
+                                            },
+                                        ))
+                                        .changed();
                                     if changed {
                                         *value = v as _;
                                     }

@@ -23,7 +23,7 @@
 // Program grant you additional permission to convey the resulting work.
 
 use super::{EventCommand, EventCommandEditor, EventInfo, ParameterType, UpdateState};
-use luminol_core::Modal;
+use crate::components::OptionalIdComboBox;
 
 pub(super) struct Editor;
 
@@ -41,24 +41,31 @@ impl EventCommandEditor for Editor {
     ) -> egui::Response {
         let mut modified = false;
 
-        let id = ui.id();
-        let variable_modal = command.state.get_or_insert_with(|| {
-            crate::modals::database_modal::VariableModal::new(id.with("variable"))
-        });
-
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                let mut variable_index = match command.parameters[0] {
+                let variable = match &mut command.parameters[0] {
                     ParameterType::Integer(parameter) => Some(parameter),
                     _ => None,
                 }
-                .unwrap() as _;
+                .unwrap();
                 modified |= {
+                    let mut v = *variable as usize;
+                    let system = update_state.data.system();
                     let changed = ui
-                        .add(variable_modal.button(&mut variable_index, update_state))
+                        .add(OptionalIdComboBox::new(
+                            update_state,
+                            "variable",
+                            &mut v,
+                            1..=system.variables.len(),
+                            |id| {
+                                id.checked_sub(1)
+                                    .and_then(|id| system.variables.get(id))
+                                    .map_or_else(|| "".into(), |x| format!("{:0>4}: {}", id, x))
+                            },
+                        ))
                         .changed();
                     if changed {
-                        command.parameters[0] = ParameterType::Integer(variable_index as _);
+                        *variable = v as _;
                     }
                     changed
                 };
