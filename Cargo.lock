@@ -208,7 +208,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6934ee23d65ca3613e4656d66ab8b20082b52eafd7c84c3529c3719b820c16b8"
 dependencies = [
  "alox-48-derive",
- "enum-as-inner",
+ "enum-as-inner 0.6.0",
  "indexmap",
  "paste",
  "thiserror 1.0.69",
@@ -1674,6 +1674,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ffccbb6966c05b32ef8fbac435df276c4ae4d3dc55a8cd0eb9745e6c12f546a"
 dependencies = [
  "heck 0.4.1",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
+]
+
+[[package]]
+name = "enum-as-inner"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0359ee92f81184d7985519e474bda2a5738476334edd3746c9b1265c067afe70"
+dependencies = [
+ "heck 0.5.0",
  "proc-macro2",
  "quote",
  "syn 2.0.104",
@@ -3250,10 +3262,10 @@ dependencies = [
  "base64 0.22.1",
  "bytemuck",
  "camino",
+ "enum-as-inner 0.7.0",
  "flate2",
  "num",
  "num_enum",
- "paste",
  "phf",
  "rand",
  "serde",

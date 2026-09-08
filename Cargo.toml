@@ -112,7 +112,7 @@ num_enum = "0.7.0" # Procedural macros to make inter-operation between primitive
 strum = { version = "0.28.0", features = [
     "derive",
 ] } # Useful 'derive' macros for enumerations, like 'EnumString' which converts strings to enum variants
-paste = "1.0.14" # A flexible way ot paste together identifiers in a macro, including using pasted identifiers to define new ones. Does not rely on a nightly feature 'concat_idents'
+enum-as-inner = "0.7" # Derive macro for downcasting an enum into one of its variants
 thiserror = "1.0.37" # derive(Error)
 bitflags = "2.4.0" # A way to generate bitflags out of enumerations
 

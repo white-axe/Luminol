@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, ParameterType, UpdateState};
+use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
 
 pub(super) struct Editor;
 
@@ -44,11 +44,7 @@ impl EventCommandEditor for Editor {
             .show(ui, |ui| {
                 ui.label("Duration in frames");
 
-                let frames = match &mut command.parameters[0] {
-                    ParameterType::Integer(parameter) => Some(parameter),
-                    _ => None,
-                }
-                .unwrap();
+                let frames = command.parameters[0].as_integer_mut().unwrap();
                 modified |= ui
                     .add(egui::DragValue::new(frames).range(1..=i32::MAX))
                     .changed();

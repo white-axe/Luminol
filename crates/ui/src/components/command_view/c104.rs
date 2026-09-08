@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, ParameterType, UpdateState};
+use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
 use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
@@ -71,11 +71,7 @@ impl EventCommandEditor for Editor {
             .show(ui, |ui| {
                 ui.label("Position");
 
-                let position = match &mut command.parameters[0] {
-                    ParameterType::Integer(parameter) => Some(parameter),
-                    _ => None,
-                }
-                .unwrap();
+                let position = command.parameters[0].as_integer_mut().unwrap();
                 modified |= ui
                     .add(EnumComboBox::new_with_conversion(
                         PhantomData::<Position>,
@@ -86,11 +82,7 @@ impl EventCommandEditor for Editor {
 
                 ui.label("Frame");
 
-                let frame = match &mut command.parameters[1] {
-                    ParameterType::Integer(parameter) => Some(parameter),
-                    _ => None,
-                }
-                .unwrap();
+                let frame = command.parameters[1].as_integer_mut().unwrap();
                 modified |= ui
                     .add(EnumComboBox::new_with_conversion(
                         PhantomData::<Frame>,

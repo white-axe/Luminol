@@ -27,34 +27,20 @@ use crate::components::{EnumComboBox, OptionalIdComboBox};
 use std::marker::PhantomData;
 
 fn coerce_to_integer(parameter: &mut ParameterType) -> &mut i32 {
-    match parameter {
-        ParameterType::Integer(parameter) => parameter,
-        _ => {
-            *parameter = ParameterType::Integer(0);
-            match parameter {
-                ParameterType::Integer(parameter) => Some(parameter),
-                _ => None,
-            }
-            .unwrap()
-        }
+    if !parameter.is_integer() {
+        *parameter = ParameterType::Integer(0);
     }
+    parameter.as_integer_mut().unwrap()
 }
 
 fn coerce_to_string<'a>(
     parameter: &'a mut ParameterType,
     default_value: &'static str,
 ) -> &'a mut String {
-    match parameter {
-        ParameterType::String(parameter) => parameter,
-        _ => {
-            *parameter = ParameterType::String(default_value.into());
-            match parameter {
-                ParameterType::String(parameter) => Some(parameter),
-                _ => None,
-            }
-            .unwrap()
-        }
+    if !parameter.is_string() {
+        *parameter = ParameterType::String(default_value.into());
     }
+    parameter.as_string_mut().unwrap()
 }
 
 #[derive(

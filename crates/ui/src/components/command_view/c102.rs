@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, ParameterType, UpdateState};
+use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
 
 pub(super) struct Editor;
 
@@ -48,11 +48,7 @@ impl EventCommandEditor for Editor {
                     match sibling.code {
                         402 => {
                             choice_map.insert(
-                                match sibling.parameters.first().unwrap() {
-                                    ParameterType::Integer(choice_index) => Some(*choice_index),
-                                    _ => None,
-                                }
-                                .unwrap(),
+                                *sibling.parameters[0].as_integer().unwrap(),
                                 sibling_index,
                             );
                         }
@@ -63,23 +59,15 @@ impl EventCommandEditor for Editor {
                     }
                 }
 
-                let choices = match command.parameters.first_mut().unwrap() {
-                    ParameterType::Array(choices) => Some(choices),
-                    _ => None,
-                }
-                .unwrap();
+                let choices = command.parameters[0].as_array_mut().unwrap();
                 let num_choices = choices.len();
 
                 for (choice_index, choice) in choices.iter_mut().enumerate() {
-                    let choice = match choice {
-                        ParameterType::String(choice) => Some(choice),
-                        _ => None,
-                    }
-                    .unwrap();
-
                     ui.label(format!("Choice {}", choice_index + 1));
 
-                    modified |= ui.text_edit_singleline(choice).changed();
+                    modified |= ui
+                        .text_edit_singleline(choice.as_string_mut().unwrap())
+                        .changed();
 
                     let mut choice_commands_fallback = Vec::new();
                     let choice_commands = choice_map.get(&(choice_index as _)).map_or(
@@ -97,11 +85,7 @@ impl EventCommandEditor for Editor {
                         .changed();
                 }
 
-                let cancel_type = match command.parameters[1] {
-                    ParameterType::Integer(cancel_type) => Some(cancel_type),
-                    _ => None,
-                }
-                .unwrap();
+                let cancel_type = *command.parameters[1].as_integer().unwrap();
                 if cancel_type > 0 && (cancel_type - 1) as usize >= num_choices {
                     ui.label("Cancel");
 

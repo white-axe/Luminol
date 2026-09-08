@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, ParameterType, UpdateState};
+use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
 use crate::components::OptionalIdComboBox;
 
 pub(super) struct Editor;
@@ -43,11 +43,7 @@ impl EventCommandEditor for Editor {
 
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                let common_event = match &mut command.parameters[0] {
-                    ParameterType::Integer(parameter) => Some(parameter),
-                    _ => None,
-                }
-                .unwrap();
+                let common_event = command.parameters[0].as_integer_mut().unwrap();
                 {
                     let common_events = update_state.data.common_events();
                     modified |= ui

@@ -45,21 +45,14 @@ impl EventCommandEditor for Editor {
         let mut modified = false;
 
         let text = command.state.get_or_insert_with(|| {
-            std::iter::once(
-                match &command.parameters[0] {
-                    ParameterType::String(parameter) => Some(parameter),
-                    _ => None,
-                }
-                .unwrap(),
-            )
-            .chain(command.sibling_commands.iter().map(|sibling| {
-                match &sibling.parameters[0] {
-                    ParameterType::String(parameter) => Some(parameter),
-                    _ => None,
-                }
-                .unwrap()
-            }))
-            .join("\n")
+            std::iter::once(command.parameters[0].as_string().unwrap())
+                .chain(
+                    command
+                        .sibling_commands
+                        .iter()
+                        .map(|sibling| sibling.parameters[0].as_string().unwrap()),
+                )
+                .join("\n")
         });
 
         let mut response = egui::Frame::NONE
@@ -69,11 +62,7 @@ impl EventCommandEditor for Editor {
                 if modified {
                     for (i, line) in text.split('\n').enumerate() {
                         line.clone_into(if i == 0 {
-                            match &mut command.parameters[0] {
-                                ParameterType::String(parameter) => Some(parameter),
-                                _ => None,
-                            }
-                            .unwrap()
+                            command.parameters[0].as_string_mut().unwrap()
                         } else {
                             let sibling =
                                 if let Some(sibling) = command.sibling_commands.get_mut(i - 1) {
@@ -87,11 +76,7 @@ impl EventCommandEditor for Editor {
                                         .push(ParameterType::String(Default::default()));
                                     sibling
                                 };
-                            match &mut sibling.parameters[0] {
-                                ParameterType::String(parameter) => Some(parameter),
-                                _ => None,
-                            }
-                            .unwrap()
+                            sibling.parameters[0].as_string_mut().unwrap()
                         });
                     }
 
