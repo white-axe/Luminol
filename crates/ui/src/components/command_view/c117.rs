@@ -48,14 +48,13 @@ impl EventCommandEditor for Editor {
                     _ => None,
                 }
                 .unwrap();
-                modified |= {
-                    let mut v = *common_event as usize;
+                {
                     let common_events = update_state.data.common_events();
-                    let changed = ui
+                    modified |= ui
                         .add(OptionalIdComboBox::new(
                             update_state,
                             "common event",
-                            &mut v,
+                            common_event,
                             1..=common_events.data.len(),
                             |id| {
                                 id.checked_sub(1)
@@ -67,10 +66,6 @@ impl EventCommandEditor for Editor {
                             },
                         ))
                         .changed();
-                    if changed {
-                        *common_event = v as _;
-                    }
-                    changed
                 };
             })
             .response;

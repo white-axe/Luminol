@@ -321,6 +321,31 @@ where
     }
 }
 
+pub trait IdCast
+where
+    Self: Sized,
+{
+    fn from_id(value: usize) -> Option<Self>;
+    fn to_id(&self) -> Option<usize>;
+}
+
+macro_rules! impl_into_optional_id {
+    ($($primitive:ty),* $(,)?) => {
+        $(
+            impl IdCast for $primitive {
+                fn from_id(value: usize) -> Option<Self> {
+                    value.try_into().ok()
+                }
+                fn to_id(&self) -> Option<usize> {
+                    (*self).try_into().ok()
+                }
+            }
+        )*
+    };
+}
+
+impl_into_optional_id!(i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize);
+
 pub struct OptionalIdComboBox<'a, R, I, H, F> {
     id_source: H,
     reference: &'a mut R,
@@ -470,8 +495,9 @@ where
     }
 }
 
-impl<I, H, F> OptionalIdComboBox<'_, Option<usize>, I, H, F>
+impl<T, I, H, F> OptionalIdComboBox<'_, Option<T>, I, H, F>
 where
+    T: IdCast,
     I: Iterator<Item = usize> + Clone,
     H: std::hash::Hash,
     F: Fn(usize) -> String,
@@ -483,8 +509,9 @@ where
     }
 }
 
-impl<I, H, F> egui::Widget for OptionalIdComboBox<'_, Option<usize>, I, H, F>
+impl<T, I, H, F> egui::Widget for OptionalIdComboBox<'_, Option<T>, I, H, F>
 where
+    T: IdCast,
     I: Iterator<Item = usize> + Clone,
     H: std::hash::Hash,
     F: Fn(usize) -> String,
@@ -495,8 +522,12 @@ where
         self.ui_inner(
             ui,
             |this| {
-                if let Some(id) = *this.reference {
-                    (this.formatter)(id)
+                if let Some(id) = this.reference.as_ref() {
+                    if let Some(id) = id.to_id() {
+                        (this.formatter)(id)
+                    } else {
+                        "".into()
+                    }
                 } else {
                     "(None)".into()
                 }
@@ -516,6 +547,8 @@ where
                     changed = true;
                 }
 
+                let reference_id = this.reference.as_ref().and_then(|inner| inner.to_id());
+
                 let mut is_faint = first_row_is_faint != show_none;
 
                 for id in ids {
@@ -523,11 +556,13 @@ where
                         ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
 
                         if ui
-                            .selectable_label(*this.reference == Some(id), (this.formatter)(id))
+                            .selectable_label(reference_id == Some(id), (this.formatter)(id))
                             .clicked()
                         {
-                            *this.reference = Some(id);
-                            changed = true;
+                            if let Some(new_value) = IdCast::from_id(id) {
+                                *this.reference = Some(new_value);
+                                changed = true;
+                            }
                         }
                     });
                     is_faint = !is_faint;
@@ -539,8 +574,9 @@ where
     }
 }
 
-impl<I, H, F> egui::Widget for OptionalIdComboBox<'_, usize, I, H, F>
+impl<T, I, H, F> egui::Widget for OptionalIdComboBox<'_, T, I, H, F>
 where
+    T: IdCast,
     I: Iterator<Item = usize> + Clone,
     H: std::hash::Hash,
     F: Fn(usize) -> String,
@@ -552,9 +588,17 @@ where
 
         self.ui_inner(
             ui,
-            |this| (this.formatter)(*this.reference),
+            |this| {
+                if let Some(id) = this.reference.to_id() {
+                    (this.formatter)(id)
+                } else {
+                    "".into()
+                }
+            },
             |this, ui, ids, first_row_is_faint, _| {
                 ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+
+                let reference_id = this.reference.to_id();
 
                 let mut is_faint = first_row_is_faint;
 
@@ -563,11 +607,13 @@ where
                         ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
 
                         if ui
-                            .selectable_label(*this.reference == id, (this.formatter)(id))
+                            .selectable_label(reference_id == Some(id), (this.formatter)(id))
                             .clicked()
                         {
-                            *this.reference = id;
-                            changed = true;
+                            if let Some(new_value) = IdCast::from_id(id) {
+                                *this.reference = new_value;
+                                changed = true;
+                            }
                         }
                     });
                     is_faint = !is_faint;

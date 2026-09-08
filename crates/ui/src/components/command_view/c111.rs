@@ -337,14 +337,13 @@ impl EventCommandEditor for Editor {
                         ui.label("Switch");
 
                         let switch = coerce_to_integer(&mut command.parameters[1]);
-                        modified |= {
-                            let mut v = *switch as usize;
+                        {
                             let system = update_state.data.system();
-                            let changed = ui
+                            modified |= ui
                                 .add(OptionalIdComboBox::new(
                                     update_state,
                                     (1, 1),
-                                    &mut v,
+                                    switch,
                                     1..=system.switches.len(),
                                     |id| {
                                         id.checked_sub(1)
@@ -356,11 +355,7 @@ impl EventCommandEditor for Editor {
                                     },
                                 ))
                                 .changed();
-                            if changed {
-                                *switch = v as _;
-                            }
-                            changed
-                        };
+                        }
 
                         ui.label("Condition");
 
@@ -380,14 +375,13 @@ impl EventCommandEditor for Editor {
                         ui.label("Value 1");
 
                         let variable = coerce_to_integer(&mut command.parameters[1]);
-                        modified |= {
-                            let mut v = *variable as usize;
+                        {
                             let system = update_state.data.system();
-                            let changed = ui
+                            modified |= ui
                                 .add(OptionalIdComboBox::new(
                                     update_state,
                                     (1, 1),
-                                    &mut v,
+                                    variable,
                                     1..=system.variables.len(),
                                     |id| {
                                         id.checked_sub(1)
@@ -399,10 +393,6 @@ impl EventCommandEditor for Editor {
                                     },
                                 ))
                                 .changed();
-                            if changed {
-                                *variable = v as _;
-                            }
-                            changed
                         };
 
                         ui.label("Value 2");
@@ -420,30 +410,23 @@ impl EventCommandEditor for Editor {
                         let value = coerce_to_integer(&mut command.parameters[3]);
                         match value_type {
                             1 => {
-                                modified |= {
-                                    let mut v = *value as usize;
-                                    let system = update_state.data.system();
-                                    let changed = ui
-                                        .add(OptionalIdComboBox::new(
-                                            update_state,
-                                            (1, 3),
-                                            &mut v,
-                                            1..=system.variables.len(),
-                                            |id| {
-                                                id.checked_sub(1)
-                                                    .and_then(|id| system.variables.get(id))
-                                                    .map_or_else(
-                                                        || "".into(),
-                                                        |x| format!("{:0>4}: {}", id, x),
-                                                    )
-                                            },
-                                        ))
-                                        .changed();
-                                    if changed {
-                                        *value = v as _;
-                                    }
-                                    changed
-                                };
+                                let system = update_state.data.system();
+                                modified |= ui
+                                    .add(OptionalIdComboBox::new(
+                                        update_state,
+                                        (1, 3),
+                                        value,
+                                        1..=system.variables.len(),
+                                        |id| {
+                                            id.checked_sub(1)
+                                                .and_then(|id| system.variables.get(id))
+                                                .map_or_else(
+                                                    || "".into(),
+                                                    |x| format!("{:0>4}: {}", id, x),
+                                                )
+                                        },
+                                    ))
+                                    .changed();
                             }
                             _ => {
                                 modified |= ui.add(egui::DragValue::new(value)).changed();
@@ -512,14 +495,13 @@ impl EventCommandEditor for Editor {
                         ui.label("Actor");
 
                         let actor = coerce_to_integer(&mut command.parameters[1]);
-                        modified |= {
-                            let mut v = *actor as usize;
+                        {
                             let actors = update_state.data.actors();
-                            let changed = ui
+                            modified |= ui
                                 .add(OptionalIdComboBox::new(
                                     update_state,
                                     (4, 1),
-                                    &mut v,
+                                    actor,
                                     1..=actors.data.len(),
                                     |id| {
                                         id.checked_sub(1)
@@ -531,10 +513,6 @@ impl EventCommandEditor for Editor {
                                     },
                                 ))
                                 .changed();
-                            if changed {
-                                *actor = v as _;
-                            }
-                            changed
                         };
 
                         ui.label("Condition");
@@ -563,14 +541,13 @@ impl EventCommandEditor for Editor {
                             2 => {
                                 command.parameters.resize(4, ParameterType::None);
                                 let skill = coerce_to_integer(&mut command.parameters[3]);
-                                modified |= {
-                                    let mut v = *skill as usize;
+                                {
                                     let skills = update_state.data.skills();
-                                    let changed = ui
+                                    modified |= ui
                                         .add(OptionalIdComboBox::new(
                                             update_state,
                                             (4, 3, 2),
-                                            &mut v,
+                                            skill,
                                             1..=skills.data.len(),
                                             |id| {
                                                 id.checked_sub(1)
@@ -582,24 +559,19 @@ impl EventCommandEditor for Editor {
                                             },
                                         ))
                                         .changed();
-                                    if changed {
-                                        *skill = v as _;
-                                    }
-                                    changed
                                 };
                             }
 
                             3 => {
                                 command.parameters.resize(4, ParameterType::None);
                                 let weapon = coerce_to_integer(&mut command.parameters[3]);
-                                modified |= {
-                                    let mut v = *weapon as usize;
+                                {
                                     let weapons = update_state.data.weapons();
-                                    let changed = ui
+                                    modified |= ui
                                         .add(OptionalIdComboBox::new(
                                             update_state,
                                             (4, 3, 3),
-                                            &mut v,
+                                            weapon,
                                             1..=weapons.data.len(),
                                             |id| {
                                                 id.checked_sub(1)
@@ -611,24 +583,19 @@ impl EventCommandEditor for Editor {
                                             },
                                         ))
                                         .changed();
-                                    if changed {
-                                        *weapon = v as _;
-                                    }
-                                    changed
                                 };
                             }
 
                             4 => {
                                 command.parameters.resize(4, ParameterType::None);
                                 let armor = coerce_to_integer(&mut command.parameters[3]);
-                                modified |= {
-                                    let mut v = *armor as usize;
+                                {
                                     let armors = update_state.data.armors();
-                                    let changed = ui
+                                    modified |= ui
                                         .add(OptionalIdComboBox::new(
                                             update_state,
                                             (4, 3, 4),
-                                            &mut v,
+                                            armor,
                                             1..=armors.data.len(),
                                             |id| {
                                                 id.checked_sub(1)
@@ -640,24 +607,19 @@ impl EventCommandEditor for Editor {
                                             },
                                         ))
                                         .changed();
-                                    if changed {
-                                        *armor = v as _;
-                                    }
-                                    changed
                                 };
                             }
 
                             5 => {
                                 command.parameters.resize(4, ParameterType::None);
                                 let state = coerce_to_integer(&mut command.parameters[3]);
-                                modified |= {
-                                    let mut v = *state as usize;
+                                {
                                     let states = update_state.data.states();
-                                    let changed = ui
+                                    modified |= ui
                                         .add(OptionalIdComboBox::new(
                                             update_state,
                                             (4, 3, 5),
-                                            &mut v,
+                                            state,
                                             1..=states.data.len(),
                                             |id| {
                                                 id.checked_sub(1)
@@ -669,10 +631,6 @@ impl EventCommandEditor for Editor {
                                             },
                                         ))
                                         .changed();
-                                    if changed {
-                                        *state = v as _;
-                                    }
-                                    changed
                                 };
                             }
 
@@ -722,14 +680,13 @@ impl EventCommandEditor for Editor {
                             1 => {
                                 command.parameters.resize(4, ParameterType::None);
                                 let state = coerce_to_integer(&mut command.parameters[3]);
-                                modified |= {
-                                    let mut v = *state as usize;
+                                {
                                     let states = update_state.data.states();
-                                    let changed = ui
+                                    modified |= ui
                                         .add(OptionalIdComboBox::new(
                                             update_state,
                                             (5, 3, 1),
-                                            &mut v,
+                                            state,
                                             1..=states.data.len(),
                                             |id| {
                                                 id.checked_sub(1)
@@ -741,10 +698,6 @@ impl EventCommandEditor for Editor {
                                             },
                                         ))
                                         .changed();
-                                    if changed {
-                                        *state = v as _;
-                                    }
-                                    changed
                                 };
                             }
 
@@ -758,19 +711,20 @@ impl EventCommandEditor for Editor {
                         ui.label("Character");
 
                         let character = coerce_to_integer(&mut command.parameters[1]);
-                        modified |= {
-                            let mut v = *character as usize;
-                            let changed = if let Some(event_info) = event_info.copied() {
-                                let map = update_state.data.get_map(event_info.map_id);
-                                ui.add(OptionalIdComboBox::new(
+                        if let Some(event_info) = event_info.copied() {
+                            *character = character.wrapping_add(1);
+                            let map = update_state.data.get_map(event_info.map_id);
+                            modified |= ui
+                                .add(OptionalIdComboBox::new(
                                     update_state,
                                     (6, 1, true),
-                                    &mut v,
-                                    std::iter::once(usize::MAX).chain(0..map.events.len()),
+                                    character,
+                                    0..=map.events.len(),
                                     |id| match id {
-                                        usize::MAX => "Player".into(),
-                                        0 => "This event".into(),
+                                        0 => "Player".into(),
+                                        1 => "This event".into(),
                                         _ => {
+                                            let id = id - 1;
                                             if id == event_info.event_id {
                                                 format!("{:0>4}: {}", id, event_info.event_name)
                                             } else {
@@ -782,33 +736,29 @@ impl EventCommandEditor for Editor {
                                         }
                                     },
                                 ))
-                                .changed()
-                            } else {
-                                let mut character_type =
-                                    CharacterType::try_from(*character).unwrap_or_default();
-                                let character_type_changed = ui
+                                .changed();
+                            *character = character.wrapping_sub(1);
+                        } else {
+                            let mut character_type =
+                                CharacterType::try_from(*character).unwrap_or_default();
+                            modified |= {
+                                let changed = ui
                                     .add(EnumComboBox::new((6, 1, false), &mut character_type))
                                     .changed();
-                                if character_type_changed {
+                                if changed {
                                     *character = character_type.into();
                                 }
-                                let character_changed = if character_type == CharacterType::MapEvent
-                                {
-                                    ui.add(
+                                changed
+                            };
+                            if character_type == CharacterType::MapEvent {
+                                modified |= ui
+                                    .add(
                                         egui::DragValue::new(character)
                                             .update_while_editing(false)
                                             .range(1..=i32::MAX),
                                     )
-                                    .changed()
-                                } else {
-                                    false
-                                };
-                                character_type_changed || character_changed
-                            };
-                            if changed {
-                                *character = v as _;
+                                    .changed();
                             }
-                            changed
                         };
 
                         ui.label("Condition");
@@ -849,14 +799,13 @@ impl EventCommandEditor for Editor {
                         command.parameters.resize(2, ParameterType::None);
 
                         let item = coerce_to_integer(&mut command.parameters[1]);
-                        modified |= {
-                            let mut v = *item as usize;
+                        {
                             let items = update_state.data.items();
-                            let changed = ui
+                            modified |= ui
                                 .add(OptionalIdComboBox::new(
                                     update_state,
                                     (4, 1),
-                                    &mut v,
+                                    item,
                                     1..=items.data.len(),
                                     |id| {
                                         id.checked_sub(1)
@@ -868,10 +817,6 @@ impl EventCommandEditor for Editor {
                                     },
                                 ))
                                 .changed();
-                            if changed {
-                                *item = v as _;
-                            }
-                            changed
                         };
                     }
 
@@ -879,14 +824,13 @@ impl EventCommandEditor for Editor {
                         command.parameters.resize(2, ParameterType::None);
 
                         let weapon = coerce_to_integer(&mut command.parameters[1]);
-                        modified |= {
-                            let mut v = *weapon as usize;
+                        {
                             let weapons = update_state.data.weapons();
-                            let changed = ui
+                            modified |= ui
                                 .add(OptionalIdComboBox::new(
                                     update_state,
                                     (4, 1),
-                                    &mut v,
+                                    weapon,
                                     1..=weapons.data.len(),
                                     |id| {
                                         id.checked_sub(1)
@@ -898,10 +842,6 @@ impl EventCommandEditor for Editor {
                                     },
                                 ))
                                 .changed();
-                            if changed {
-                                *weapon = v as _;
-                            }
-                            changed
                         };
                     }
 
@@ -909,14 +849,13 @@ impl EventCommandEditor for Editor {
                         command.parameters.resize(2, ParameterType::None);
 
                         let armor = coerce_to_integer(&mut command.parameters[1]);
-                        modified |= {
-                            let mut v = *armor as usize;
+                        {
                             let armors = update_state.data.armors();
-                            let changed = ui
+                            modified |= ui
                                 .add(OptionalIdComboBox::new(
                                     update_state,
                                     (4, 1),
-                                    &mut v,
+                                    armor,
                                     1..=armors.data.len(),
                                     |id| {
                                         id.checked_sub(1)
@@ -928,10 +867,6 @@ impl EventCommandEditor for Editor {
                                     },
                                 ))
                                 .changed();
-                            if changed {
-                                *armor = v as _;
-                            }
-                            changed
                         };
                     }
 

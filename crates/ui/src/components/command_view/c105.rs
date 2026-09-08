@@ -48,14 +48,13 @@ impl EventCommandEditor for Editor {
                     _ => None,
                 }
                 .unwrap();
-                modified |= {
-                    let mut v = *variable as usize;
+                {
                     let system = update_state.data.system();
-                    let changed = ui
+                    modified |= ui
                         .add(OptionalIdComboBox::new(
                             update_state,
                             "variable",
-                            &mut v,
+                            variable,
                             1..=system.variables.len(),
                             |id| {
                                 id.checked_sub(1)
@@ -64,10 +63,6 @@ impl EventCommandEditor for Editor {
                             },
                         ))
                         .changed();
-                    if changed {
-                        *variable = v as _;
-                    }
-                    changed
                 };
             })
             .response;
