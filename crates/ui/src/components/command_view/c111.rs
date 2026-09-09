@@ -302,6 +302,8 @@ impl EventCommandEditor for Editor {
         let terminator = command.sibling_commands.pop().unwrap();
         let mut modified = false;
 
+        let is_custom_button_code = command.state.get_or_insert(false);
+
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
                 ui.label("Condition type");
@@ -737,11 +739,7 @@ impl EventCommandEditor for Editor {
                             };
                             if character_type == CharacterType::MapEvent {
                                 modified |= ui
-                                    .add(
-                                        egui::DragValue::new(character)
-                                            .update_while_editing(false)
-                                            .range(1..=i32::MAX),
-                                    )
+                                    .add(egui::DragValue::new(character).range(1..=i32::MAX))
                                     .changed();
                             }
                         };
@@ -859,10 +857,14 @@ impl EventCommandEditor for Editor {
                         command.parameters.resize(2, ParameterType::None);
 
                         let button = coerce_to_integer(&mut command.parameters[1]);
-                        let mut button_type = ButtonType::try_from(*button).unwrap_or_default();
+                        let mut button_type = if *is_custom_button_code {
+                            ButtonType::Custom
+                        } else {
+                            ButtonType::try_from(*button).unwrap_or_default()
+                        };
                         modified |= {
                             let changed = ui
-                                .add(EnumComboBox::new((11, 1, false), &mut button_type))
+                                .add(EnumComboBox::new((11, 1), &mut button_type))
                                 .changed();
                             if changed {
                                 *button = button_type.into();
@@ -870,10 +872,9 @@ impl EventCommandEditor for Editor {
                             changed
                         };
 
-                        if button_type == ButtonType::Custom {
-                            modified |= ui
-                                .add(egui::DragValue::new(button).update_while_editing(false))
-                                .changed();
+                        *is_custom_button_code = button_type == ButtonType::Custom;
+                        if *is_custom_button_code {
+                            modified |= ui.add(egui::DragValue::new(button)).changed();
                         }
                     }
 

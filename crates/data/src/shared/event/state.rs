@@ -44,4 +44,28 @@ impl EventCommandState {
         }
         self.0.as_mut().unwrap().downcast_mut().unwrap()
     }
+
+    /// Returns a mutable reference to the state for this event command. This can be used by the
+    /// event command editors to store UI state for individual commands.
+    ///
+    /// If the state for this event command has never been retrieved before, it will first be set to
+    /// `initial_value`.
+    pub fn get_or_insert<T>(&mut self, initial_value: T) -> &mut T
+    where
+        T: Send + Sync + 'static,
+    {
+        self.get_or_insert_with(|| initial_value)
+    }
+
+    /// Returns a mutable reference to the state for this event command. This can be used by the
+    /// event command editors to store UI state for individual commands.
+    ///
+    /// If the state for this event command has never been retrieved before, it will first be set to
+    /// the default value of `T`.
+    pub fn get_or_insert_default<T>(&mut self) -> &mut T
+    where
+        T: Default + Send + Sync + 'static,
+    {
+        self.get_or_insert_with(Default::default)
+    }
 }
