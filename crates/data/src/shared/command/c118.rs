@@ -30,7 +30,7 @@ impl EventCommandSchema for Schema {
         let [label] = &command.parameters[..] else {
             return false;
         };
-        if !matches!(label, ParameterType::Integer(_)) {
+        if !matches!(label, ParameterType::String(_)) {
             return false;
         };
 
