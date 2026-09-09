@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{EventCommand, EventCommandSchema, ParameterType};
+use super::{EventCommand, EventCommandSchema};
 
 pub(super) struct Schema;
 
@@ -31,18 +31,18 @@ impl EventCommandSchema for Schema {
         let [choices, cancel_type] = &command.parameters[..] else {
             return false;
         };
-        let ParameterType::Array(choices) = choices else {
+        let Some(choices) = choices.as_array() else {
             return false;
         };
         for choice in choices.iter() {
-            let ParameterType::String(choice) = choice else {
+            let Some(choice) = choice.as_string() else {
                 return false;
             };
             if choice.contains('\n') {
                 return false;
             }
         }
-        let ParameterType::Integer(cancel_type) = cancel_type else {
+        let Some(cancel_type) = cancel_type.as_integer() else {
             return false;
         };
         let cancel_type = *cancel_type;
@@ -61,13 +61,7 @@ impl EventCommandSchema for Schema {
         let mut choice_index_set = std::collections::HashSet::new();
         for sibling in command.sibling_commands.iter() {
             if !match sibling.code {
-                402 => choice_index_set.insert(
-                    match sibling.parameters.first().unwrap() {
-                        ParameterType::Integer(choice_index) => Some(choice_index),
-                        _ => None,
-                    }
-                    .unwrap(),
-                ),
+                402 => choice_index_set.insert(sibling.parameters[0].as_integer().unwrap()),
                 403 => choice_index_set.insert(&4),
                 _ => true,
             } {
@@ -113,7 +107,7 @@ impl EventCommandSchema for Schema {
                 let [choice_index, text] = &sibling.parameters[..] else {
                     return false;
                 };
-                let ParameterType::Integer(choice_index) = choice_index else {
+                let Some(choice_index) = choice_index.as_integer() else {
                     return false;
                 };
                 let Ok(choice_index) = usize::try_from(*choice_index) else {
@@ -122,7 +116,7 @@ impl EventCommandSchema for Schema {
                 if choice_index != command.sibling_commands.len() {
                     return false;
                 }
-                if !matches!(text, ParameterType::String(_)) {
+                if !text.is_string() {
                     return false;
                 }
                 true

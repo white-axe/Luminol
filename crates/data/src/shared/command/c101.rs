@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{EventCommand, EventCommandSchema, ParameterType};
+use super::{EventCommand, EventCommandSchema};
 
 pub(super) struct Schema {
     pub continuation_code: u16,
@@ -31,7 +31,7 @@ fn matches(command: &EventCommand) -> bool {
     let [parameter] = &command.parameters[..] else {
         return false;
     };
-    let ParameterType::String(parameter) = parameter else {
+    let Some(parameter) = parameter.as_string() else {
         return false;
     };
     if parameter.contains('\n') {

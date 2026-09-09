@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{EventCommand, EventCommandSchema, ParameterType};
+use super::{EventCommand, EventCommandSchema};
 
 pub(super) struct Schema;
 
@@ -25,7 +25,7 @@ impl EventCommandSchema for Schema {
         let Some(branch_type) = command.parameters.first() else {
             return false;
         };
-        let ParameterType::Integer(branch_type) = *branch_type else {
+        let Some(branch_type) = branch_type.as_integer() else {
             return false;
         };
 
@@ -44,16 +44,26 @@ impl EventCommandSchema for Schema {
             1 => 5,
             2 => 3,
             3 => 3,
-            4 => match command.parameters.get(2) {
-                Some(ParameterType::Integer(0)) => 3,
-                Some(ParameterType::Integer(1..=5)) => 4,
+            4 => match command
+                .parameters
+                .get(2)
+                .and_then(|parameter| parameter.as_integer())
+                .copied()
+            {
+                Some(0) => 3,
+                Some(1..=5) => 4,
                 _ => {
                     return false;
                 }
             },
-            5 => match command.parameters.get(2) {
-                Some(ParameterType::Integer(0)) => 3,
-                Some(ParameterType::Integer(1)) => 4,
+            5 => match command
+                .parameters
+                .get(2)
+                .and_then(|parameter| parameter.as_integer())
+                .copied()
+            {
+                Some(0) => 3,
+                Some(1) => 4,
                 _ => {
                     return false;
                 }
@@ -71,18 +81,17 @@ impl EventCommandSchema for Schema {
 
         // All parameters must be integers, except in a few cases
         let actor_condition = match branch_type {
-            4 => match command.parameters.get(2) {
-                Some(ParameterType::Integer(value)) => Some(*value),
-                _ => None,
-            },
+            4 => command
+                .parameters
+                .get(2)
+                .and_then(|parameter| parameter.as_integer())
+                .copied(),
             _ => None,
         };
         if !command.parameters.iter().enumerate().all(|(i, parameter)| {
             match (branch_type, actor_condition, i) {
-                (2 | 12, None, 1) | (4, Some(1), 3) => {
-                    matches!(parameter, ParameterType::String(_))
-                }
-                _ => matches!(parameter, ParameterType::Integer(_)),
+                (2 | 12, None, 1) | (4, Some(1), 3) => parameter.is_string(),
+                _ => parameter.is_integer(),
             }
         }) {
             return false;

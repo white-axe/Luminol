@@ -16,7 +16,6 @@
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 
 use super::EventCommand;
-use crate::ParameterType;
 
 pub(super) trait EventCommandSchema
 where

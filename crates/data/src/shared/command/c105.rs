@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::{EventCommand, EventCommandSchema, ParameterType};
+use super::{EventCommand, EventCommandSchema};
 
 pub(super) struct Schema;
 
@@ -30,7 +30,7 @@ impl EventCommandSchema for Schema {
         let [variable_index] = &command.parameters[..] else {
             return false;
         };
-        if !matches!(variable_index, ParameterType::Integer(_)) {
+        if !variable_index.is_integer() {
             return false;
         };
 
