@@ -1,0 +1,43 @@
+// Copyright (C) 2024 Melody Madeline Lyons
+//
+// This file is part of Luminol.
+//
+// Luminol is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Luminol is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
+
+use super::{EventCommand, EventCommandSchema};
+
+pub(super) struct Schema;
+
+impl EventCommandSchema for Schema {
+    fn matches(&self, command: &EventCommand) -> bool {
+        // Must not have children
+        if !command.child_commands.is_empty() {
+            return false;
+        }
+
+        // Must have exactly two parameters, the first of which is a string and the second of which
+        // is an integer
+        let [switch, operation] = &command.parameters[..] else {
+            return false;
+        };
+        if !switch.is_string() {
+            return false;
+        }
+        if !operation.is_integer() {
+            return false;
+        };
+
+        true
+    }
+}

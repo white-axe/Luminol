@@ -93,6 +93,15 @@ mod c116;
 mod c117;
 mod c118;
 mod c119;
+mod c121;
+mod c122;
+mod c123;
+mod c124;
+mod c125;
+mod c126;
+mod c127;
+mod c128;
+mod c129;
 
 static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
     101u16 => &c101::Editor { continuation_code: 401, label: "Show Text" },
@@ -110,6 +119,15 @@ static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
     117u16 => &c117::Editor,
     118u16 => &c118::Editor,
     119u16 => &c119::Editor,
+    121u16 => &c121::Editor,
+    122u16 => &c122::Editor,
+    123u16 => &c123::Editor,
+    124u16 => &c124::Editor,
+    125u16 => &c125::Editor,
+    126u16 => &c126::Editor,
+    127u16 => &c127::Editor,
+    128u16 => &c128::Editor,
+    129u16 => &c129::Editor,
     355u16 => &c101::Editor { continuation_code: 655, label: "Script" },
 };
 
