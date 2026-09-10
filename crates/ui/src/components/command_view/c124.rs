@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, ParameterType, UiExt, UpdateState};
+use super::{EventCommand, EventCommandEditor, EventInfo, ParameterType, UpdateState};
 use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
@@ -50,7 +50,7 @@ impl EventCommandEditor for Editor {
     fn ui(
         &self,
         ui: &mut egui::Ui,
-        stripe: &mut bool,
+        _stripe: &mut bool,
         _update_state: &mut UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
@@ -60,33 +60,29 @@ impl EventCommandEditor for Editor {
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
                 let operation = command.parameters[0].as_integer_mut().unwrap();
-                ui.with_stripe_mut(stripe, |ui, _stripe| {
-                    ui.label("Operation");
-                    modified |= ui
-                        .add(EnumComboBox::new_with_conversion(
-                            PhantomData::<Operation>,
-                            "operation",
-                            operation,
-                        ))
-                        .changed();
-                });
+                ui.label("Operation");
+                modified |= ui
+                    .add(EnumComboBox::new_with_conversion(
+                        PhantomData::<Operation>,
+                        "operation",
+                        operation,
+                    ))
+                    .changed();
                 let operation = *operation;
 
                 match operation {
                     0 => {
                         command.parameters.resize(2, ParameterType::Integer(0));
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Timer start time in frames");
-                            modified |= ui
-                                .add(
-                                    egui::DragValue::new(
-                                        command.parameters[1].as_integer_mut().unwrap(),
-                                    )
-                                    .range(0..=i32::MAX),
+                        ui.label("Timer start time in frames");
+                        modified |= ui
+                            .add(
+                                egui::DragValue::new(
+                                    command.parameters[1].as_integer_mut().unwrap(),
                                 )
-                                .changed();
-                        });
+                                .range(0..=i32::MAX),
+                            )
+                            .changed();
                     }
 
                     1 => {

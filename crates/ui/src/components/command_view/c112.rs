@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{CommandView, EventCommand, EventCommandEditor, EventInfo, UiExt, UpdateState};
+use super::{CommandView, EventCommand, EventCommandEditor, EventInfo, UpdateState};
 
 pub(super) struct Editor;
 
@@ -39,12 +39,9 @@ impl EventCommandEditor for Editor {
         event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
     ) -> egui::Response {
-        ui.with_stripe_mut(stripe, |ui, stripe| {
-            ui.add(
-                CommandView::new(update_state, event_info, &mut command.child_commands)
-                    .with_stripe(stripe),
-            )
-        })
-        .response
+        ui.add(
+            CommandView::new(update_state, event_info, &mut command.child_commands)
+                .with_stripe(stripe),
+        )
     }
 }

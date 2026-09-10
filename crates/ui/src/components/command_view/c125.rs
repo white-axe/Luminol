@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, UiExt, UpdateState};
+use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
 use crate::components::{EnumComboBox, OptionalIdComboBox};
 use std::marker::PhantomData;
 
@@ -64,7 +64,7 @@ impl EventCommandEditor for Editor {
     fn ui(
         &self,
         ui: &mut egui::Ui,
-        stripe: &mut bool,
+        _stripe: &mut bool,
         update_state: &mut UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
@@ -73,64 +73,53 @@ impl EventCommandEditor for Editor {
 
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                ui.with_stripe_mut(stripe, |ui, _stripe| {
-                    ui.label("Operation");
-                    modified |= ui
-                        .add(EnumComboBox::new_with_conversion(
-                            PhantomData::<Operation>,
-                            "operation",
-                            command.parameters[0].as_integer_mut().unwrap(),
-                        ))
-                        .changed();
-                });
+                ui.label("Operation");
+                modified |= ui
+                    .add(EnumComboBox::new_with_conversion(
+                        PhantomData::<Operation>,
+                        "operation",
+                        command.parameters[0].as_integer_mut().unwrap(),
+                    ))
+                    .changed();
 
                 let operand = command.parameters[1].as_integer_mut().unwrap();
-                ui.with_stripe_mut(stripe, |ui, _stripe| {
-                    ui.label("Operand");
-                    modified |= ui
-                        .add(EnumComboBox::new_with_conversion(
-                            PhantomData::<OperandType>,
-                            "operand",
-                            operand,
-                        ))
-                        .changed();
-                });
+                ui.label("Operand");
+                modified |= ui
+                    .add(EnumComboBox::new_with_conversion(
+                        PhantomData::<OperandType>,
+                        "operand",
+                        operand,
+                    ))
+                    .changed();
                 let operand = *operand;
 
                 match operand {
                     0 => {
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            modified |= ui
-                                .add(
-                                    egui::DragValue::new(
-                                        command.parameters[2].as_integer_mut().unwrap(),
-                                    )
-                                    .range(1..=i32::MAX),
+                        modified |= ui
+                            .add(
+                                egui::DragValue::new(
+                                    command.parameters[2].as_integer_mut().unwrap(),
                                 )
-                                .changed();
-                        });
+                                .range(1..=i32::MAX),
+                            )
+                            .changed();
                     }
 
                     1 => {
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            let system = update_state.data.system();
-                            modified |= ui
-                                .add(OptionalIdComboBox::new(
-                                    update_state,
-                                    "variable",
-                                    command.parameters[2].as_integer_mut().unwrap(),
-                                    1..=system.variables.len(),
-                                    |id| {
-                                        id.checked_sub(1)
-                                            .and_then(|id| system.variables.get(id))
-                                            .map_or_else(
-                                                || "".into(),
-                                                |x| format!("{:0>4}: {}", id, x),
-                                            )
-                                    },
-                                ))
-                                .changed();
-                        });
+                        let system = update_state.data.system();
+                        modified |= ui
+                            .add(OptionalIdComboBox::new(
+                                update_state,
+                                "variable",
+                                command.parameters[2].as_integer_mut().unwrap(),
+                                1..=system.variables.len(),
+                                |id| {
+                                    id.checked_sub(1)
+                                        .and_then(|id| system.variables.get(id))
+                                        .map_or_else(|| "".into(), |x| format!("{:0>4}: {}", id, x))
+                                },
+                            ))
+                            .changed();
                     }
 
                     _ => unreachable!(),

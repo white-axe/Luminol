@@ -22,9 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{
-    CommandView, EventCommand, EventCommandEditor, EventInfo, ParameterType, UiExt, UpdateState,
-};
+use super::{CommandView, EventCommand, EventCommandEditor, EventInfo, ParameterType, UpdateState};
 use crate::components::{EnumComboBox, OptionalIdComboBox};
 use std::marker::PhantomData;
 
@@ -309,26 +307,25 @@ impl EventCommandEditor for Editor {
 
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                let branch_type = coerce_to_integer(&mut command.parameters[0]);
-                ui.with_stripe_mut(stripe, |ui, _stripe| {
-                    ui.label("Condition type");
-                    modified |= ui
-                        .add(EnumComboBox::new_with_conversion(
-                            PhantomData::<BranchType>,
-                            "branch type",
-                            branch_type,
-                        ))
-                        .changed();
-                });
-                let branch_type = *branch_type;
+                ui.label("Condition type");
 
-                match branch_type {
+                let branch_type = coerce_to_integer(&mut command.parameters[0]);
+                modified |= ui
+                    .add(EnumComboBox::new_with_conversion(
+                        PhantomData::<BranchType>,
+                        "branch type",
+                        branch_type,
+                    ))
+                    .changed();
+
+                match *branch_type {
                     0 => {
                         command.parameters.resize(3, ParameterType::None);
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Switch");
-                            let switch = coerce_to_integer(&mut command.parameters[1]);
+                        ui.label("Switch");
+
+                        let switch = coerce_to_integer(&mut command.parameters[1]);
+                        {
                             let system = update_state.data.system();
                             modified |= ui
                                 .add(OptionalIdComboBox::new(
@@ -346,27 +343,27 @@ impl EventCommandEditor for Editor {
                                     },
                                 ))
                                 .changed();
-                        });
+                        }
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Condition");
-                            let condition = coerce_to_integer(&mut command.parameters[2]);
-                            modified |= ui
-                                .add(EnumComboBox::new_with_conversion(
-                                    PhantomData::<SwitchCondition>,
-                                    (0, 2),
-                                    condition,
-                                ))
-                                .changed();
-                        });
+                        ui.label("Condition");
+
+                        let condition = coerce_to_integer(&mut command.parameters[2]);
+                        modified |= ui
+                            .add(EnumComboBox::new_with_conversion(
+                                PhantomData::<SwitchCondition>,
+                                (0, 2),
+                                condition,
+                            ))
+                            .changed();
                     }
 
                     1 => {
                         command.parameters.resize(5, ParameterType::None);
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Value 1");
-                            let variable = coerce_to_integer(&mut command.parameters[1]);
+                        ui.label("Value 1");
+
+                        let variable = coerce_to_integer(&mut command.parameters[1]);
+                        {
                             let system = update_state.data.system();
                             modified |= ui
                                 .add(OptionalIdComboBox::new(
@@ -384,107 +381,98 @@ impl EventCommandEditor for Editor {
                                     },
                                 ))
                                 .changed();
-                        });
+                        };
+
+                        ui.label("Value 2");
 
                         let value_type = coerce_to_integer(&mut command.parameters[2]);
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Value 2");
-                            modified |= ui
-                                .add(EnumComboBox::new_with_conversion(
-                                    PhantomData::<VariableValueType>,
-                                    (1, 2),
-                                    value_type,
-                                ))
-                                .changed();
-                        });
+                        modified |= ui
+                            .add(EnumComboBox::new_with_conversion(
+                                PhantomData::<VariableValueType>,
+                                (1, 2),
+                                value_type,
+                            ))
+                            .changed();
                         let value_type = *value_type;
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            let value = coerce_to_integer(&mut command.parameters[3]);
-                            match value_type {
-                                1 => {
-                                    let system = update_state.data.system();
-                                    modified |= ui
-                                        .add(OptionalIdComboBox::new(
-                                            update_state,
-                                            (1, 3),
-                                            value,
-                                            1..=system.variables.len(),
-                                            |id| {
-                                                id.checked_sub(1)
-                                                    .and_then(|id| system.variables.get(id))
-                                                    .map_or_else(
-                                                        || "".into(),
-                                                        |x| format!("{:0>4}: {}", id, x),
-                                                    )
-                                            },
-                                        ))
-                                        .changed();
-                                }
-
-                                _ => {
-                                    modified |= ui.add(egui::DragValue::new(value)).changed();
-                                }
+                        let value = coerce_to_integer(&mut command.parameters[3]);
+                        match value_type {
+                            1 => {
+                                let system = update_state.data.system();
+                                modified |= ui
+                                    .add(OptionalIdComboBox::new(
+                                        update_state,
+                                        (1, 3),
+                                        value,
+                                        1..=system.variables.len(),
+                                        |id| {
+                                            id.checked_sub(1)
+                                                .and_then(|id| system.variables.get(id))
+                                                .map_or_else(
+                                                    || "".into(),
+                                                    |x| format!("{:0>4}: {}", id, x),
+                                                )
+                                        },
+                                    ))
+                                    .changed();
                             }
-                        });
+                            _ => {
+                                modified |= ui.add(egui::DragValue::new(value)).changed();
+                            }
+                        }
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Condition");
-                            let condition = coerce_to_integer(&mut command.parameters[4]);
-                            modified |= ui
-                                .add(EnumComboBox::new_with_conversion(
-                                    PhantomData::<VariableCondition>,
-                                    (1, 4),
-                                    condition,
-                                ))
-                                .changed();
-                        });
+                        ui.label("Condition");
+
+                        let condition = coerce_to_integer(&mut command.parameters[4]);
+                        modified |= ui
+                            .add(EnumComboBox::new_with_conversion(
+                                PhantomData::<VariableCondition>,
+                                (1, 4),
+                                condition,
+                            ))
+                            .changed();
                     }
 
                     2 => {
                         command.parameters.resize(3, ParameterType::None);
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Self switch");
-                            let self_switch = coerce_to_string(&mut command.parameters[1], "A");
-                            modified |= ui.text_edit_singleline(self_switch).changed();
-                        });
+                        ui.label("Self switch");
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Condition");
-                            let condition = coerce_to_integer(&mut command.parameters[2]);
-                            modified |= ui
-                                .add(EnumComboBox::new_with_conversion(
-                                    PhantomData::<SelfSwitchCondition>,
-                                    (2, 2),
-                                    condition,
-                                ))
-                                .changed();
-                        });
+                        let self_switch = coerce_to_string(&mut command.parameters[1], "A");
+                        modified |= ui.text_edit_singleline(self_switch).changed();
+
+                        ui.label("Condition");
+
+                        let condition = coerce_to_integer(&mut command.parameters[2]);
+                        modified |= ui
+                            .add(EnumComboBox::new_with_conversion(
+                                PhantomData::<SelfSwitchCondition>,
+                                (2, 2),
+                                condition,
+                            ))
+                            .changed();
                     }
 
                     3 => {
                         command.parameters.resize(3, ParameterType::None);
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Value");
-                            let frames = coerce_to_integer(&mut command.parameters[1]);
-                            modified |= ui
-                                .add(egui::DragValue::new(frames).range(0..=i32::MAX))
-                                .changed();
-                        });
+                        ui.label("Value");
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Condition");
-                            let condition = coerce_to_integer(&mut command.parameters[2]);
-                            modified |= ui
-                                .add(EnumComboBox::new_with_conversion(
-                                    PhantomData::<TimerCondition>,
-                                    (3, 2),
-                                    condition,
-                                ))
-                                .changed();
-                        });
+                        let frames = coerce_to_integer(&mut command.parameters[1]);
+                        modified |= ui
+                            .add(egui::DragValue::new(frames).range(0..=i32::MAX))
+                            .changed();
+
+                        ui.label("Condition");
+
+                        let condition = coerce_to_integer(&mut command.parameters[2]);
+                        modified |= ui
+                            .add(EnumComboBox::new_with_conversion(
+                                PhantomData::<TimerCondition>,
+                                (3, 2),
+                                condition,
+                            ))
+                            .changed();
                     }
 
                     4 => {
@@ -492,9 +480,10 @@ impl EventCommandEditor for Editor {
                             command.parameters.resize(3, ParameterType::None);
                         }
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Actor");
-                            let actor = coerce_to_integer(&mut command.parameters[1]);
+                        ui.label("Actor");
+
+                        let actor = coerce_to_integer(&mut command.parameters[1]);
+                        {
                             let actors = update_state.data.actors();
                             modified |= ui
                                 .add(OptionalIdComboBox::new(
@@ -512,19 +501,18 @@ impl EventCommandEditor for Editor {
                                     },
                                 ))
                                 .changed();
-                        });
+                        };
+
+                        ui.label("Condition");
 
                         let condition = coerce_to_integer(&mut command.parameters[2]);
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Condition");
-                            modified |= ui
-                                .add(EnumComboBox::new_with_conversion(
-                                    PhantomData::<ActorCondition>,
-                                    (4, 2),
-                                    condition,
-                                ))
-                                .changed();
-                        });
+                        modified |= ui
+                            .add(EnumComboBox::new_with_conversion(
+                                PhantomData::<ActorCondition>,
+                                (4, 2),
+                                condition,
+                            ))
+                            .changed();
                         let condition = *condition;
 
                         match condition {
@@ -534,18 +522,14 @@ impl EventCommandEditor for Editor {
 
                             1 => {
                                 command.parameters.resize(4, ParameterType::None);
-
-                                ui.with_stripe_mut(stripe, |ui, _stripe| {
-                                    let name = coerce_to_string(&mut command.parameters[3], "");
-                                    modified |= ui.text_edit_singleline(name).changed();
-                                });
+                                let name = coerce_to_string(&mut command.parameters[3], "");
+                                modified |= ui.text_edit_singleline(name).changed();
                             }
 
                             2 => {
                                 command.parameters.resize(4, ParameterType::None);
-
-                                ui.with_stripe_mut(stripe, |ui, _stripe| {
-                                    let skill = coerce_to_integer(&mut command.parameters[3]);
+                                let skill = coerce_to_integer(&mut command.parameters[3]);
+                                {
                                     let skills = update_state.data.skills();
                                     modified |= ui
                                         .add(OptionalIdComboBox::new(
@@ -563,14 +547,13 @@ impl EventCommandEditor for Editor {
                                             },
                                         ))
                                         .changed();
-                                });
+                                };
                             }
 
                             3 => {
                                 command.parameters.resize(4, ParameterType::None);
-
-                                ui.with_stripe_mut(stripe, |ui, _stripe| {
-                                    let weapon = coerce_to_integer(&mut command.parameters[3]);
+                                let weapon = coerce_to_integer(&mut command.parameters[3]);
+                                {
                                     let weapons = update_state.data.weapons();
                                     modified |= ui
                                         .add(OptionalIdComboBox::new(
@@ -588,14 +571,13 @@ impl EventCommandEditor for Editor {
                                             },
                                         ))
                                         .changed();
-                                });
+                                };
                             }
 
                             4 => {
                                 command.parameters.resize(4, ParameterType::None);
-
-                                ui.with_stripe_mut(stripe, |ui, _stripe| {
-                                    let armor = coerce_to_integer(&mut command.parameters[3]);
+                                let armor = coerce_to_integer(&mut command.parameters[3]);
+                                {
                                     let armors = update_state.data.armors();
                                     modified |= ui
                                         .add(OptionalIdComboBox::new(
@@ -613,14 +595,13 @@ impl EventCommandEditor for Editor {
                                             },
                                         ))
                                         .changed();
-                                });
+                                };
                             }
 
                             5 => {
                                 command.parameters.resize(4, ParameterType::None);
-
-                                ui.with_stripe_mut(stripe, |ui, _stripe| {
-                                    let state = coerce_to_integer(&mut command.parameters[3]);
+                                let state = coerce_to_integer(&mut command.parameters[3]);
+                                {
                                     let states = update_state.data.states();
                                     modified |= ui
                                         .add(OptionalIdComboBox::new(
@@ -638,7 +619,7 @@ impl EventCommandEditor for Editor {
                                             },
                                         ))
                                         .changed();
-                                });
+                                };
                             }
 
                             _ => unreachable!(),
@@ -654,33 +635,29 @@ impl EventCommandEditor for Editor {
                             .parameters
                             .resize(if condition != 0 { 4 } else { 3 }, ParameterType::None);
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Enemy");
-                            let enemy = coerce_to_integer(&mut command.parameters[1]);
-                            *enemy = enemy.wrapping_add(1);
-                            modified |= ui
-                                .add(
-                                    egui::DragValue::new(enemy)
-                                        .range(1..=i32::MAX)
-                                        .custom_formatter(|value, _| {
-                                            format!("#{}", (value as i32))
-                                        }),
-                                )
-                                .changed();
-                            *enemy = enemy.wrapping_sub(1);
-                        });
+                        ui.label("Enemy");
+
+                        let enemy = coerce_to_integer(&mut command.parameters[1]);
+                        *enemy = enemy.wrapping_add(1);
+                        modified |= ui
+                            .add(
+                                egui::DragValue::new(enemy)
+                                    .range(1..=i32::MAX)
+                                    .custom_formatter(|value, _| format!("#{}", (value as i32))),
+                            )
+                            .changed();
+                        *enemy = enemy.wrapping_sub(1);
+
+                        ui.label("Condition");
 
                         let condition = coerce_to_integer(&mut command.parameters[2]);
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Condition");
-                            modified |= ui
-                                .add(EnumComboBox::new_with_conversion(
-                                    PhantomData::<EnemyCondition>,
-                                    (5, 2),
-                                    condition,
-                                ))
-                                .changed();
-                        });
+                        modified |= ui
+                            .add(EnumComboBox::new_with_conversion(
+                                PhantomData::<EnemyCondition>,
+                                (5, 2),
+                                condition,
+                            ))
+                            .changed();
                         let condition = *condition;
 
                         match condition {
@@ -690,9 +667,8 @@ impl EventCommandEditor for Editor {
 
                             1 => {
                                 command.parameters.resize(4, ParameterType::None);
-
-                                ui.with_stripe_mut(stripe, |ui, _stripe| {
-                                    let state = coerce_to_integer(&mut command.parameters[3]);
+                                let state = coerce_to_integer(&mut command.parameters[3]);
+                                {
                                     let states = update_state.data.states();
                                     modified |= ui
                                         .add(OptionalIdComboBox::new(
@@ -710,7 +686,7 @@ impl EventCommandEditor for Editor {
                                             },
                                         ))
                                         .changed();
-                                });
+                                };
                             }
 
                             _ => unreachable!(),
@@ -720,104 +696,94 @@ impl EventCommandEditor for Editor {
                     6 => {
                         command.parameters.resize(3, ParameterType::None);
 
+                        ui.label("Character");
+
                         let character = coerce_to_integer(&mut command.parameters[1]);
                         if let Some(event_info) = event_info.copied() {
-                            ui.with_stripe_mut(stripe, |ui, _stripe| {
-                                ui.label("Character");
-                                *character = character.wrapping_add(1);
-                                let map = update_state.data.get_map(event_info.map_id);
-                                modified |= ui
-                                    .add(OptionalIdComboBox::new(
-                                        update_state,
-                                        (6, 1, true),
-                                        character,
-                                        0..=map.events.len(),
-                                        |id| match id {
-                                            0 => "Player".into(),
-                                            1 => "This event".into(),
-                                            _ => {
-                                                let id = id - 1;
-                                                if id == event_info.event_id {
-                                                    format!("{:0>4}: {}", id, event_info.event_name)
-                                                } else {
-                                                    map.events.get(id).map_or_else(
-                                                        || "".into(),
-                                                        |x| format!("{:0>4}: {}", id, x.name),
-                                                    )
-                                                }
+                            *character = character.wrapping_add(1);
+                            let map = update_state.data.get_map(event_info.map_id);
+                            modified |= ui
+                                .add(OptionalIdComboBox::new(
+                                    update_state,
+                                    (6, 1, true),
+                                    character,
+                                    0..=map.events.len(),
+                                    |id| match id {
+                                        0 => "Player".into(),
+                                        1 => "This event".into(),
+                                        _ => {
+                                            let id = id - 1;
+                                            if id == event_info.event_id {
+                                                format!("{:0>4}: {}", id, event_info.event_name)
+                                            } else {
+                                                map.events.get(id).map_or_else(
+                                                    || "".into(),
+                                                    |x| format!("{:0>4}: {}", id, x.name),
+                                                )
                                             }
-                                        },
-                                    ))
-                                    .changed();
-                                *character = character.wrapping_sub(1);
-                            });
+                                        }
+                                    },
+                                ))
+                                .changed();
+                            *character = character.wrapping_sub(1);
                         } else {
                             let mut character_type =
                                 CharacterType::try_from(*character).unwrap_or_default();
-                            ui.with_stripe_mut(stripe, |ui, _stripe| {
-                                ui.label("Character");
-                                modified |= {
-                                    let changed = ui
-                                        .add(EnumComboBox::new((6, 1, false), &mut character_type))
-                                        .changed();
-                                    if changed {
-                                        *character = character_type.into();
-                                    }
-                                    changed
-                                };
-                            });
-
+                            modified |= {
+                                let changed = ui
+                                    .add(EnumComboBox::new((6, 1, false), &mut character_type))
+                                    .changed();
+                                if changed {
+                                    *character = character_type.into();
+                                }
+                                changed
+                            };
                             if character_type == CharacterType::MapEvent {
-                                ui.with_stripe_mut(stripe, |ui, _stripe| {
-                                    modified |= ui
-                                        .add(egui::DragValue::new(character).range(1..=i32::MAX))
-                                        .changed();
-                                });
+                                modified |= ui
+                                    .add(egui::DragValue::new(character).range(1..=i32::MAX))
+                                    .changed();
                             }
                         };
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Condition");
-                            let condition = coerce_to_integer(&mut command.parameters[2]);
-                            modified |= ui
-                                .add(EnumComboBox::new_with_conversion(
-                                    PhantomData::<CharacterCondition>,
-                                    (6, 2),
-                                    condition,
-                                ))
-                                .changed();
-                        });
+                        ui.label("Condition");
+
+                        let condition = coerce_to_integer(&mut command.parameters[2]);
+                        modified |= ui
+                            .add(EnumComboBox::new_with_conversion(
+                                PhantomData::<CharacterCondition>,
+                                (6, 2),
+                                condition,
+                            ))
+                            .changed();
                     }
 
                     7 => {
                         command.parameters.resize(3, ParameterType::None);
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Value");
-                            let frames = coerce_to_integer(&mut command.parameters[1]);
-                            modified |= ui
-                                .add(egui::DragValue::new(frames).range(0..=i32::MAX))
-                                .changed();
-                        });
+                        ui.label("Value");
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Condition");
-                            let condition = coerce_to_integer(&mut command.parameters[2]);
-                            modified |= ui
-                                .add(EnumComboBox::new_with_conversion(
-                                    PhantomData::<GoldCondition>,
-                                    (7, 2),
-                                    condition,
-                                ))
-                                .changed();
-                        });
+                        let frames = coerce_to_integer(&mut command.parameters[1]);
+                        modified |= ui
+                            .add(egui::DragValue::new(frames).range(0..=i32::MAX))
+                            .changed();
+
+                        ui.label("Condition");
+
+                        let condition = coerce_to_integer(&mut command.parameters[2]);
+                        modified |= ui
+                            .add(EnumComboBox::new_with_conversion(
+                                PhantomData::<GoldCondition>,
+                                (7, 2),
+                                condition,
+                            ))
+                            .changed();
                     }
 
                     8 => {
                         command.parameters.resize(2, ParameterType::None);
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            let item = coerce_to_integer(&mut command.parameters[1]);
+                        let item = coerce_to_integer(&mut command.parameters[1]);
+                        {
                             let items = update_state.data.items();
                             modified |= ui
                                 .add(OptionalIdComboBox::new(
@@ -835,14 +801,14 @@ impl EventCommandEditor for Editor {
                                     },
                                 ))
                                 .changed();
-                        });
+                        };
                     }
 
                     9 => {
                         command.parameters.resize(2, ParameterType::None);
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            let weapon = coerce_to_integer(&mut command.parameters[1]);
+                        let weapon = coerce_to_integer(&mut command.parameters[1]);
+                        {
                             let weapons = update_state.data.weapons();
                             modified |= ui
                                 .add(OptionalIdComboBox::new(
@@ -860,14 +826,14 @@ impl EventCommandEditor for Editor {
                                     },
                                 ))
                                 .changed();
-                        });
+                        };
                     }
 
                     10 => {
                         command.parameters.resize(2, ParameterType::None);
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            let armor = coerce_to_integer(&mut command.parameters[1]);
+                        let armor = coerce_to_integer(&mut command.parameters[1]);
+                        {
                             let armors = update_state.data.armors();
                             modified |= ui
                                 .add(OptionalIdComboBox::new(
@@ -885,7 +851,7 @@ impl EventCommandEditor for Editor {
                                     },
                                 ))
                                 .changed();
-                        });
+                        };
                     }
 
                     11 => {
@@ -897,64 +863,53 @@ impl EventCommandEditor for Editor {
                         } else {
                             ButtonType::try_from(*button).unwrap_or_default()
                         };
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            modified |= {
-                                let changed = ui
-                                    .add(EnumComboBox::new((11, 1), &mut button_type))
-                                    .changed();
-                                if changed {
-                                    *button = button_type.into();
-                                }
-                                changed
-                            };
-                        });
+                        modified |= {
+                            let changed = ui
+                                .add(EnumComboBox::new((11, 1), &mut button_type))
+                                .changed();
+                            if changed {
+                                *button = button_type.into();
+                            }
+                            changed
+                        };
 
                         *is_custom_button_code = button_type == ButtonType::Custom;
                         if *is_custom_button_code {
-                            ui.with_stripe_mut(stripe, |ui, _stripe| {
-                                modified |= ui.add(egui::DragValue::new(button)).changed();
-                            });
+                            modified |= ui.add(egui::DragValue::new(button)).changed();
                         }
                     }
 
                     12 => {
                         command.parameters.resize(2, ParameterType::None);
 
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            let script = coerce_to_string(&mut command.parameters[1], "");
-                            modified |= ui.text_edit_multiline(script).changed();
-                        });
+                        let script = coerce_to_string(&mut command.parameters[1], "");
+                        modified |= ui.text_edit_multiline(script).changed();
                     }
 
                     _ => {}
                 }
 
-                ui.with_stripe_mut(stripe, |ui, stripe| {
-                    ui.label("If condition is true");
-                    modified |= ui
-                        .add(
-                            CommandView::new(update_state, event_info, &mut command.child_commands)
-                                .with_stripe(stripe),
-                        )
-                        .changed();
-                });
+                ui.label("If condition is true");
 
-                ui.with_stripe_mut(stripe, |ui, stripe| {
-                    ui.label("If condition is false");
-                    let mut if_false_fallback = Vec::new();
-                    let if_false = command
-                        .sibling_commands
-                        .first_mut()
-                        .map_or(&mut if_false_fallback, |sibling| {
-                            &mut sibling.child_commands
-                        });
-                    modified |= ui
-                        .add(
-                            CommandView::new(update_state, event_info, if_false)
-                                .with_stripe(stripe),
-                        )
-                        .changed();
-                });
+                modified |= ui
+                    .add(
+                        CommandView::new(update_state, event_info, &mut command.child_commands)
+                            .with_stripe(stripe),
+                    )
+                    .changed();
+
+                ui.label("If condition is false");
+
+                let mut if_false_fallback = Vec::new();
+                let if_false = command
+                    .sibling_commands
+                    .first_mut()
+                    .map_or(&mut if_false_fallback, |sibling| {
+                        &mut sibling.child_commands
+                    });
+                modified |= ui
+                    .add(CommandView::new(update_state, event_info, if_false).with_stripe(stripe))
+                    .changed();
             })
             .response;
 

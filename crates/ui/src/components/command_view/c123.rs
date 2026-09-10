@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, UiExt, UpdateState};
+use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
 use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
@@ -50,7 +50,7 @@ impl EventCommandEditor for Editor {
     fn ui(
         &self,
         ui: &mut egui::Ui,
-        stripe: &mut bool,
+        _stripe: &mut bool,
         _update_state: &mut UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
@@ -59,23 +59,19 @@ impl EventCommandEditor for Editor {
 
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                ui.with_stripe_mut(stripe, |ui, _stripe| {
-                    let self_switch = command.parameters[0].as_string_mut().unwrap();
-                    ui.label("Self switch");
-                    modified |= ui.text_edit_singleline(self_switch).changed();
-                });
+                let self_switch = command.parameters[0].as_string_mut().unwrap();
+                ui.label("Self switch");
+                modified |= ui.text_edit_singleline(self_switch).changed();
 
-                ui.with_stripe_mut(stripe, |ui, _stripe| {
-                    let operation = command.parameters[1].as_integer_mut().unwrap();
-                    ui.label("Operation");
-                    modified |= ui
-                        .add(EnumComboBox::new_with_conversion(
-                            PhantomData::<Operation>,
-                            "operation",
-                            operation,
-                        ))
-                        .changed();
-                });
+                let operation = command.parameters[1].as_integer_mut().unwrap();
+                ui.label("Operation");
+                modified |= ui
+                    .add(EnumComboBox::new_with_conversion(
+                        PhantomData::<Operation>,
+                        "operation",
+                        operation,
+                    ))
+                    .changed();
             })
             .response;
 

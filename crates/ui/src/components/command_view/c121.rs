@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, UiExt, UpdateState};
+use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
 use crate::components::{EnumComboBox, OptionalIdComboBox};
 use std::marker::PhantomData;
 
@@ -50,7 +50,7 @@ impl EventCommandEditor for Editor {
     fn ui(
         &self,
         ui: &mut egui::Ui,
-        stripe: &mut bool,
+        _stripe: &mut bool,
         update_state: &mut UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
@@ -65,114 +65,103 @@ impl EventCommandEditor for Editor {
                 let start = start.as_integer_mut().unwrap();
                 let end = end.as_integer_mut().unwrap();
 
-                ui.with_stripe_mut(stripe, |ui, _stripe| {
-                    if start != end {
-                        *is_batch_edit = true;
+                if start != end {
+                    *is_batch_edit = true;
+                }
+                modified |= {
+                    let changed = ui.checkbox(is_batch_edit, "Batch edit").changed();
+                    let changed = changed && !*is_batch_edit && start != end;
+                    if changed {
+                        *end = *start;
                     }
-                    modified |= {
-                        let changed = ui.checkbox(is_batch_edit, "Batch edit").changed();
-                        let changed = changed && !*is_batch_edit && start != end;
-                        if changed {
-                            *end = *start;
-                        }
-                        changed
-                    };
-                });
+                    changed
+                };
 
                 {
                     let system = update_state.data.system();
                     if !*is_batch_edit {
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Switch");
-                            modified |= {
-                                let changed = ui
-                                    .add(OptionalIdComboBox::new(
-                                        update_state,
-                                        "switch",
-                                        start,
-                                        1..=system.switches.len(),
-                                        |id| {
-                                            id.checked_sub(1)
-                                                .and_then(|id| system.switches.get(id))
-                                                .map_or_else(
-                                                    || "".into(),
-                                                    |x| format!("{:0>4}: {}", id, x),
-                                                )
-                                        },
-                                    ))
-                                    .changed();
-                                if changed {
-                                    *end = *start;
-                                }
-                                changed
-                            };
-                        });
+                        ui.label("Switch");
+                        modified |= {
+                            let changed = ui
+                                .add(OptionalIdComboBox::new(
+                                    update_state,
+                                    "switch",
+                                    start,
+                                    1..=system.switches.len(),
+                                    |id| {
+                                        id.checked_sub(1)
+                                            .and_then(|id| system.switches.get(id))
+                                            .map_or_else(
+                                                || "".into(),
+                                                |x| format!("{:0>4}: {}", id, x),
+                                            )
+                                    },
+                                ))
+                                .changed();
+                            if changed {
+                                *end = *start;
+                            }
+                            changed
+                        };
                     } else {
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("First switch");
-                            modified |= {
-                                let changed = ui
-                                    .add(OptionalIdComboBox::new(
-                                        update_state,
-                                        "start switch",
-                                        start,
-                                        1..=system.switches.len(),
-                                        |id| {
-                                            id.checked_sub(1)
-                                                .and_then(|id| system.switches.get(id))
-                                                .map_or_else(
-                                                    || "".into(),
-                                                    |x| format!("{:0>4}: {}", id, x),
-                                                )
-                                        },
-                                    ))
-                                    .changed();
-                                if changed && start > end {
-                                    *end = *start;
-                                }
-                                changed
-                            };
-                        });
-
-                        ui.with_stripe_mut(stripe, |ui, _stripe| {
-                            ui.label("Last switch");
-                            modified |= {
-                                let changed = ui
-                                    .add(OptionalIdComboBox::new(
-                                        update_state,
-                                        "end switch",
-                                        end,
-                                        1..=system.switches.len(),
-                                        |id| {
-                                            id.checked_sub(1)
-                                                .and_then(|id| system.switches.get(id))
-                                                .map_or_else(
-                                                    || "".into(),
-                                                    |x| format!("{:0>4}: {}", id, x),
-                                                )
-                                        },
-                                    ))
-                                    .changed();
-                                if changed && start > end {
-                                    *start = *end;
-                                }
-                                changed
-                            };
-                        });
+                        ui.label("First switch");
+                        modified |= {
+                            let changed = ui
+                                .add(OptionalIdComboBox::new(
+                                    update_state,
+                                    "start switch",
+                                    start,
+                                    1..=system.switches.len(),
+                                    |id| {
+                                        id.checked_sub(1)
+                                            .and_then(|id| system.switches.get(id))
+                                            .map_or_else(
+                                                || "".into(),
+                                                |x| format!("{:0>4}: {}", id, x),
+                                            )
+                                    },
+                                ))
+                                .changed();
+                            if changed && start > end {
+                                *end = *start;
+                            }
+                            changed
+                        };
+                        ui.label("Last switch");
+                        modified |= {
+                            let changed = ui
+                                .add(OptionalIdComboBox::new(
+                                    update_state,
+                                    "end switch",
+                                    end,
+                                    1..=system.switches.len(),
+                                    |id| {
+                                        id.checked_sub(1)
+                                            .and_then(|id| system.switches.get(id))
+                                            .map_or_else(
+                                                || "".into(),
+                                                |x| format!("{:0>4}: {}", id, x),
+                                            )
+                                    },
+                                ))
+                                .changed();
+                            if changed && start > end {
+                                *start = *end;
+                            }
+                            changed
+                        };
                     }
                 }
 
-                ui.with_stripe_mut(stripe, |ui, _stripe| {
-                    let operation = command.parameters[2].as_integer_mut().unwrap();
-                    ui.label("Operation");
-                    modified |= ui
-                        .add(EnumComboBox::new_with_conversion(
-                            PhantomData::<Operation>,
-                            "operation",
-                            operation,
-                        ))
-                        .changed();
-                });
+                let operation = command.parameters[2].as_integer_mut().unwrap();
+                ui.label("Operation");
+                modified |= ui
+                    .add(EnumComboBox::new_with_conversion(
+                        PhantomData::<Operation>,
+                        "operation",
+                        operation,
+                    ))
+                    .changed();
             })
             .response;
 
