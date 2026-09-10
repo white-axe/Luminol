@@ -22,6 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
+use super::UiExt;
 use crate::UpdateState;
 use luminol_data::{rpg::EventCommand, ParameterType};
 
@@ -35,7 +36,13 @@ pub struct EventInfo<'a> {
     pub event_name: &'a str,
 }
 
+enum Stripe<'a> {
+    Borrowed(&'a mut bool),
+    Owned(bool),
+}
+
 pub struct CommandView<'this, 'update_state, 'event_info> {
+    stripe: Stripe<'this>,
     update_state: &'this mut UpdateState<'update_state>,
     event_info: Option<&'this EventInfo<'event_info>>,
     commands: &'this mut Vec<EventCommand>,
@@ -48,10 +55,16 @@ impl<'this, 'update_state, 'event_info> CommandView<'this, 'update_state, 'event
         commands: &'this mut Vec<EventCommand>,
     ) -> Self {
         Self {
+            stripe: Stripe::Owned(false),
             update_state,
             event_info,
             commands,
         }
+    }
+
+    fn with_stripe(mut self, stripe: &'this mut bool) -> Self {
+        self.stripe = Stripe::Borrowed(stripe);
+        self
     }
 }
 
@@ -73,6 +86,7 @@ where
     fn ui(
         &self,
         ui: &mut egui::Ui,
+        stripe: &mut bool,
         update_state: &mut UpdateState<'_>,
         event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
@@ -222,48 +236,64 @@ fn show_parameters<'a>(
 }
 
 impl egui::Widget for CommandView<'_, '_, '_> {
-    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+    fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
+        let stripe = match &mut self.stripe {
+            Stripe::Borrowed(reference) => reference,
+            Stripe::Owned(value) => value,
+        };
+
         let mut modified = false;
 
-        let mut response = egui::Frame::new()
-            .show(ui, |ui| {
+        let mut response = ui
+            .with_cross_justify(|ui| {
                 for command in self.commands {
-                    let header = egui::collapsing_header::CollapsingState::load_with_default_open(
-                        ui.ctx(),
-                        egui::Id::new("luminol_command_view").with(&command.guid),
-                        !command.child_commands.is_empty(),
-                    );
+                    ui.with_stripe_mut(stripe, |ui, stripe| {
+                        let header =
+                            egui::collapsing_header::CollapsingState::load_with_default_open(
+                                ui.ctx(),
+                                egui::Id::new("luminol_command_view").with(&command.guid),
+                                !command.child_commands.is_empty(),
+                            );
 
-                    let maybe_editor = command
-                        .matches_schema
-                        .then(|| EDITORS.get(&command.code))
-                        .flatten();
+                        let maybe_editor = command
+                            .matches_schema
+                            .then(|| EDITORS.get(&command.code))
+                            .flatten();
 
-                    let header_response = header.show_header(ui, |ui| {
-                        if let Some(editor) = maybe_editor {
-                            ui.label(format!("{} {}", command.code, editor.name(command)));
-                        } else {
-                            ui.label(format!("{} Custom Command", command.code));
-                        }
-                    });
+                        let layout = *ui.layout();
+                        let header_response = header.show_header(ui, |ui| {
+                            ui.with_layout(layout, |ui| {
+                                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
 
-                    header_response.body(|ui| {
-                        if let Some(editor) = maybe_editor {
-                            ui.push_id(command.code, |ui| {
-                                modified |= editor
-                                    .ui(ui, self.update_state, self.event_info, command)
-                                    .changed();
+                                if let Some(editor) = maybe_editor {
+                                    ui.label(format!("{} {}", command.code, editor.name(command)));
+                                } else {
+                                    ui.label(format!("{} Custom Command", command.code));
+                                }
                             });
-                        } else {
-                            modified |= show_parameters(ui, command.parameters.iter_mut());
-                            modified |= ui
-                                .add(CommandView::new(
-                                    self.update_state,
-                                    self.event_info,
-                                    &mut command.child_commands,
-                                ))
-                                .changed();
-                        }
+                        });
+
+                        header_response.body(|ui| {
+                            if let Some(editor) = maybe_editor {
+                                ui.push_id(command.code, |ui| {
+                                    modified |= editor
+                                        .ui(ui, stripe, self.update_state, self.event_info, command)
+                                        .changed();
+                                });
+                            } else {
+                                modified |= show_parameters(ui, command.parameters.iter_mut());
+                                modified |= ui
+                                    .add(
+                                        CommandView::new(
+                                            self.update_state,
+                                            self.event_info,
+                                            &mut command.child_commands,
+                                        )
+                                        .with_stripe(stripe),
+                                    )
+                                    .changed();
+                            }
+                        });
                     });
                 }
             })

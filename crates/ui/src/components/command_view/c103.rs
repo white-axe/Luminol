@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
+use super::{EventCommand, EventCommandEditor, EventInfo, UiExt, UpdateState};
 use crate::components::OptionalIdComboBox;
 
 pub(super) struct Editor;
@@ -35,6 +35,7 @@ impl EventCommandEditor for Editor {
     fn ui(
         &self,
         ui: &mut egui::Ui,
+        stripe: &mut bool,
         update_state: &mut UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
@@ -43,8 +44,8 @@ impl EventCommandEditor for Editor {
 
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                let variable = command.parameters[0].as_integer_mut().unwrap();
-                {
+                ui.with_stripe_mut(stripe, |ui, _stripe| {
+                    let variable = command.parameters[0].as_integer_mut().unwrap();
                     let system = update_state.data.system();
                     modified |= ui
                         .add(OptionalIdComboBox::new(
@@ -59,16 +60,17 @@ impl EventCommandEditor for Editor {
                             },
                         ))
                         .changed();
-                };
+                });
 
-                ui.label("Digits");
-
-                modified |= ui
-                    .add(
-                        egui::DragValue::new(command.parameters[1].as_integer_mut().unwrap())
-                            .range(1..=i32::MAX),
-                    )
-                    .changed();
+                ui.with_stripe_mut(stripe, |ui, _stripe| {
+                    ui.label("Digits");
+                    modified |= ui
+                        .add(
+                            egui::DragValue::new(command.parameters[1].as_integer_mut().unwrap())
+                                .range(1..=i32::MAX),
+                        )
+                        .changed();
+                });
             })
             .response;
 

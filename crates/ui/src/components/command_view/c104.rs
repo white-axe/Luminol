@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
+use super::{EventCommand, EventCommandEditor, EventInfo, UiExt, UpdateState};
 use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
@@ -61,6 +61,7 @@ impl EventCommandEditor for Editor {
     fn ui(
         &self,
         ui: &mut egui::Ui,
+        stripe: &mut bool,
         _update_state: &mut UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
@@ -69,27 +70,29 @@ impl EventCommandEditor for Editor {
 
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                ui.label("Position");
+                ui.with_stripe_mut(stripe, |ui, _stripe| {
+                    ui.label("Position");
+                    let position = command.parameters[0].as_integer_mut().unwrap();
+                    modified |= ui
+                        .add(EnumComboBox::new_with_conversion(
+                            PhantomData::<Position>,
+                            "position",
+                            position,
+                        ))
+                        .changed();
+                });
 
-                let position = command.parameters[0].as_integer_mut().unwrap();
-                modified |= ui
-                    .add(EnumComboBox::new_with_conversion(
-                        PhantomData::<Position>,
-                        "position",
-                        position,
-                    ))
-                    .changed();
-
-                ui.label("Frame");
-
-                let frame = command.parameters[1].as_integer_mut().unwrap();
-                modified |= ui
-                    .add(EnumComboBox::new_with_conversion(
-                        PhantomData::<Frame>,
-                        "frame",
-                        frame,
-                    ))
-                    .changed();
+                ui.with_stripe_mut(stripe, |ui, _stripe| {
+                    ui.label("Frame");
+                    let frame = command.parameters[1].as_integer_mut().unwrap();
+                    modified |= ui
+                        .add(EnumComboBox::new_with_conversion(
+                            PhantomData::<Frame>,
+                            "frame",
+                            frame,
+                        ))
+                        .changed();
+                });
             })
             .response;
 

@@ -22,7 +22,9 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use crate::components::{CommandView, EnumComboBox, EnumMenuButton, EnumRadioList, EventInfo};
+use crate::components::{
+    CommandView, EnumComboBox, EnumMenuButton, EnumRadioList, EventInfo, UiExt,
+};
 use crate::modals::{
     database_modal::{SwitchModal, VariableModal},
     graphic_picker::event::Modal as GraphicPicker,
@@ -301,17 +303,19 @@ impl luminol_core::Window for Window {
                     });
                 });
 
-                modified |= ui
-                    .add(CommandView::new(
-                        update_state,
-                        Some(&EventInfo {
-                            map_id: self.map_id,
-                            event_id: self.event_id,
-                            event_name: &event.name,
-                        }),
-                        &mut page.list.commands,
-                    ))
-                    .changed();
+                ui.with_cross_justify(|ui| {
+                    modified |= ui
+                        .add(CommandView::new(
+                            update_state,
+                            Some(&EventInfo {
+                                map_id: self.map_id,
+                                event_id: self.event_id,
+                                event_name: &event.name,
+                            }),
+                            &mut page.list.commands,
+                        ))
+                        .changed();
+                });
             });
 
         if graphic_modified {

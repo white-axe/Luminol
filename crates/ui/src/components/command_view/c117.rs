@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
+use super::{EventCommand, EventCommandEditor, EventInfo, UiExt, UpdateState};
 use crate::components::OptionalIdComboBox;
 
 pub(super) struct Editor;
@@ -35,34 +35,30 @@ impl EventCommandEditor for Editor {
     fn ui(
         &self,
         ui: &mut egui::Ui,
+        stripe: &mut bool,
         update_state: &mut UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
     ) -> egui::Response {
         let mut modified = false;
 
-        let mut response = egui::Frame::NONE
-            .show(ui, |ui| {
+        let mut response = ui
+            .with_stripe_mut(stripe, |ui, _stripe| {
                 let common_event = command.parameters[0].as_integer_mut().unwrap();
-                {
-                    let common_events = update_state.data.common_events();
-                    modified |= ui
-                        .add(OptionalIdComboBox::new(
-                            update_state,
-                            "common event",
-                            common_event,
-                            1..=common_events.data.len(),
-                            |id| {
-                                id.checked_sub(1)
-                                    .and_then(|id| common_events.data.get(id))
-                                    .map_or_else(
-                                        || "".into(),
-                                        |x| format!("{:0>4}: {}", id, x.name),
-                                    )
-                            },
-                        ))
-                        .changed();
-                };
+                let common_events = update_state.data.common_events();
+                modified |= ui
+                    .add(OptionalIdComboBox::new(
+                        update_state,
+                        "common event",
+                        common_event,
+                        1..=common_events.data.len(),
+                        |id| {
+                            id.checked_sub(1)
+                                .and_then(|id| common_events.data.get(id))
+                                .map_or_else(|| "".into(), |x| format!("{:0>4}: {}", id, x.name))
+                        },
+                    ))
+                    .changed();
             })
             .response;
 

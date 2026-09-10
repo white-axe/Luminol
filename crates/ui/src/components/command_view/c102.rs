@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
+use super::{EventCommand, EventCommandEditor, EventInfo, UiExt, UpdateState};
 
 pub(super) struct Editor;
 
@@ -34,6 +34,7 @@ impl EventCommandEditor for Editor {
     fn ui(
         &self,
         ui: &mut egui::Ui,
+        stripe: &mut bool,
         update_state: &mut UpdateState<'_>,
         event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
@@ -63,46 +64,47 @@ impl EventCommandEditor for Editor {
                 let num_choices = choices.len();
 
                 for (choice_index, choice) in choices.iter_mut().enumerate() {
-                    ui.label(format!("Choice {}", choice_index + 1));
+                    ui.with_stripe_mut(stripe, |ui, stripe| {
+                        ui.label(format!("Choice {}", choice_index + 1));
+                        modified |= ui
+                            .text_edit_singleline(choice.as_string_mut().unwrap())
+                            .changed();
 
-                    modified |= ui
-                        .text_edit_singleline(choice.as_string_mut().unwrap())
-                        .changed();
-
-                    let mut choice_commands_fallback = Vec::new();
-                    let choice_commands = choice_map.get(&(choice_index as _)).map_or(
-                        &mut choice_commands_fallback,
-                        |&sibling_index| {
-                            &mut command.sibling_commands[sibling_index].child_commands
-                        },
-                    );
-                    modified |= ui
-                        .add(super::CommandView::new(
-                            update_state,
-                            event_info,
-                            choice_commands,
-                        ))
-                        .changed();
+                        let mut choice_commands_fallback = Vec::new();
+                        let choice_commands = choice_map.get(&(choice_index as _)).map_or(
+                            &mut choice_commands_fallback,
+                            |&sibling_index| {
+                                &mut command.sibling_commands[sibling_index].child_commands
+                            },
+                        );
+                        modified |= ui
+                            .add(
+                                super::CommandView::new(update_state, event_info, choice_commands)
+                                    .with_stripe(stripe),
+                            )
+                            .changed();
+                    });
                 }
 
                 let cancel_type = *command.parameters[1].as_integer().unwrap();
                 if cancel_type > 0 && (cancel_type - 1) as usize >= num_choices {
-                    ui.label("Cancel");
+                    ui.with_stripe_mut(stripe, |ui, stripe| {
+                        ui.label("Cancel");
 
-                    let mut cancel_commands_fallback = Vec::new();
-                    let cancel_commands = choice_map.get(&(cancel_type - 1)).map_or(
-                        &mut cancel_commands_fallback,
-                        |&sibling_index| {
-                            &mut command.sibling_commands[sibling_index].child_commands
-                        },
-                    );
-                    modified |= ui
-                        .add(super::CommandView::new(
-                            update_state,
-                            event_info,
-                            cancel_commands,
-                        ))
-                        .changed();
+                        let mut cancel_commands_fallback = Vec::new();
+                        let cancel_commands = choice_map.get(&(cancel_type - 1)).map_or(
+                            &mut cancel_commands_fallback,
+                            |&sibling_index| {
+                                &mut command.sibling_commands[sibling_index].child_commands
+                            },
+                        );
+                        modified |= ui
+                            .add(
+                                super::CommandView::new(update_state, event_info, cancel_commands)
+                                    .with_stripe(stripe),
+                            )
+                            .changed();
+                    });
                 }
             })
             .response;

@@ -38,6 +38,7 @@ impl EventCommandEditor for Editor {
     fn ui(
         &self,
         ui: &mut egui::Ui,
+        _stripe: &mut bool,
         _update_state: &mut UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
@@ -58,34 +59,33 @@ impl EventCommandEditor for Editor {
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
                 modified |= ui.text_edit_multiline(text).changed();
-
-                if modified {
-                    for (i, line) in text.split('\n').enumerate() {
-                        line.clone_into(if i == 0 {
-                            command.parameters[0].as_string_mut().unwrap()
-                        } else {
-                            let sibling =
-                                if let Some(sibling) = command.sibling_commands.get_mut(i - 1) {
-                                    sibling
-                                } else {
-                                    command.sibling_commands.push(Default::default());
-                                    let sibling = command.sibling_commands.last_mut().unwrap();
-                                    sibling.code = self.continuation_code;
-                                    sibling
-                                        .parameters
-                                        .push(ParameterType::String(Default::default()));
-                                    sibling
-                                };
-                            sibling.parameters[0].as_string_mut().unwrap()
-                        });
-                    }
-
-                    command
-                        .sibling_commands
-                        .truncate(text.matches('\n').count());
-                }
             })
             .response;
+
+        if modified {
+            for (i, line) in text.split('\n').enumerate() {
+                line.clone_into(if i == 0 {
+                    command.parameters[0].as_string_mut().unwrap()
+                } else {
+                    let sibling = if let Some(sibling) = command.sibling_commands.get_mut(i - 1) {
+                        sibling
+                    } else {
+                        command.sibling_commands.push(Default::default());
+                        let sibling = command.sibling_commands.last_mut().unwrap();
+                        sibling.code = self.continuation_code;
+                        sibling
+                            .parameters
+                            .push(ParameterType::String(Default::default()));
+                        sibling
+                    };
+                    sibling.parameters[0].as_string_mut().unwrap()
+                });
+            }
+
+            command
+                .sibling_commands
+                .truncate(text.matches('\n').count());
+        }
 
         if modified {
             response.mark_changed();
