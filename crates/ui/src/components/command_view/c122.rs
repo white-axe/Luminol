@@ -34,17 +34,17 @@ use std::marker::PhantomData;
 )]
 #[repr(i32)]
 pub enum Operation {
-    #[strum(to_string = "Set variable to operand")]
+    #[strum(to_string = "Set")]
     Set = 0,
-    #[strum(to_string = "Add operand to variable")]
+    #[strum(to_string = "Add")]
     Add = 1,
-    #[strum(to_string = "Subtract operand from variable")]
+    #[strum(to_string = "Subtract")]
     Sub = 2,
-    #[strum(to_string = "Multiply variable by operand")]
+    #[strum(to_string = "Multiply")]
     Mul = 3,
-    #[strum(to_string = "Divide variable by operand")]
+    #[strum(to_string = "Divide")]
     Div = 4,
-    #[strum(to_string = "Variable modulo operand")]
+    #[strum(to_string = "Modulo")]
     Mod = 5,
 }
 
