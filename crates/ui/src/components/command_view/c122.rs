@@ -71,7 +71,7 @@ pub enum OperandType {
     #[strum(to_string = "Character")]
     Character = 6,
     #[strum(to_string = "Current map ID")]
-    MapId = (0 << 32) | 7,
+    MapId = 7,
     #[strum(to_string = "Number of party members")]
     PartyMembers = (1 << 32) | 7,
     #[strum(to_string = "Party's gold")]
