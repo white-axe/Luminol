@@ -41,17 +41,17 @@ enum Stripe<'a> {
     Owned(bool),
 }
 
-pub struct CommandView<'this, 'update_state, 'event_info> {
+pub struct CommandView<'this, 'update_state> {
     stripe: Stripe<'this>,
     update_state: &'this mut UpdateState<'update_state>,
-    event_info: Option<&'this EventInfo<'event_info>>,
+    event_info: Option<&'this EventInfo<'this>>,
     commands: &'this mut Vec<EventCommand>,
 }
 
-impl<'this, 'update_state, 'event_info> CommandView<'this, 'update_state, 'event_info> {
+impl<'this, 'update_state> CommandView<'this, 'update_state> {
     pub fn new(
         update_state: &'this mut UpdateState<'update_state>,
-        event_info: Option<&'this EventInfo<'event_info>>,
+        event_info: Option<&'this EventInfo<'this>>,
         commands: &'this mut Vec<EventCommand>,
     ) -> Self {
         Self {
@@ -235,7 +235,7 @@ fn show_parameters<'a>(
     modified
 }
 
-impl egui::Widget for CommandView<'_, '_, '_> {
+impl egui::Widget for CommandView<'_, '_> {
     fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
         let stripe = match &mut self.stripe {
             Stripe::Borrowed(reference) => reference,
