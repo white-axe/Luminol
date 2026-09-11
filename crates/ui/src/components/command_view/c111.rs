@@ -321,10 +321,20 @@ impl EventCommandEditor for Editor {
                     );
                     let layout = *ui.layout();
                     let header_response = header.show_header(ui, |ui| {
-                        ui.with_layout(layout, |ui| {
-                            ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
-                            ui.label("Condition");
-                        });
+                        ui.with_layout(
+                            egui::Layout {
+                                main_dir: egui::Direction::LeftToRight,
+                                main_wrap: false,
+                                main_align: egui::Align::Min,
+                                main_justify: layout.cross_justify,
+                                cross_align: egui::Align::Center,
+                                cross_justify: layout.main_justify,
+                            },
+                            |ui| {
+                                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+                                ui.label("Condition");
+                            },
+                        );
                     });
                     header_response.body(|ui| {
                         ui.label("Condition type");
@@ -955,10 +965,20 @@ impl EventCommandEditor for Editor {
                     );
                     let layout = *ui.layout();
                     let header_response = header.show_header(ui, |ui| {
-                        ui.with_layout(layout, |ui| {
-                            ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
-                            ui.label("If condition is true");
-                        });
+                        ui.with_layout(
+                            egui::Layout {
+                                main_dir: egui::Direction::LeftToRight,
+                                main_wrap: false,
+                                main_align: egui::Align::Min,
+                                main_justify: layout.cross_justify,
+                                cross_align: egui::Align::Center,
+                                cross_justify: layout.main_justify,
+                            },
+                            |ui| {
+                                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+                                ui.label("If condition is true");
+                            },
+                        );
                     });
                     header_response.body(|ui| {
                         modified |= ui
@@ -982,10 +1002,20 @@ impl EventCommandEditor for Editor {
                     );
                     let layout = *ui.layout();
                     let header_response = header.show_header(ui, |ui| {
-                        ui.with_layout(layout, |ui| {
-                            ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
-                            ui.label("If condition is false");
-                        });
+                        ui.with_layout(
+                            egui::Layout {
+                                main_dir: egui::Direction::LeftToRight,
+                                main_wrap: false,
+                                main_align: egui::Align::Min,
+                                main_justify: layout.cross_justify,
+                                cross_align: egui::Align::Center,
+                                cross_justify: layout.main_justify,
+                            },
+                            |ui| {
+                                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+                                ui.label("If condition is false");
+                            },
+                        );
                     });
                     header_response.body(|ui| {
                         let mut if_false_fallback = Vec::new();

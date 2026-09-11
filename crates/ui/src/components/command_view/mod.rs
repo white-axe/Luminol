@@ -273,15 +273,29 @@ impl egui::Widget for CommandView<'_, '_> {
 
                         let layout = *ui.layout();
                         let header_response = header.show_header(ui, |ui| {
-                            ui.with_layout(layout, |ui| {
-                                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+                            ui.with_layout(
+                                egui::Layout {
+                                    main_dir: egui::Direction::LeftToRight,
+                                    main_wrap: false,
+                                    main_align: egui::Align::Min,
+                                    main_justify: layout.cross_justify,
+                                    cross_align: egui::Align::Center,
+                                    cross_justify: layout.main_justify,
+                                },
+                                |ui| {
+                                    ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
 
-                                if let Some(editor) = maybe_editor {
-                                    ui.label(format!("{} {}", command.code, editor.name(command)));
-                                } else {
-                                    ui.label(format!("{} Custom Command", command.code));
-                                }
-                            });
+                                    if let Some(editor) = maybe_editor {
+                                        ui.label(format!(
+                                            "{} {}",
+                                            command.code,
+                                            editor.name(command)
+                                        ));
+                                    } else {
+                                        ui.label(format!("{} Custom Command", command.code));
+                                    }
+                                },
+                            );
                         });
 
                         header_response.body(|ui| {
