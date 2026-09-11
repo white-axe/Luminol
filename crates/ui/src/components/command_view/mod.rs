@@ -221,13 +221,13 @@ impl<'a> Collapsing<'a> {
 /// Returns whether or not at least one parameter was modified.
 fn show_parameters<'a>(
     ui: &mut egui::Ui,
-    parameters: impl Iterator<Item = &'a mut luminol_data::ParameterType>,
+    parameters: impl Iterator<Item = &'a mut ParameterType>,
 ) -> bool {
     let mut modified = false;
 
     for (i, parameter) in parameters.enumerate() {
         match parameter {
-            luminol_data::ParameterType::Array(value) => {
+            ParameterType::Array(value) => {
                 show_parameter_label(ui, i, "array");
                 Collapsing::new(ui)
                     .id_salt((i, "array"))
@@ -239,30 +239,30 @@ fn show_parameters<'a>(
                         modified |= show_parameters(ui, value.iter_mut());
                     });
             }
-            luminol_data::ParameterType::None => {
+            ParameterType::None => {
                 show_parameter_label(ui, i, "nil");
             }
-            luminol_data::ParameterType::Bool(value) => {
+            ParameterType::Bool(value) => {
                 show_parameter_label(ui, i, "boolean");
                 modified |= ui.checkbox(value, ()).changed();
             }
-            luminol_data::ParameterType::Integer(value) => {
+            ParameterType::Integer(value) => {
                 show_parameter_label(ui, i, "integer");
                 modified |= ui.add(egui::DragValue::new(value)).changed();
             }
-            luminol_data::ParameterType::Float(value) => {
+            ParameterType::Float(value) => {
                 show_parameter_label(ui, i, "float");
                 modified |= ui.add(egui::DragValue::new(value)).changed();
             }
-            luminol_data::ParameterType::String(value) => {
+            ParameterType::String(value) => {
                 show_parameter_label(ui, i, "string");
                 modified |= ui.text_edit_multiline(value).changed();
             }
-            luminol_data::ParameterType::Symbol(value) => {
+            ParameterType::Symbol(value) => {
                 show_parameter_label(ui, i, "symbol");
                 modified |= ui.text_edit_multiline(value).changed();
             }
-            luminol_data::ParameterType::Color(value) => {
+            ParameterType::Color(value) => {
                 show_parameter_label(ui, i, "color");
                 let mut color = [
                     value.red.clamp(0., 255.) as u8,
@@ -283,16 +283,16 @@ fn show_parameters<'a>(
                     );
                 }
             }
-            luminol_data::ParameterType::Tone(_value) => {
+            ParameterType::Tone(_value) => {
                 show_parameter_label(ui, i, "tone");
             }
-            luminol_data::ParameterType::AudioFile(_value) => {
+            ParameterType::AudioFile(_value) => {
                 show_parameter_label(ui, i, "audio file");
             }
-            luminol_data::ParameterType::MoveRoute(_value) => {
+            ParameterType::MoveRoute(_value) => {
                 show_parameter_label(ui, i, "move route");
             }
-            luminol_data::ParameterType::MoveCommand(_value) => {
+            ParameterType::MoveCommand(_value) => {
                 show_parameter_label(ui, i, "move command");
             }
         }
