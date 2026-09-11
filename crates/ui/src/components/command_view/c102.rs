@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
+use super::{Collapsing, EventCommand, EventCommandEditor, EventInfo, UpdateState};
 
 pub(super) struct Editor;
 
@@ -68,49 +68,34 @@ impl EventCommandEditor for Editor {
                 let num_choices = choices.len();
 
                 for (choice_index, choice) in choices.iter_mut().enumerate() {
-                    let header = egui::collapsing_header::CollapsingState::load_with_default_open(
-                        ui.ctx(),
-                        ui.id().with(choice_index),
-                        true,
-                    );
+                    Collapsing::new(ui)
+                        .id_salt(choice_index)
+                        .show_header(|ui| {
+                            ui.label(format!("Choice {}", choice_index + 1));
+                        })
+                        .body(|ui| {
+                            modified |= ui
+                                .text_edit_singleline(choice.as_string_mut().unwrap())
+                                .changed();
 
-                    let layout = *ui.layout();
-                    let header_response = header.show_header(ui, |ui| {
-                        ui.with_layout(
-                            egui::Layout {
-                                main_dir: egui::Direction::LeftToRight,
-                                main_wrap: false,
-                                main_align: egui::Align::Min,
-                                main_justify: layout.cross_justify,
-                                cross_align: egui::Align::Center,
-                                cross_justify: layout.main_justify,
-                            },
-                            |ui| {
-                                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
-                                ui.label(format!("Choice {}", choice_index + 1));
-                            },
-                        );
-                    });
-
-                    header_response.body(|ui| {
-                        modified |= ui
-                            .text_edit_singleline(choice.as_string_mut().unwrap())
-                            .changed();
-
-                        let mut choice_commands_fallback = Vec::new();
-                        let choice_commands = choice_map.get(&(choice_index as _)).map_or(
-                            &mut choice_commands_fallback,
-                            |&sibling_index| {
-                                &mut command.sibling_commands[sibling_index].child_commands
-                            },
-                        );
-                        modified |= ui
-                            .add(
-                                super::CommandView::new(update_state, event_info, choice_commands)
+                            let mut choice_commands_fallback = Vec::new();
+                            let choice_commands = choice_map.get(&(choice_index as _)).map_or(
+                                &mut choice_commands_fallback,
+                                |&sibling_index| {
+                                    &mut command.sibling_commands[sibling_index].child_commands
+                                },
+                            );
+                            modified |= ui
+                                .add(
+                                    super::CommandView::new(
+                                        update_state,
+                                        event_info,
+                                        choice_commands,
+                                    )
                                     .with_stripe(stripe),
-                            )
-                            .changed();
-                    });
+                                )
+                                .changed();
+                        });
                 }
 
                 let cancel_type = *command.parameters[1].as_integer().unwrap();

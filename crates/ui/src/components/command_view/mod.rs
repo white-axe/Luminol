@@ -157,6 +157,67 @@ fn show_parameter_label(ui: &mut egui::Ui, index: usize, type_name: &str) {
     ui.label(format!("Parameter {index} ({type_name})"));
 }
 
+struct Collapsing<'a> {
+    ui: &'a mut egui::Ui,
+    id: egui::Id,
+    layout: egui::Layout,
+    expand_by_default: bool,
+}
+
+impl<'a> Collapsing<'a> {
+    fn new(ui: &'a mut egui::Ui) -> Self {
+        Self {
+            layout: *ui.layout(),
+            id: ui.id(),
+            ui,
+            expand_by_default: true,
+        }
+    }
+
+    fn id(mut self, id: egui::Id) -> Self {
+        self.id = id;
+        self
+    }
+
+    fn id_salt(mut self, id_salt: impl std::hash::Hash) -> Self {
+        self.id = self.id.with(id_salt);
+        self
+    }
+
+    fn expand_by_default(mut self, expand_by_default: bool) -> Self {
+        self.expand_by_default = expand_by_default;
+        self
+    }
+
+    fn show_header<R>(
+        self,
+        f: impl FnOnce(&mut egui::Ui) -> R,
+    ) -> egui::collapsing_header::HeaderResponse<'a, R> {
+        egui::collapsing_header::CollapsingState::load_with_default_open(
+            self.ui.ctx(),
+            self.id,
+            self.expand_by_default,
+        )
+        .show_header(self.ui, |ui| {
+            ui.with_layout(
+                egui::Layout {
+                    main_dir: egui::Direction::LeftToRight,
+                    main_wrap: false,
+                    main_align: egui::Align::Min,
+                    main_justify: self.layout.cross_justify,
+                    cross_align: egui::Align::Center,
+                    cross_justify: self.layout.main_justify,
+                },
+                |ui| {
+                    ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+                    f(ui)
+                },
+            )
+            .inner
+        })
+    }
+}
+
 /// Returns whether or not at least one parameter was modified.
 fn show_parameters<'a>(
     ui: &mut egui::Ui,
@@ -168,17 +229,15 @@ fn show_parameters<'a>(
         match parameter {
             luminol_data::ParameterType::Array(value) => {
                 show_parameter_label(ui, i, "array");
-                let header = egui::collapsing_header::CollapsingState::load_with_default_open(
-                    ui.ctx(),
-                    ui.id().with((i, "array")),
-                    false,
-                );
-                let header_response = header.show_header(ui, |ui| {
-                    ui.label("Contents");
-                });
-                header_response.body(|ui| {
-                    modified |= show_parameters(ui, value.iter_mut());
-                });
+                Collapsing::new(ui)
+                    .id_salt((i, "array"))
+                    .expand_by_default(false)
+                    .show_header(|ui| {
+                        ui.label("Contents");
+                    })
+                    .body(|ui| {
+                        modified |= show_parameters(ui, value.iter_mut());
+                    });
             }
             luminol_data::ParameterType::None => {
                 show_parameter_label(ui, i, "nil");
@@ -260,65 +319,47 @@ impl egui::Widget for CommandView<'_, '_> {
                             .then(|| EDITORS.get(&command.code))
                             .flatten();
 
-                        let header =
-                            egui::collapsing_header::CollapsingState::load_with_default_open(
-                                ui.ctx(),
-                                egui::Id::new("luminol_command_view").with(&command.guid),
-                                if let Some(editor) = maybe_editor {
-                                    editor.expand_by_default()
-                                } else {
-                                    !command.child_commands.is_empty()
-                                },
-                            );
-
-                        let layout = *ui.layout();
-                        let header_response = header.show_header(ui, |ui| {
-                            ui.with_layout(
-                                egui::Layout {
-                                    main_dir: egui::Direction::LeftToRight,
-                                    main_wrap: false,
-                                    main_align: egui::Align::Min,
-                                    main_justify: layout.cross_justify,
-                                    cross_align: egui::Align::Center,
-                                    cross_justify: layout.main_justify,
-                                },
-                                |ui| {
-                                    ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
-
-                                    if let Some(editor) = maybe_editor {
-                                        ui.label(format!(
-                                            "{} {}",
-                                            command.code,
-                                            editor.name(command)
-                                        ));
-                                    } else {
-                                        ui.label(format!("{} Custom Command", command.code));
-                                    }
-                                },
-                            );
-                        });
-
-                        header_response.body(|ui| {
-                            if let Some(editor) = maybe_editor {
-                                ui.push_id(command.code, |ui| {
-                                    modified |= editor
-                                        .ui(ui, stripe, self.update_state, self.event_info, command)
-                                        .changed();
-                                });
+                        Collapsing::new(ui)
+                            .id(egui::Id::new("luminol_command_view").with(&command.guid))
+                            .expand_by_default(if let Some(editor) = maybe_editor {
+                                editor.expand_by_default()
                             } else {
-                                modified |= show_parameters(ui, command.parameters.iter_mut());
-                                modified |= ui
-                                    .add(
-                                        CommandView::new(
-                                            self.update_state,
-                                            self.event_info,
-                                            &mut command.child_commands,
+                                !command.child_commands.is_empty()
+                            })
+                            .show_header(|ui| {
+                                if let Some(editor) = maybe_editor {
+                                    ui.label(format!("{} {}", command.code, editor.name(command)));
+                                } else {
+                                    ui.label(format!("{} Custom Command", command.code));
+                                }
+                            })
+                            .body(|ui| {
+                                if let Some(editor) = maybe_editor {
+                                    ui.push_id(command.code, |ui| {
+                                        modified |= editor
+                                            .ui(
+                                                ui,
+                                                stripe,
+                                                self.update_state,
+                                                self.event_info,
+                                                command,
+                                            )
+                                            .changed();
+                                    });
+                                } else {
+                                    modified |= show_parameters(ui, command.parameters.iter_mut());
+                                    modified |= ui
+                                        .add(
+                                            CommandView::new(
+                                                self.update_state,
+                                                self.event_info,
+                                                &mut command.child_commands,
+                                            )
+                                            .with_stripe(stripe),
                                         )
-                                        .with_stripe(stripe),
-                                    )
-                                    .changed();
-                            }
-                        });
+                                        .changed();
+                                }
+                            });
                     });
                 }
             })
