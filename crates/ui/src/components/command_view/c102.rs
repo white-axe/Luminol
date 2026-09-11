@@ -64,25 +64,39 @@ impl EventCommandEditor for Editor {
                 let num_choices = choices.len();
 
                 for (choice_index, choice) in choices.iter_mut().enumerate() {
-                    ui.label(format!("Choice {}", choice_index + 1));
-
-                    modified |= ui
-                        .text_edit_singleline(choice.as_string_mut().unwrap())
-                        .changed();
-
-                    let mut choice_commands_fallback = Vec::new();
-                    let choice_commands = choice_map.get(&(choice_index as _)).map_or(
-                        &mut choice_commands_fallback,
-                        |&sibling_index| {
-                            &mut command.sibling_commands[sibling_index].child_commands
-                        },
+                    let header = egui::collapsing_header::CollapsingState::load_with_default_open(
+                        ui.ctx(),
+                        ui.id().with(choice_index),
+                        true,
                     );
-                    modified |= ui
-                        .add(
-                            super::CommandView::new(update_state, event_info, choice_commands)
-                                .with_stripe(stripe),
-                        )
-                        .changed();
+
+                    let layout = *ui.layout();
+                    let header_response = header.show_header(ui, |ui| {
+                        ui.with_layout(layout, |ui| {
+                            ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+                            ui.label(format!("Choice {}", choice_index + 1));
+                        });
+                    });
+
+                    header_response.body(|ui| {
+                        modified |= ui
+                            .text_edit_singleline(choice.as_string_mut().unwrap())
+                            .changed();
+
+                        let mut choice_commands_fallback = Vec::new();
+                        let choice_commands = choice_map.get(&(choice_index as _)).map_or(
+                            &mut choice_commands_fallback,
+                            |&sibling_index| {
+                                &mut command.sibling_commands[sibling_index].child_commands
+                            },
+                        );
+                        modified |= ui
+                            .add(
+                                super::CommandView::new(update_state, event_info, choice_commands)
+                                    .with_stripe(stripe),
+                            )
+                            .changed();
+                    });
                 }
 
                 let cancel_type = *command.parameters[1].as_integer().unwrap();
