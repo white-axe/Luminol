@@ -594,7 +594,8 @@ impl EventCommandEditor for Editor {
                                     usize::try_from(id)
                                         .ok()
                                         .and_then(|id| map.events.get(id))
-                                        .map_or_default(|data| data.name.as_str())
+                                        .map(|data| data.name.as_str())
+                                        .unwrap_or_default()
                                 };
                             format!("[{id:0>4}: {name}]")
                         } else {

@@ -62,7 +62,8 @@ impl EventCommandEditor for Editor {
                 let start_time = command
                     .parameters
                     .get(1)
-                    .map_or_default(|parameter| *parameter.as_integer().unwrap());
+                    .map(|parameter| *parameter.as_integer().unwrap())
+                    .unwrap_or_default();
                 format!("Start timer at {start_time} frames")
             }
 

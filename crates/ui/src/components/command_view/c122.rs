@@ -254,7 +254,8 @@ impl EventCommandEditor for Editor {
                 let constant = command
                     .parameters
                     .get(4)
-                    .map_or_default(|parameter| *parameter.as_integer().unwrap());
+                    .map(|parameter| *parameter.as_integer().unwrap())
+                    .unwrap_or_default();
                 format!("{variable_string} {constant}")
             }
 
@@ -262,7 +263,8 @@ impl EventCommandEditor for Editor {
                 let variable_id = command
                     .parameters
                     .get(4)
-                    .map_or_default(|parameter| *parameter.as_integer().unwrap());
+                    .map(|parameter| *parameter.as_integer().unwrap())
+                    .unwrap_or_default();
                 let variable_name = variable_id
                     .checked_sub(1)
                     .and_then(|id| usize::try_from(id).ok())
@@ -276,11 +278,13 @@ impl EventCommandEditor for Editor {
                 let random_start = command
                     .parameters
                     .get(4)
-                    .map_or_default(|parameter| *parameter.as_integer().unwrap());
+                    .map(|parameter| *parameter.as_integer().unwrap())
+                    .unwrap_or_default();
                 let random_end = command
                     .parameters
                     .get(5)
-                    .map_or_default(|parameter| *parameter.as_integer().unwrap());
+                    .map(|parameter| *parameter.as_integer().unwrap())
+                    .unwrap_or_default();
                 format!("{variable_string} random in range {random_start} - {random_end}")
             }
 
@@ -288,7 +292,8 @@ impl EventCommandEditor for Editor {
                 let item_id = command
                     .parameters
                     .get(4)
-                    .map_or_default(|parameter| *parameter.as_integer().unwrap());
+                    .map(|parameter| *parameter.as_integer().unwrap())
+                    .unwrap_or_default();
                 let items = update_state.data.items();
                 let item_name = item_id
                     .checked_sub(1)
@@ -303,7 +308,8 @@ impl EventCommandEditor for Editor {
                 let actor_id = command
                     .parameters
                     .get(4)
-                    .map_or_default(|parameter| *parameter.as_integer().unwrap());
+                    .map(|parameter| *parameter.as_integer().unwrap())
+                    .unwrap_or_default();
                 let actors = update_state.data.actors();
                 let actor_name = actor_id
                     .checked_sub(1)
@@ -314,7 +320,8 @@ impl EventCommandEditor for Editor {
                 let actor_property = match command
                     .parameters
                     .get(5)
-                    .map_or_default(|parameter| *parameter.as_integer().unwrap())
+                    .map(|parameter| *parameter.as_integer().unwrap())
+                    .unwrap_or_default()
                 {
                     0 => "level",
                     1 => "EXP",
@@ -339,12 +346,14 @@ impl EventCommandEditor for Editor {
                 let enemy_index = command
                     .parameters
                     .get(4)
-                    .map_or_default(|parameter| *parameter.as_integer().unwrap())
+                    .map(|parameter| *parameter.as_integer().unwrap())
+                    .unwrap_or_default()
                     .wrapping_add(1);
                 let enemy_property = match command
                     .parameters
                     .get(5)
-                    .map_or_default(|parameter| *parameter.as_integer().unwrap())
+                    .map(|parameter| *parameter.as_integer().unwrap())
+                    .unwrap_or_default()
                 {
                     0 => "HP",
                     1 => "SP",
@@ -367,7 +376,8 @@ impl EventCommandEditor for Editor {
                 let event_id = command
                     .parameters
                     .get(4)
-                    .map_or_default(|parameter| *parameter.as_integer().unwrap());
+                    .map(|parameter| *parameter.as_integer().unwrap())
+                    .unwrap_or_default();
                 let event_string = match event_id {
                     -1 => "Player".into(),
                     0 => "This event".into(),
@@ -382,7 +392,8 @@ impl EventCommandEditor for Editor {
                                 usize::try_from(event_id)
                                     .ok()
                                     .and_then(|id| map.events.get(id))
-                                    .map_or_default(|data| data.name.as_str())
+                                    .map(|data| data.name.as_str())
+                                    .unwrap_or_default()
                             };
                             format!("[{event_id:0>4}: {event_name}]")
                         } else {
@@ -393,7 +404,8 @@ impl EventCommandEditor for Editor {
                 let character_property = match command
                     .parameters
                     .get(5)
-                    .map_or_default(|parameter| *parameter.as_integer().unwrap())
+                    .map(|parameter| *parameter.as_integer().unwrap())
+                    .unwrap_or_default()
                 {
                     0 => "map x-coordinate",
                     1 => "map y-coordinate",
@@ -410,7 +422,8 @@ impl EventCommandEditor for Editor {
                 match command
                     .parameters
                     .get(4)
-                    .map_or_default(|parameter| *parameter.as_integer().unwrap())
+                    .map(|parameter| *parameter.as_integer().unwrap())
+                    .unwrap_or_default()
                 {
                     0 => {
                         format!("{variable_string} Map ID")

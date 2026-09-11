@@ -66,9 +66,11 @@ impl EventCommandEditor for Editor {
         command: &EventCommand,
     ) -> String {
         let position = Position::try_from(*command.parameters[0].as_integer().unwrap())
-            .map_or_default(|value| value.to_string());
+            .map(|value| value.to_string())
+            .unwrap_or_default();
         let frame = Position::try_from(*command.parameters[0].as_integer().unwrap())
-            .map_or_default(|value| value.to_string());
+            .map(|value| value.to_string())
+            .unwrap_or_default();
         format!("{position}, {frame}")
     }
 

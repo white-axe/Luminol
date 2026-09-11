@@ -84,7 +84,8 @@ impl EventCommandEditor for Editor {
                 match command
                     .parameters
                     .get(2)
-                    .map_or_default(|parameter| *parameter.as_integer().unwrap())
+                    .map(|parameter| *parameter.as_integer().unwrap())
+                    .unwrap_or_default()
                 {
                     0 => {
                         format!("Add [{id:0>4}: {name}] to the party")
