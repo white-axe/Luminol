@@ -135,8 +135,8 @@ where
     /// By default, there is no description.
     ///
     /// If the description can be long, for optimization purposes, `callback` can be used to
-    /// determine whether or not the name is short enough to fit in the label where the description
-    /// will be displayed.
+    /// determine whether or not the description is short enough to fit in the UI widget where the
+    /// description will be displayed.
     #[allow(unused_variables)]
     fn description(
         &self,
