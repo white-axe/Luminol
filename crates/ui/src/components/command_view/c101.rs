@@ -22,17 +22,38 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, ParameterType, UpdateState};
+use super::{
+    DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, ParameterType,
+    UpdateState,
+};
 use itertools::Itertools;
 
 pub(super) struct Editor {
     pub continuation_code: u16,
-    pub label: &'static str,
+    pub name: &'static str,
 }
 
 impl EventCommandEditor for Editor {
-    fn name(&self, _command: &EventCommand) -> String {
-        self.label.into()
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn description(
+        &self,
+        callback: DescriptionWidthCallback<'_>,
+        _update_state: &mut UpdateState<'_>,
+        _event_info: Option<&EventInfo<'_>>,
+        command: &EventCommand,
+    ) -> String {
+        callback.exponential_search_segments(itertools::intersperse(
+            std::iter::once(command.parameters[0].as_string().unwrap().as_str()).chain(
+                command
+                    .sibling_commands
+                    .iter()
+                    .map(|sibling| sibling.parameters[0].as_string().unwrap().as_str()),
+            ),
+            " ",
+        ))
     }
 
     fn ui(

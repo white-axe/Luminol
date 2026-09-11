@@ -68,6 +68,54 @@ impl<'this, 'update_state> CommandView<'this, 'update_state> {
     }
 }
 
+struct DescriptionWidthCallback<'a> {
+    ui: &'a egui::Ui,
+    name: &'a str,
+}
+
+impl DescriptionWidthCallback<'_> {
+    /// Returns `true` if the description is too long to fit in the label for this event command
+    /// editor, otherwise `false`.
+    fn is_truncated(&self, description: &str) -> bool {
+        self.ui.text_width(
+            if description.is_empty() {
+                self.name.into()
+            } else {
+                format!("{}: {}", self.name, description)
+            },
+            egui::FontSelection::Default,
+        ) > self.ui.available_width()
+    }
+
+    /// Returns a short prefix of `description_chars` such that `is_truncated` returns `true`.
+    fn exponential_search_chars(
+        &self,
+        description_chars: impl Iterator<Item = char> + Clone,
+    ) -> String {
+        let mut length_in_chars = 16;
+        loop {
+            let text: String = description_chars.clone().take(length_in_chars).collect();
+            if text.chars().count() < length_in_chars || self.is_truncated(&text) {
+                return text;
+            }
+            length_in_chars *= 2;
+        }
+    }
+
+    /// Returns a short prefix of `description_segments` such that `is_truncated` returns `true`.
+    fn exponential_search_segments<'a>(
+        &self,
+        description_segments: impl Iterator<Item = &'a str> + Clone,
+    ) -> String {
+        self.exponential_search_chars(description_segments.flat_map(|segment| segment.chars()))
+    }
+
+    /// Returns a short prefix of `description` such that `is_truncated` returns `true`.
+    fn exponential_search_str(&self, description: &str) -> String {
+        self.exponential_search_chars(description.chars())
+    }
+}
+
 trait EventCommandEditor
 where
     Self: Sync + 'static,
@@ -79,8 +127,26 @@ where
         false
     }
 
-    /// Returns a descriptive name for the given event command.
-    fn name(&self, command: &EventCommand) -> String;
+    /// Returns the name of the event command that this event command editor edits.
+    fn name(&self) -> &'static str;
+
+    /// Returns a description of the given event command.
+    ///
+    /// By default, there is no description.
+    ///
+    /// If the description can be long, for optimization purposes, `callback` can be used to
+    /// determine whether or not the name is short enough to fit in the label where the description
+    /// will be displayed.
+    #[allow(unused_variables)]
+    fn description(
+        &self,
+        callback: DescriptionWidthCallback<'_>,
+        update_state: &mut UpdateState<'_>,
+        event_info: Option<&EventInfo<'_>>,
+        command: &EventCommand,
+    ) -> String {
+        String::new()
+    }
 
     /// Renders the UI for this event command editor.
     ///
@@ -125,13 +191,13 @@ mod c128;
 mod c129;
 
 static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
-    101u16 => &c101::Editor { continuation_code: 401, label: "Show Text" },
+    101u16 => &c101::Editor { continuation_code: 401, name: "Show Text" },
     102u16 => &c102::Editor,
     103u16 => &c103::Editor,
     104u16 => &c104::Editor,
     105u16 => &c105::Editor,
     106u16 => &c106::Editor,
-    108u16 => &c101::Editor { continuation_code: 408, label: "Comment" },
+    108u16 => &c101::Editor { continuation_code: 408, name: "Comment" },
     111u16 => &c111::Editor,
     112u16 => &c112::Editor,
     113u16 => &c113::Editor,
@@ -149,7 +215,7 @@ static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
     127u16 => &c127::Editor,
     128u16 => &c128::Editor,
     129u16 => &c129::Editor,
-    355u16 => &c101::Editor { continuation_code: 655, label: "Script" },
+    355u16 => &c101::Editor { continuation_code: 655, name: "Script" },
 };
 
 fn show_parameter_label(ui: &mut egui::Ui, index: usize, type_name: &str) {
@@ -328,7 +394,19 @@ impl egui::Widget for CommandView<'_, '_> {
                             })
                             .show_header(|ui| {
                                 if let Some(editor) = maybe_editor {
-                                    ui.label(format!("{} {}", command.code, editor.name(command)));
+                                    let code = command.code;
+                                    let name = editor.name();
+                                    let description = editor.description(
+                                        DescriptionWidthCallback { ui, name },
+                                        self.update_state,
+                                        self.event_info,
+                                        command,
+                                    );
+                                    if description.is_empty() {
+                                        ui.label(format!("{code} {name}"));
+                                    } else {
+                                        ui.label(format!("{code} {name}: {description}"));
+                                    }
                                 } else {
                                     ui.label(format!("{} Custom Command", command.code));
                                 }

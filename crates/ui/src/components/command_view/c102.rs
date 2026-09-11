@@ -22,7 +22,9 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{Collapsing, EventCommand, EventCommandEditor, EventInfo, UpdateState};
+use super::{
+    Collapsing, DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, UpdateState,
+};
 
 pub(super) struct Editor;
 
@@ -31,8 +33,25 @@ impl EventCommandEditor for Editor {
         true
     }
 
-    fn name(&self, _command: &EventCommand) -> String {
-        "Show Choices".into()
+    fn name(&self) -> &'static str {
+        "Show Choices"
+    }
+
+    fn description(
+        &self,
+        callback: DescriptionWidthCallback<'_>,
+        _update_state: &mut UpdateState<'_>,
+        _event_info: Option<&EventInfo<'_>>,
+        command: &EventCommand,
+    ) -> String {
+        callback.exponential_search_segments(itertools::intersperse(
+            command.parameters[0]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|choice| choice.as_string().unwrap().as_str()),
+            ", ",
+        ))
     }
 
     fn ui(

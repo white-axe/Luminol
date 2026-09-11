@@ -23,8 +23,8 @@
 // Program grant you additional permission to convey the resulting work.
 
 use super::{
-    Collapsing, CommandView, EventCommand, EventCommandEditor, EventInfo, ParameterType, UiExt,
-    UpdateState,
+    Collapsing, CommandView, DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo,
+    ParameterType, UiExt, UpdateState,
 };
 use crate::components::{EnumComboBox, OptionalIdComboBox};
 use std::marker::PhantomData;
@@ -295,8 +295,421 @@ impl EventCommandEditor for Editor {
         true
     }
 
-    fn name(&self, _command: &EventCommand) -> String {
-        "Conditional Branch".into()
+    fn name(&self) -> &'static str {
+        "Conditional Branch"
+    }
+
+    fn description(
+        &self,
+        callback: DescriptionWidthCallback<'_>,
+        update_state: &mut UpdateState<'_>,
+        event_info: Option<&EventInfo<'_>>,
+        command: &EventCommand,
+    ) -> String {
+        match *command.parameters[0].as_integer().unwrap() {
+            0 => {
+                let id = command
+                    .parameters
+                    .get(1)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default();
+                let system = update_state.data.system();
+                let name = id
+                    .checked_sub(1)
+                    .and_then(|id| usize::try_from(id).ok())
+                    .and_then(|id| system.variables.get(id))
+                    .map(|name| name.as_str())
+                    .unwrap_or_default();
+                let condition = match command
+                    .parameters
+                    .get(2)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default()
+                {
+                    0 => "is on",
+                    1 => "is off",
+                    _ => {
+                        return String::new();
+                    }
+                };
+                format!("[{id:0>4}: {name}] {condition}")
+            }
+
+            1 => {
+                let id = command
+                    .parameters
+                    .get(1)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default();
+                let system = update_state.data.system();
+                let name = id
+                    .checked_sub(1)
+                    .and_then(|id| usize::try_from(id).ok())
+                    .and_then(|id| system.variables.get(id))
+                    .map(|name| name.as_str())
+                    .unwrap_or_default();
+                let condition = match command
+                    .parameters
+                    .get(4)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default()
+                {
+                    0 => "==",
+                    1 => ">=",
+                    2 => "<=",
+                    3 => ">",
+                    4 => "<",
+                    5 => "!=",
+                    _ => {
+                        return String::new();
+                    }
+                };
+                match command
+                    .parameters
+                    .get(2)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default()
+                {
+                    0 => {
+                        let constant = command
+                            .parameters
+                            .get(3)
+                            .and_then(|parameter| parameter.as_integer().copied())
+                            .unwrap_or_default();
+                        format!("[{id:0>4}: {name}] {condition} {constant}")
+                    }
+                    1 => {
+                        let variable_id = command
+                            .parameters
+                            .get(3)
+                            .and_then(|parameter| parameter.as_integer().copied())
+                            .unwrap_or_default();
+                        let variable_name = variable_id
+                            .checked_sub(1)
+                            .and_then(|id| usize::try_from(id).ok())
+                            .and_then(|id| system.variables.get(id))
+                            .map(|name| name.as_str())
+                            .unwrap_or_default();
+                        format!(
+                            "[{id:0>4}: {name}] {condition} [{variable_id:0>4}: {variable_name}]"
+                        )
+                    }
+                    _ => {
+                        return String::new();
+                    }
+                }
+            }
+
+            2 => {
+                let name = command
+                    .parameters
+                    .get(1)
+                    .and_then(|parameter| parameter.as_string())
+                    .map(|parameter| parameter.as_str())
+                    .unwrap_or_default();
+                let condition = match command
+                    .parameters
+                    .get(2)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default()
+                {
+                    0 => "is on",
+                    1 => "is off",
+                    _ => return String::new(),
+                };
+                format!("[{name}] {condition}")
+            }
+
+            3 => {
+                let value = command
+                    .parameters
+                    .get(1)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default();
+                let condition = match command
+                    .parameters
+                    .get(2)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default()
+                {
+                    0 => ">=",
+                    1 => "<=",
+                    _ => {
+                        return String::new();
+                    }
+                };
+                format!("Timer {condition} {value}")
+            }
+
+            4 => {
+                let id = command
+                    .parameters
+                    .get(1)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default();
+                let actors = update_state.data.actors();
+                let name = id
+                    .checked_sub(1)
+                    .and_then(|id| usize::try_from(id).ok())
+                    .and_then(|id| actors.data.get(id))
+                    .map(|data| data.name.as_str())
+                    .unwrap_or_default();
+                match command
+                    .parameters
+                    .get(2)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default()
+                {
+                    0 => format!("[{id:0>4}: {name}] is in the party"),
+
+                    1 => {
+                        let actor_name = command
+                            .parameters
+                            .get(3)
+                            .and_then(|parameter| parameter.as_string())
+                            .map(|parameter| parameter.as_str())
+                            .unwrap_or_default();
+                        format!("[{id:0>4}: {name}] is named {actor_name}")
+                    }
+
+                    2 => {
+                        let skill_id = command
+                            .parameters
+                            .get(3)
+                            .and_then(|parameter| parameter.as_integer().copied())
+                            .unwrap_or_default();
+                        let skills = update_state.data.skills();
+                        let skill_name = skill_id
+                            .checked_sub(1)
+                            .and_then(|id| usize::try_from(id).ok())
+                            .and_then(|id| skills.data.get(id))
+                            .map(|data| data.name.as_str())
+                            .unwrap_or_default();
+                        format!("[{id:0>4}: {name}] knows [{skill_id:0>4}: {skill_name}]")
+                    }
+
+                    3 => {
+                        let weapon_id = command
+                            .parameters
+                            .get(3)
+                            .and_then(|parameter| parameter.as_integer().copied())
+                            .unwrap_or_default();
+                        let weapons = update_state.data.weapons();
+                        let weapon_name = weapon_id
+                            .checked_sub(1)
+                            .and_then(|id| usize::try_from(id).ok())
+                            .and_then(|id| weapons.data.get(id))
+                            .map(|data| data.name.as_str())
+                            .unwrap_or_default();
+                        format!("[{id:0>4}: {name}] is holding [{weapon_id:0>4}: {weapon_name}]")
+                    }
+
+                    4 => {
+                        let armor_id = command
+                            .parameters
+                            .get(3)
+                            .and_then(|parameter| parameter.as_integer().copied())
+                            .unwrap_or_default();
+                        let armors = update_state.data.armors();
+                        let armor_name = armor_id
+                            .checked_sub(1)
+                            .and_then(|id| usize::try_from(id).ok())
+                            .and_then(|id| armors.data.get(id))
+                            .map(|data| data.name.as_str())
+                            .unwrap_or_default();
+                        format!("[{id:0>4}: {name}] is wearing [{armor_id:0>4}: {armor_name}]")
+                    }
+
+                    5 => {
+                        let state_id = command
+                            .parameters
+                            .get(3)
+                            .and_then(|parameter| parameter.as_integer().copied())
+                            .unwrap_or_default();
+                        let states = update_state.data.states();
+                        let state_name = state_id
+                            .checked_sub(1)
+                            .and_then(|id| usize::try_from(id).ok())
+                            .and_then(|id| states.data.get(id))
+                            .map(|data| data.name.as_str())
+                            .unwrap_or_default();
+                        format!("[{id:0>4}: {name}] is affected by [{state_id:0>4}: {state_name}]")
+                    }
+
+                    _ => String::new(),
+                }
+            }
+
+            5 => {
+                let index = command
+                    .parameters
+                    .get(1)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default()
+                    .wrapping_add(1);
+                match command
+                    .parameters
+                    .get(2)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default()
+                {
+                    0 => format!("enemy #{index} exists"),
+
+                    1 => {
+                        let state_id = command
+                            .parameters
+                            .get(3)
+                            .and_then(|parameter| parameter.as_integer().copied())
+                            .unwrap_or_default();
+                        let states = update_state.data.states();
+                        let state_name = state_id
+                            .checked_sub(1)
+                            .and_then(|id| usize::try_from(id).ok())
+                            .and_then(|id| states.data.get(id))
+                            .map(|data| data.name.as_str())
+                            .unwrap_or_default();
+                        format!("enemy #{index} is affected by [{state_id:0>4}: {state_name}]")
+                    }
+
+                    _ => String::new(),
+                }
+            }
+
+            6 => {
+                let id = command
+                    .parameters
+                    .get(1)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default();
+                let event_string = match id {
+                    -1 => "Player".into(),
+                    0 => "This event".into(),
+                    _ => {
+                        if let Some(event_info) = event_info.copied() {
+                            let map = update_state.data.get_map(event_info.map_id);
+                            let name =
+                                if usize::try_from(id).is_ok_and(|id| id == event_info.event_id) {
+                                    event_info.event_name
+                                } else {
+                                    usize::try_from(id)
+                                        .ok()
+                                        .and_then(|id| map.events.get(id))
+                                        .map_or_default(|data| data.name.as_str())
+                                };
+                            format!("[{id:0>4}: {name}]")
+                        } else {
+                            format!("[{id:0>4}]")
+                        }
+                    }
+                };
+                match command
+                    .parameters
+                    .get(2)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default()
+                {
+                    2 => format!("{event_string} is facing down"),
+                    4 => format!("{event_string} is facing left"),
+                    6 => format!("{event_string} is facing right"),
+                    8 => format!("{event_string} is facing up"),
+                    _ => String::new(),
+                }
+            }
+
+            7 => {
+                let value = command
+                    .parameters
+                    .get(1)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default();
+                let condition = match command
+                    .parameters
+                    .get(2)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default()
+                {
+                    0 => ">=",
+                    1 => "<=",
+                    _ => {
+                        return String::new();
+                    }
+                };
+                format!("Gold {condition} {value}")
+            }
+
+            8 => {
+                let id = command
+                    .parameters
+                    .get(1)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default();
+                let items = update_state.data.items();
+                let name = id
+                    .checked_sub(1)
+                    .and_then(|id| usize::try_from(id).ok())
+                    .and_then(|id| items.data.get(id))
+                    .map(|data| data.name.as_str())
+                    .unwrap_or_default();
+                format!("[{id:0>4}: {name}] is in inventory")
+            }
+
+            9 => {
+                let id = command
+                    .parameters
+                    .get(1)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default();
+                let weapons = update_state.data.weapons();
+                let name = id
+                    .checked_sub(1)
+                    .and_then(|id| usize::try_from(id).ok())
+                    .and_then(|id| weapons.data.get(id))
+                    .map(|data| data.name.as_str())
+                    .unwrap_or_default();
+                format!("[{id:0>4}: {name}] is in inventory")
+            }
+
+            10 => {
+                let id = command
+                    .parameters
+                    .get(1)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default();
+                let armors = update_state.data.armors();
+                let name = id
+                    .checked_sub(1)
+                    .and_then(|id| usize::try_from(id).ok())
+                    .and_then(|id| armors.data.get(id))
+                    .map(|data| data.name.as_str())
+                    .unwrap_or_default();
+                format!("[{id:0>4}: {name}] is in inventory")
+            }
+
+            11 => {
+                let id = command
+                    .parameters
+                    .get(1)
+                    .and_then(|parameter| parameter.as_integer().copied())
+                    .unwrap_or_default();
+                let button_type = ButtonType::try_from(id).unwrap_or_default();
+                if button_type == ButtonType::Custom {
+                    format!("Button {id} is being pressed")
+                } else {
+                    format!("{button_type} is being pressed")
+                }
+            }
+
+            12 => callback.exponential_search_str(
+                command
+                    .parameters
+                    .get(1)
+                    .and_then(|parameter| parameter.as_string())
+                    .map(|parameter| parameter.as_str())
+                    .unwrap_or_default(),
+            ),
+
+            _ => String::new(),
+        }
     }
 
     fn ui(
@@ -323,7 +736,7 @@ impl EventCommandEditor for Editor {
                         .body(|ui| {
                             ui.label("Condition type");
 
-                            let branch_type = coerce_to_integer(&mut command.parameters[0]);
+                            let branch_type = command.parameters[0].as_integer_mut().unwrap();
                             modified |= ui
                                 .add(EnumComboBox::new_with_conversion(
                                     PhantomData::<BranchType>,
@@ -331,8 +744,9 @@ impl EventCommandEditor for Editor {
                                     branch_type,
                                 ))
                                 .changed();
+                            let branch_type = *branch_type;
 
-                            match *branch_type {
+                            match branch_type {
                                 0 => {
                                     command.parameters.resize(3, ParameterType::None);
 

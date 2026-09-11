@@ -22,8 +22,9 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
+use super::{DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, UpdateState};
 use crate::components::{EnumComboBox, OptionalIdComboBox};
+use itertools::Itertools;
 use std::marker::PhantomData;
 
 #[derive(
@@ -43,8 +44,41 @@ pub enum Operation {
 pub(super) struct Editor;
 
 impl EventCommandEditor for Editor {
-    fn name(&self, _command: &EventCommand) -> String {
-        "Control Switches".into()
+    fn name(&self) -> &'static str {
+        "Control Switches"
+    }
+
+    fn description(
+        &self,
+        _callback: DescriptionWidthCallback<'_>,
+        update_state: &mut UpdateState<'_>,
+        _event_info: Option<&EventInfo<'_>>,
+        command: &EventCommand,
+    ) -> String {
+        let start_id = command.parameters[0].as_integer().unwrap();
+        let end_id = command.parameters[1].as_integer().unwrap();
+        let system = update_state.data.system();
+        let (start_name, end_name) = std::iter::once(start_id)
+            .chain(std::iter::once(end_id))
+            .map(|id| {
+                id.checked_sub(1)
+                    .and_then(|id| usize::try_from(id).ok())
+                    .and_then(|id| system.switches.get(id))
+                    .map(|name| name.as_str())
+                    .unwrap_or_default()
+            })
+            .collect_tuple()
+            .unwrap();
+        let value = match command.parameters[2].as_integer().unwrap() {
+            0 => "on",
+            1 => "off",
+            _ => return String::new(),
+        };
+        if start_id == end_id {
+            format!("Set [{start_id:0>4}: {start_name}] to {value}")
+        } else {
+            format!("Set [{start_id:0>4}: {start_name}] - [{end_id:0>4}: {end_name}] to {value}")
+        }
     }
 
     fn ui(

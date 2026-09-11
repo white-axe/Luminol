@@ -27,8 +27,8 @@ use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
 pub(super) struct Editor;
 
 impl EventCommandEditor for Editor {
-    fn name(&self, _command: &EventCommand) -> String {
-        "Erase Event".into()
+    fn name(&self) -> &'static str {
+        "Erase Event"
     }
 
     fn ui(

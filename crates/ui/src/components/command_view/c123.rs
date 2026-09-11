@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
+use super::{DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, UpdateState};
 use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
@@ -43,8 +43,24 @@ pub enum Operation {
 pub(super) struct Editor;
 
 impl EventCommandEditor for Editor {
-    fn name(&self, _command: &EventCommand) -> String {
-        "Control Self Switch".into()
+    fn name(&self) -> &'static str {
+        "Control Self Switch"
+    }
+
+    fn description(
+        &self,
+        _callback: DescriptionWidthCallback<'_>,
+        _update_state: &mut UpdateState<'_>,
+        _event_info: Option<&EventInfo<'_>>,
+        command: &EventCommand,
+    ) -> String {
+        let name = command.parameters[0].as_string().unwrap();
+        let value = match command.parameters[1].as_integer().unwrap() {
+            0 => "on",
+            1 => "off",
+            _ => return String::new(),
+        };
+        format!("Set [{name}] to {value}")
     }
 
     fn ui(

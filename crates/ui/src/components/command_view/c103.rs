@@ -22,14 +22,33 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
+use super::{DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, UpdateState};
 use crate::components::OptionalIdComboBox;
 
 pub(super) struct Editor;
 
 impl EventCommandEditor for Editor {
-    fn name(&self, _command: &EventCommand) -> String {
-        "Input Number".into()
+    fn name(&self) -> &'static str {
+        "Input Number"
+    }
+
+    fn description(
+        &self,
+        _callback: DescriptionWidthCallback<'_>,
+        update_state: &mut UpdateState<'_>,
+        _event_info: Option<&EventInfo<'_>>,
+        command: &EventCommand,
+    ) -> String {
+        let id = command.parameters[0].as_integer().unwrap();
+        let system = update_state.data.system();
+        let name = id
+            .checked_sub(1)
+            .and_then(|id| usize::try_from(id).ok())
+            .and_then(|id| system.variables.get(id))
+            .map(|name| name.as_str())
+            .unwrap_or_default();
+        let digits = command.parameters[1].as_integer().unwrap();
+        format!("{digits} digits into [{id:0>4}: {name}]")
     }
 
     fn ui(

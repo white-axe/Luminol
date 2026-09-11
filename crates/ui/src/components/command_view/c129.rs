@@ -22,7 +22,10 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, ParameterType, UpdateState};
+use super::{
+    DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, ParameterType,
+    UpdateState,
+};
 use crate::components::{EnumComboBox, OptionalIdComboBox};
 use std::marker::PhantomData;
 
@@ -57,8 +60,50 @@ pub enum ActorInit {
 pub(super) struct Editor;
 
 impl EventCommandEditor for Editor {
-    fn name(&self, _command: &EventCommand) -> String {
-        "Change Party Members".into()
+    fn name(&self) -> &'static str {
+        "Change Party Members"
+    }
+
+    fn description(
+        &self,
+        _callback: DescriptionWidthCallback<'_>,
+        update_state: &mut UpdateState<'_>,
+        _event_info: Option<&EventInfo<'_>>,
+        command: &EventCommand,
+    ) -> String {
+        let id = command.parameters[0].as_integer().unwrap();
+        let actors = update_state.data.actors();
+        let name = id
+            .checked_sub(1)
+            .and_then(|id| usize::try_from(id).ok())
+            .and_then(|id| actors.data.get(id))
+            .map(|data| data.name.as_str())
+            .unwrap_or_default();
+        match command.parameters[1].as_integer().unwrap() {
+            0 => {
+                match command
+                    .parameters
+                    .get(2)
+                    .map_or_default(|parameter| *parameter.as_integer().unwrap())
+                {
+                    0 => {
+                        format!("Add [{id:0>4}: {name}] to the party")
+                    }
+
+                    1 => {
+                        format!("Initialize and add [{id:0>4}: {name}] to the party")
+                    }
+
+                    _ => String::new(),
+                }
+            }
+
+            1 => {
+                format!("Remove [{id:0>4}: {name}] from the party")
+            }
+
+            _ => String::new(),
+        }
     }
 
     fn ui(

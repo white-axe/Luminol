@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
+use super::{DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, UpdateState};
 use crate::components::{EnumComboBox, OptionalIdComboBox};
 use std::marker::PhantomData;
 
@@ -57,8 +57,52 @@ pub enum OperandType {
 pub(super) struct Editor;
 
 impl EventCommandEditor for Editor {
-    fn name(&self, _command: &EventCommand) -> String {
-        "Change Weapons".into()
+    fn name(&self) -> &'static str {
+        "Change Weapons"
+    }
+
+    fn description(
+        &self,
+        _callback: DescriptionWidthCallback<'_>,
+        update_state: &mut UpdateState<'_>,
+        _event_info: Option<&EventInfo<'_>>,
+        command: &EventCommand,
+    ) -> String {
+        let id = command.parameters[0].as_integer().unwrap();
+        let weapons = update_state.data.weapons();
+        let name = id
+            .checked_sub(1)
+            .and_then(|id| usize::try_from(id).ok())
+            .and_then(|id| weapons.data.get(id))
+            .map(|data| data.name.as_str())
+            .unwrap_or_default();
+        let operation = match command.parameters[1].as_integer().unwrap() {
+            0 => "+=",
+            1 => "-=",
+            _ => {
+                return String::new();
+            }
+        };
+        match command.parameters[2].as_integer().unwrap() {
+            0 => {
+                let constant = command.parameters[3].as_integer().unwrap();
+                format!("[{id:0>4}: {name}] {operation} {constant}")
+            }
+
+            1 => {
+                let variable_id = command.parameters[3].as_integer().unwrap();
+                let system = update_state.data.system();
+                let variable_name = variable_id
+                    .checked_sub(1)
+                    .and_then(|id| usize::try_from(id).ok())
+                    .and_then(|id| system.variables.get(id))
+                    .map(|name| name.as_str())
+                    .unwrap_or_default();
+                format!("[{id:0>4}: {name}] {operation} [{variable_id:0>4}: {variable_name}]")
+            }
+
+            _ => String::new(),
+        }
     }
 
     fn ui(

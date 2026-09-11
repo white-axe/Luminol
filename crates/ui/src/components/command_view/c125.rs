@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
+use super::{DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, UpdateState};
 use crate::components::{EnumComboBox, OptionalIdComboBox};
 use std::marker::PhantomData;
 
@@ -57,8 +57,44 @@ pub enum OperandType {
 pub(super) struct Editor;
 
 impl EventCommandEditor for Editor {
-    fn name(&self, _command: &EventCommand) -> String {
-        "Change Gold".into()
+    fn name(&self) -> &'static str {
+        "Change Gold"
+    }
+
+    fn description(
+        &self,
+        _callback: DescriptionWidthCallback<'_>,
+        update_state: &mut UpdateState<'_>,
+        _event_info: Option<&EventInfo<'_>>,
+        command: &EventCommand,
+    ) -> String {
+        let operation = match command.parameters[0].as_integer().unwrap() {
+            0 => "Increase by",
+            1 => "Decrease by",
+            _ => {
+                return String::new();
+            }
+        };
+        match command.parameters[1].as_integer().unwrap() {
+            0 => {
+                let constant = command.parameters[2].as_integer().unwrap();
+                format!("{operation} {constant}")
+            }
+
+            1 => {
+                let id = command.parameters[2].as_integer().unwrap();
+                let system = update_state.data.system();
+                let name = id
+                    .checked_sub(1)
+                    .and_then(|id| usize::try_from(id).ok())
+                    .and_then(|id| system.variables.get(id))
+                    .map(|name| name.as_str())
+                    .unwrap_or_default();
+                format!("{operation} [{id:0>4}: {name}]")
+            }
+
+            _ => String::new(),
+        }
     }
 
     fn ui(

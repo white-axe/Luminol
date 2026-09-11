@@ -31,8 +31,8 @@ impl EventCommandEditor for Editor {
         true
     }
 
-    fn name(&self, _command: &EventCommand) -> String {
-        "Loop".into()
+    fn name(&self) -> &'static str {
+        "Loop"
     }
 
     fn ui(

@@ -22,8 +22,12 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, ParameterType, UpdateState};
+use super::{
+    DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, ParameterType,
+    UpdateState,
+};
 use crate::components::{EnumComboBox, OptionalIdComboBox};
+use itertools::Itertools;
 use std::marker::PhantomData;
 
 #[derive(
@@ -72,7 +76,7 @@ pub enum OperandType {
     Character = 6,
     #[strum(to_string = "Current map ID")]
     MapId = 7,
-    #[strum(to_string = "Number of party members")]
+    #[strum(to_string = "Party size")]
     PartyMembers = (1 << 32) | 7,
     #[strum(to_string = "Party's gold")]
     Gold = (2 << 32) | 7,
@@ -204,8 +208,244 @@ pub enum CharacterProperty {
 pub(super) struct Editor;
 
 impl EventCommandEditor for Editor {
-    fn name(&self, _command: &EventCommand) -> String {
-        "Control Variables".into()
+    fn name(&self) -> &'static str {
+        "Control Variables"
+    }
+
+    fn description(
+        &self,
+        _callback: DescriptionWidthCallback<'_>,
+        update_state: &mut UpdateState<'_>,
+        event_info: Option<&EventInfo<'_>>,
+        command: &EventCommand,
+    ) -> String {
+        let start_id = command.parameters[0].as_integer().unwrap();
+        let end_id = command.parameters[1].as_integer().unwrap();
+        let system = update_state.data.system();
+        let (start_name, end_name) = std::iter::once(start_id)
+            .chain(std::iter::once(end_id))
+            .map(|id| {
+                id.checked_sub(1)
+                    .and_then(|id| usize::try_from(id).ok())
+                    .and_then(|id| system.variables.get(id))
+                    .map(|name| name.as_str())
+                    .unwrap_or_default()
+            })
+            .collect_tuple()
+            .unwrap();
+        let operation = match command.parameters[2].as_integer().unwrap() {
+            0 => "=",
+            1 => "+=",
+            2 => "-=",
+            3 => "*=",
+            4 => "/=",
+            5 => "%=",
+            _ => {
+                return String::new();
+            }
+        };
+        let variable_string = if start_id == end_id {
+            format!("[{start_id:0>4}: {start_name}] {operation}")
+        } else {
+            format!("[{start_id:0>4}: {start_name}] - [{end_id:0>4}: {end_name}] {operation}")
+        };
+        match command.parameters[3].as_integer().unwrap() {
+            0 => {
+                let constant = command
+                    .parameters
+                    .get(4)
+                    .map_or_default(|parameter| *parameter.as_integer().unwrap());
+                format!("{variable_string} {constant}")
+            }
+
+            1 => {
+                let variable_id = command
+                    .parameters
+                    .get(4)
+                    .map_or_default(|parameter| *parameter.as_integer().unwrap());
+                let variable_name = variable_id
+                    .checked_sub(1)
+                    .and_then(|id| usize::try_from(id).ok())
+                    .and_then(|id| system.variables.get(id))
+                    .map(|name| name.as_str())
+                    .unwrap_or_default();
+                format!("{variable_string} [{variable_id:0>4}: {variable_name}]")
+            }
+
+            2 => {
+                let random_start = command
+                    .parameters
+                    .get(4)
+                    .map_or_default(|parameter| *parameter.as_integer().unwrap());
+                let random_end = command
+                    .parameters
+                    .get(5)
+                    .map_or_default(|parameter| *parameter.as_integer().unwrap());
+                format!("{variable_string} random in range {random_start} - {random_end}")
+            }
+
+            3 => {
+                let item_id = command
+                    .parameters
+                    .get(4)
+                    .map_or_default(|parameter| *parameter.as_integer().unwrap());
+                let items = update_state.data.items();
+                let item_name = item_id
+                    .checked_sub(1)
+                    .and_then(|id| usize::try_from(id).ok())
+                    .and_then(|id| items.data.get(id))
+                    .map(|data| data.name.as_str())
+                    .unwrap_or_default();
+                format!("{variable_string} amount of [{item_id:0>4}: {item_name}] in inventory")
+            }
+
+            4 => {
+                let actor_id = command
+                    .parameters
+                    .get(4)
+                    .map_or_default(|parameter| *parameter.as_integer().unwrap());
+                let actors = update_state.data.actors();
+                let actor_name = actor_id
+                    .checked_sub(1)
+                    .and_then(|id| usize::try_from(id).ok())
+                    .and_then(|id| actors.data.get(id))
+                    .map(|data| data.name.as_str())
+                    .unwrap_or_default();
+                let actor_property = match command
+                    .parameters
+                    .get(5)
+                    .map_or_default(|parameter| *parameter.as_integer().unwrap())
+                {
+                    0 => "level",
+                    1 => "EXP",
+                    2 => "HP",
+                    3 => "SP",
+                    4 => "max HP",
+                    5 => "max SP",
+                    6 => "STR",
+                    7 => "DEX",
+                    8 => "AGI",
+                    9 => "INT",
+                    10 => "ATK",
+                    11 => "PDEF",
+                    12 => "MDEF",
+                    13 => "EVA",
+                    _ => return String::new(),
+                };
+                format!("{variable_string} [{actor_id:0>4}: {actor_name}]'s {actor_property}")
+            }
+
+            5 => {
+                let enemy_index = command
+                    .parameters
+                    .get(4)
+                    .map_or_default(|parameter| *parameter.as_integer().unwrap())
+                    .wrapping_add(1);
+                let enemy_property = match command
+                    .parameters
+                    .get(5)
+                    .map_or_default(|parameter| *parameter.as_integer().unwrap())
+                {
+                    0 => "HP",
+                    1 => "SP",
+                    2 => "max HP",
+                    3 => "max SP",
+                    4 => "STR",
+                    5 => "DEX",
+                    6 => "AGI",
+                    7 => "INT",
+                    8 => "ATK",
+                    9 => "PDEF",
+                    10 => "MDEF",
+                    11 => "EVA",
+                    _ => return String::new(),
+                };
+                format!("{variable_string} enemy #{enemy_index}'s {enemy_property}")
+            }
+
+            6 => {
+                let event_id = command
+                    .parameters
+                    .get(4)
+                    .map_or_default(|parameter| *parameter.as_integer().unwrap());
+                let event_string = match event_id {
+                    -1 => "Player".into(),
+                    0 => "This event".into(),
+                    _ => {
+                        if let Some(event_info) = event_info.copied() {
+                            let map = update_state.data.get_map(event_info.map_id);
+                            let event_name = if usize::try_from(event_id)
+                                .is_ok_and(|id| id == event_info.event_id)
+                            {
+                                event_info.event_name
+                            } else {
+                                usize::try_from(event_id)
+                                    .ok()
+                                    .and_then(|id| map.events.get(id))
+                                    .map_or_default(|data| data.name.as_str())
+                            };
+                            format!("[{event_id:0>4}: {event_name}]")
+                        } else {
+                            format!("[{event_id:0>4}]")
+                        }
+                    }
+                };
+                let character_property = match command
+                    .parameters
+                    .get(5)
+                    .map_or_default(|parameter| *parameter.as_integer().unwrap())
+                {
+                    0 => "map x-coordinate",
+                    1 => "map y-coordinate",
+                    2 => "direction",
+                    3 => "screen x-coordinate",
+                    4 => "screen y-coordinate",
+                    5 => "terrain tag",
+                    _ => return String::new(),
+                };
+                format!("{variable_string} {event_string}'s {character_property}")
+            }
+
+            7 => {
+                match command
+                    .parameters
+                    .get(4)
+                    .map_or_default(|parameter| *parameter.as_integer().unwrap())
+                {
+                    0 => {
+                        format!("{variable_string} Map ID")
+                    }
+
+                    1 => {
+                        format!("{variable_string} Party size")
+                    }
+
+                    2 => {
+                        format!("{variable_string} Gold")
+                    }
+
+                    3 => {
+                        format!("{variable_string} Step count")
+                    }
+
+                    4 => {
+                        format!("{variable_string} Play time")
+                    }
+
+                    5 => {
+                        format!("{variable_string} Timer")
+                    }
+
+                    6 => {
+                        format!("{variable_string} Save count")
+                    }
+
+                    _ => String::new(),
+                }
+            }
+
+            _ => String::new(),
+        }
     }
 
     fn ui(

@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, UpdateState};
+use super::{DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, UpdateState};
 use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
@@ -54,8 +54,22 @@ pub enum Frame {
 pub(super) struct Editor;
 
 impl EventCommandEditor for Editor {
-    fn name(&self, _command: &EventCommand) -> String {
-        "Change Text Options".into()
+    fn name(&self) -> &'static str {
+        "Change Text Options"
+    }
+
+    fn description(
+        &self,
+        _callback: DescriptionWidthCallback<'_>,
+        _update_state: &mut UpdateState<'_>,
+        _event_info: Option<&EventInfo<'_>>,
+        command: &EventCommand,
+    ) -> String {
+        let position = Position::try_from(*command.parameters[0].as_integer().unwrap())
+            .map_or_default(|value| value.to_string());
+        let frame = Position::try_from(*command.parameters[0].as_integer().unwrap())
+            .map_or_default(|value| value.to_string());
+        format!("{position}, {frame}")
     }
 
     fn ui(

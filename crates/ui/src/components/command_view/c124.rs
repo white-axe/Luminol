@@ -22,7 +22,10 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{EventCommand, EventCommandEditor, EventInfo, ParameterType, UpdateState};
+use super::{
+    DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, ParameterType,
+    UpdateState,
+};
 use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
@@ -43,8 +46,32 @@ pub enum Operation {
 pub(super) struct Editor;
 
 impl EventCommandEditor for Editor {
-    fn name(&self, _command: &EventCommand) -> String {
-        "Control Timer".into()
+    fn name(&self) -> &'static str {
+        "Control Timer"
+    }
+
+    fn description(
+        &self,
+        _callback: DescriptionWidthCallback<'_>,
+        _update_state: &mut UpdateState<'_>,
+        _event_info: Option<&EventInfo<'_>>,
+        command: &EventCommand,
+    ) -> String {
+        match command.parameters[0].as_integer().unwrap() {
+            0 => {
+                let start_time = command
+                    .parameters
+                    .get(1)
+                    .map_or_default(|parameter| *parameter.as_integer().unwrap());
+                format!("Start timer at {start_time} frames")
+            }
+
+            1 => {
+                format!("Stop timer")
+            }
+
+            _ => String::new(),
+        }
     }
 
     fn ui(
