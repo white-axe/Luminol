@@ -27,6 +27,10 @@ use super::{CommandView, EventCommand, EventCommandEditor, EventInfo, UpdateStat
 pub(super) struct Editor;
 
 impl EventCommandEditor for Editor {
+    fn expand_by_default(&self) -> bool {
+        true
+    }
+
     fn name(&self, _command: &EventCommand) -> String {
         "Loop".into()
     }

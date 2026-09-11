@@ -72,6 +72,13 @@ trait EventCommandEditor
 where
     Self: Sync + 'static,
 {
+    /// Returns whether or not the UI for this event command editor should be expanded by default.
+    ///
+    /// The default is to not expand by default.
+    fn expand_by_default(&self) -> bool {
+        false
+    }
+
     /// Returns a descriptive name for the given event command.
     fn name(&self, command: &EventCommand) -> String;
 
@@ -248,17 +255,21 @@ impl egui::Widget for CommandView<'_, '_> {
             .with_cross_justify(|ui| {
                 for command in self.commands {
                     ui.with_stripe_mut(stripe, |ui, stripe| {
-                        let header =
-                            egui::collapsing_header::CollapsingState::load_with_default_open(
-                                ui.ctx(),
-                                egui::Id::new("luminol_command_view").with(&command.guid),
-                                !command.child_commands.is_empty(),
-                            );
-
                         let maybe_editor = command
                             .matches_schema
                             .then(|| EDITORS.get(&command.code))
                             .flatten();
+
+                        let header =
+                            egui::collapsing_header::CollapsingState::load_with_default_open(
+                                ui.ctx(),
+                                egui::Id::new("luminol_command_view").with(&command.guid),
+                                if let Some(editor) = maybe_editor {
+                                    editor.expand_by_default()
+                                } else {
+                                    !command.child_commands.is_empty()
+                                },
+                            );
 
                         let layout = *ui.layout();
                         let header_response = header.show_header(ui, |ui| {
