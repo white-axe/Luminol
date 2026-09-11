@@ -347,17 +347,33 @@ impl egui::Widget for CommandView<'_, '_> {
                                             .changed();
                                     });
                                 } else {
-                                    modified |= show_parameters(ui, command.parameters.iter_mut());
-                                    modified |= ui
-                                        .add(
-                                            CommandView::new(
-                                                self.update_state,
-                                                self.event_info,
-                                                &mut command.child_commands,
-                                            )
-                                            .with_stripe(stripe),
-                                        )
-                                        .changed();
+                                    Collapsing::new(ui)
+                                        .id_salt("parameters")
+                                        .expand_by_default(command.child_commands.is_empty())
+                                        .show_header(|ui| {
+                                            ui.label("Parameters");
+                                        })
+                                        .body(|ui| {
+                                            modified |=
+                                                show_parameters(ui, command.parameters.iter_mut());
+                                        });
+                                    Collapsing::new(ui)
+                                        .id_salt("child commands")
+                                        .show_header(|ui| {
+                                            ui.label("Child commands");
+                                        })
+                                        .body(|ui| {
+                                            modified |= ui
+                                                .add(
+                                                    CommandView::new(
+                                                        self.update_state,
+                                                        self.event_info,
+                                                        &mut command.child_commands,
+                                                    )
+                                                    .with_stripe(stripe),
+                                                )
+                                                .changed();
+                                        });
                                 }
                             });
                     });
