@@ -304,17 +304,19 @@ impl luminol_core::Window for Window {
                 });
 
                 ui.with_cross_justify(|ui| {
-                    modified |= ui
-                        .add(CommandView::new(
-                            update_state,
-                            Some(&EventInfo {
-                                map_id: self.map_id,
-                                event_id: self.event_id,
-                                event_name: &event.name,
-                            }),
-                            &mut page.list.commands,
-                        ))
-                        .changed();
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        modified |= ui
+                            .add(CommandView::new(
+                                update_state,
+                                Some(&EventInfo {
+                                    map_id: self.map_id,
+                                    event_id: self.event_id,
+                                    event_name: &event.name,
+                                }),
+                                &mut page.list.commands,
+                            ))
+                            .changed();
+                    });
                 });
             });
 
