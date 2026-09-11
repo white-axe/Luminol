@@ -394,9 +394,7 @@ impl EventCommandEditor for Editor {
                             "[{id:0>4}: {name}] {condition} [{variable_id:0>4}: {variable_name}]"
                         )
                     }
-                    _ => {
-                        return String::new();
-                    }
+                    _ => String::new(),
                 }
             }
 

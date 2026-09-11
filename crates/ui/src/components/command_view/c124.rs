@@ -67,9 +67,7 @@ impl EventCommandEditor for Editor {
                 format!("Start timer at {start_time} frames")
             }
 
-            1 => {
-                format!("Stop timer")
-            }
+            1 => "Stop timer".into(),
 
             _ => String::new(),
         }
