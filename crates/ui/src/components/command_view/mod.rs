@@ -196,9 +196,7 @@ fn show_parameters<'a>(
                 Collapsing::new(ui, stripe)
                     .id_salt((i, "array"))
                     .expand_by_default(false)
-                    .show_header(|ui| {
-                        ui.label("Contents");
-                    })
+                    .show_header_text("Contents")
                     .body(|ui| {
                         modified |= show_parameters(ui, stripe, value.iter_mut());
                     });
@@ -319,9 +317,7 @@ impl egui::Widget for CommandView<'_, '_> {
                                 Collapsing::new(ui, stripe)
                                     .id_salt("parameters")
                                     .expand_by_default(command.child_commands.is_empty())
-                                    .show_header(|ui| {
-                                        ui.label("Parameters");
-                                    })
+                                    .show_header_text("Parameters")
                                     .body(|ui| {
                                         modified |= show_parameters(
                                             ui,
@@ -331,9 +327,7 @@ impl egui::Widget for CommandView<'_, '_> {
                                     });
                                 Collapsing::new(ui, stripe)
                                     .id_salt("child commands")
-                                    .show_header(|ui| {
-                                        ui.label("Child commands");
-                                    })
+                                    .show_header_text("Child commands")
                                     .body(|ui| {
                                         modified |= ui
                                             .add(

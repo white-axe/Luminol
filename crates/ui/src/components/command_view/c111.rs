@@ -728,9 +728,7 @@ impl EventCommandEditor for Editor {
             .show(ui, |ui| {
                 Collapsing::new(ui, stripe)
                     .expand_by_default(false)
-                    .show_header(|ui| {
-                        ui.label("Condition");
-                    })
+                    .show_header_text("Condition")
                     .body(|ui| {
                         ui.label("Condition type");
 
@@ -1354,9 +1352,7 @@ impl EventCommandEditor for Editor {
 
                 Collapsing::new(ui, stripe)
                     .id_salt(true)
-                    .show_header(|ui| {
-                        ui.label("If condition is true");
-                    })
+                    .show_header_text("If condition is true")
                     .body(|ui| {
                         modified |= ui
                             .add(
@@ -1372,9 +1368,7 @@ impl EventCommandEditor for Editor {
 
                 Collapsing::new(ui, stripe)
                     .id_salt(false)
-                    .show_header(|ui| {
-                        ui.label("If condition is false");
-                    })
+                    .show_header_text("If condition is false")
                     .body(|ui| {
                         let mut if_false_fallback = Vec::new();
                         let if_false = command

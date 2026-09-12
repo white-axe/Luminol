@@ -89,9 +89,7 @@ impl EventCommandEditor for Editor {
                 for (choice_index, choice) in choices.iter_mut().enumerate() {
                     Collapsing::new(ui, stripe)
                         .id_salt(choice_index)
-                        .show_header(|ui| {
-                            ui.label(format!("Choice {}", choice_index + 1));
-                        })
+                        .show_header_text(format!("Choice {}", choice_index + 1))
                         .body(|ui| {
                             modified |= ui
                                 .text_edit_singleline(choice.as_string_mut().unwrap())

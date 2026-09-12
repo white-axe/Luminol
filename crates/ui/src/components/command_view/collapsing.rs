@@ -134,6 +134,14 @@ impl<'a> Collapsing<'a> {
             ui: self.ui,
         }
     }
+
+    /// Shows the header of the collapsing view with the given text.
+    pub fn show_header_text(
+        self,
+        text: impl Into<egui::WidgetText>,
+    ) -> CollapsingHeaderResponse<'a, egui::Response> {
+        self.show_header(|ui| ui.label(text))
+    }
 }
 
 impl<H> CollapsingHeaderResponse<'_, H> {
