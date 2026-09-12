@@ -136,7 +136,7 @@ impl<'a> Collapsing<'a> {
     }
 }
 
-impl<'a, H> CollapsingHeaderResponse<'a, H> {
+impl<H> CollapsingHeaderResponse<'_, H> {
     /// Shows the body of the collapsing view with the given contents.
     pub fn body<B>(
         mut self,
