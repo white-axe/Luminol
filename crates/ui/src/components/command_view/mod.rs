@@ -193,17 +193,15 @@ fn show_parameters<'a>(
         match parameter {
             ParameterType::Array(value) => {
                 show_parameter_label(ui, i, "array");
-                ui.with_stripe_mut(stripe, |ui, stripe| {
-                    Collapsing::new(ui)
-                        .id_salt((i, "array"))
-                        .expand_by_default(false)
-                        .show_header(|ui| {
-                            ui.label("Contents");
-                        })
-                        .body(|ui| {
-                            modified |= show_parameters(ui, stripe, value.iter_mut());
-                        });
-                });
+                Collapsing::new(ui, stripe)
+                    .id_salt((i, "array"))
+                    .expand_by_default(false)
+                    .show_header(|ui| {
+                        ui.label("Contents");
+                    })
+                    .body(|ui| {
+                        modified |= show_parameters(ui, stripe, value.iter_mut());
+                    });
             }
             ParameterType::None => {
                 show_parameter_label(ui, i, "nil");
@@ -279,89 +277,77 @@ impl egui::Widget for CommandView<'_, '_> {
         let mut response = ui
             .with_cross_justify(|ui| {
                 for command in self.commands {
-                    ui.with_stripe_mut(stripe, |ui, stripe| {
-                        let maybe_editor = command
-                            .matches_schema
-                            .then(|| EDITORS.get(&command.code))
-                            .flatten();
+                    let maybe_editor = command
+                        .matches_schema
+                        .then(|| EDITORS.get(&command.code))
+                        .flatten();
 
-                        Collapsing::new(ui)
-                            .id(egui::Id::new("luminol_command_view").with(&command.guid))
-                            .expand_by_default(if let Some(editor) = maybe_editor {
-                                editor.expand_by_default()
-                            } else {
-                                !command.child_commands.is_empty()
-                            })
-                            .show_header(|ui| {
-                                if let Some(editor) = maybe_editor {
-                                    let code = command.code;
-                                    let name = editor.name();
-                                    let description = editor.description(
-                                        DescriptionWidthCallback::new(ui, name),
-                                        self.update_state,
-                                        self.event_info,
-                                        command,
-                                    );
-                                    if description.is_empty() {
-                                        ui.label(format!("{code} {name}"));
-                                    } else {
-                                        ui.label(format!("{code} {name}: {description}"));
-                                    }
+                    Collapsing::new(ui, stripe)
+                        .id(egui::Id::new("luminol_command_view").with(&command.guid))
+                        .expand_by_default(if let Some(editor) = maybe_editor {
+                            editor.expand_by_default()
+                        } else {
+                            !command.child_commands.is_empty()
+                        })
+                        .show_header(|ui| {
+                            if let Some(editor) = maybe_editor {
+                                let code = command.code;
+                                let name = editor.name();
+                                let description = editor.description(
+                                    DescriptionWidthCallback::new(ui, name),
+                                    self.update_state,
+                                    self.event_info,
+                                    command,
+                                );
+                                if description.is_empty() {
+                                    ui.label(format!("{code} {name}"));
                                 } else {
-                                    ui.label(format!("{} Custom Command", command.code));
+                                    ui.label(format!("{code} {name}: {description}"));
                                 }
-                            })
-                            .body(|ui| {
-                                if let Some(editor) = maybe_editor {
-                                    ui.push_id(command.code, |ui| {
-                                        modified |= editor
-                                            .ui(
-                                                ui,
-                                                stripe,
-                                                self.update_state,
-                                                self.event_info,
-                                                command,
+                            } else {
+                                ui.label(format!("{} Custom Command", command.code));
+                            }
+                        })
+                        .body(|ui| {
+                            if let Some(editor) = maybe_editor {
+                                ui.push_id(command.code, |ui| {
+                                    modified |= editor
+                                        .ui(ui, stripe, self.update_state, self.event_info, command)
+                                        .changed();
+                                });
+                            } else {
+                                Collapsing::new(ui, stripe)
+                                    .id_salt("parameters")
+                                    .expand_by_default(command.child_commands.is_empty())
+                                    .show_header(|ui| {
+                                        ui.label("Parameters");
+                                    })
+                                    .body(|ui| {
+                                        modified |= show_parameters(
+                                            ui,
+                                            stripe,
+                                            command.parameters.iter_mut(),
+                                        );
+                                    });
+                                Collapsing::new(ui, stripe)
+                                    .id_salt("child commands")
+                                    .show_header(|ui| {
+                                        ui.label("Child commands");
+                                    })
+                                    .body(|ui| {
+                                        modified |= ui
+                                            .add(
+                                                CommandView::new(
+                                                    self.update_state,
+                                                    self.event_info,
+                                                    &mut command.child_commands,
+                                                )
+                                                .with_stripe(stripe),
                                             )
                                             .changed();
                                     });
-                                } else {
-                                    ui.with_stripe_mut(stripe, |ui, stripe| {
-                                        Collapsing::new(ui)
-                                            .id_salt("parameters")
-                                            .expand_by_default(command.child_commands.is_empty())
-                                            .show_header(|ui| {
-                                                ui.label("Parameters");
-                                            })
-                                            .body(|ui| {
-                                                modified |= show_parameters(
-                                                    ui,
-                                                    stripe,
-                                                    command.parameters.iter_mut(),
-                                                );
-                                            });
-                                    });
-                                    ui.with_stripe_mut(stripe, |ui, stripe| {
-                                        Collapsing::new(ui)
-                                            .id_salt("child commands")
-                                            .show_header(|ui| {
-                                                ui.label("Child commands");
-                                            })
-                                            .body(|ui| {
-                                                modified |= ui
-                                                    .add(
-                                                        CommandView::new(
-                                                            self.update_state,
-                                                            self.event_info,
-                                                            &mut command.child_commands,
-                                                        )
-                                                        .with_stripe(stripe),
-                                                    )
-                                                    .changed();
-                                            });
-                                    });
-                                }
-                            });
-                    });
+                            }
+                        });
                 }
             })
             .response;

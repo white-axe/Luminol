@@ -44,6 +44,7 @@ color-eyre.workspace = true
 # * Useful procedural macros * #
 num_enum.workspace = true
 strum.workspace = true
+ouroboros.workspace = true
 target-triple = "0.1.2" # $TARGET and $HOST triples in runtime source code
 
 # * Cryptography and hashing * #

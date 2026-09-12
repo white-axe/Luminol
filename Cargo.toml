@@ -115,6 +115,7 @@ strum = { version = "0.28.0", features = [
 enum-as-inner = "0.7" # Derive macro for downcasting an enum into one of its variants
 thiserror = "1.0.37" # derive(Error)
 bitflags = "2.4.0" # A way to generate bitflags out of enumerations
+ouroboros = "0.18" # Self-referencing structs
 
 # * Cryptography and hashing * #
 murmur3 = "0.5.2" # An implementation of the Murmur3 hash

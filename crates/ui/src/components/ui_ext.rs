@@ -57,22 +57,6 @@ pub trait UiExt {
         faint: bool,
         f: impl FnOnce(&mut Self) -> R,
     ) -> InnerResponse<R>;
-
-    /// Displays contents with a normal or faint background (useful for tables with striped rows)
-    /// and then inverts the value of `faint`.
-    fn with_stripe_mut<R>(
-        &mut self,
-        faint: &mut bool,
-        f: impl FnOnce(&mut Self, &mut bool) -> R,
-    ) -> InnerResponse<R>;
-
-    /// Displays contents with a normal or faint background as well as a little bit of horizontal
-    /// padding and then inverts the value of `faint`.
-    fn with_padded_stripe_mut<R>(
-        &mut self,
-        faint: &mut bool,
-        f: impl FnOnce(&mut Self, &mut bool) -> R,
-    ) -> InnerResponse<R>;
 }
 
 impl UiExt for egui::Ui {
@@ -142,25 +126,6 @@ impl UiExt for egui::Ui {
             .show(self, f)
     }
 
-    fn with_stripe_mut<R>(
-        &mut self,
-        faint: &mut bool,
-        f: impl FnOnce(&mut Self, &mut bool) -> R,
-    ) -> InnerResponse<R> {
-        let frame = egui::Frame::NONE;
-        let was_faint = *faint;
-        *faint = !*faint;
-        frame
-            .fill(if was_faint {
-                self.visuals()
-                    .window_fill
-                    .blend(self.visuals().faint_bg_color)
-            } else {
-                self.visuals().window_fill
-            })
-            .show(self, |ui| f(ui, faint))
-    }
-
     fn with_padded_stripe<R>(
         &mut self,
         faint: bool,
@@ -179,27 +144,5 @@ impl UiExt for egui::Ui {
                 self.visuals().window_fill
             })
             .show(self, f)
-    }
-
-    fn with_padded_stripe_mut<R>(
-        &mut self,
-        faint: &mut bool,
-        f: impl FnOnce(&mut Self, &mut bool) -> R,
-    ) -> InnerResponse<R> {
-        let frame = egui::Frame::NONE.inner_margin(egui::Margin::symmetric(
-            self.spacing().item_spacing.x.ceil() as i8,
-            0,
-        ));
-        let was_faint = *faint;
-        *faint = !*faint;
-        frame
-            .fill(if was_faint {
-                self.visuals()
-                    .window_fill
-                    .blend(self.visuals().faint_bg_color)
-            } else {
-                self.visuals().window_fill
-            })
-            .show(self, |ui| f(ui, faint))
     }
 }
