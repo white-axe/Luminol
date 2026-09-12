@@ -287,6 +287,7 @@ impl<'a> Collapsing<'a> {
 /// Returns whether or not at least one parameter was modified.
 fn show_parameters<'a>(
     ui: &mut egui::Ui,
+    stripe: &mut bool,
     parameters: impl Iterator<Item = &'a mut ParameterType>,
 ) -> bool {
     let mut modified = false;
@@ -295,15 +296,17 @@ fn show_parameters<'a>(
         match parameter {
             ParameterType::Array(value) => {
                 show_parameter_label(ui, i, "array");
-                Collapsing::new(ui)
-                    .id_salt((i, "array"))
-                    .expand_by_default(false)
-                    .show_header(|ui| {
-                        ui.label("Contents");
-                    })
-                    .body(|ui| {
-                        modified |= show_parameters(ui, value.iter_mut());
-                    });
+                ui.with_stripe_mut(stripe, |ui, stripe| {
+                    Collapsing::new(ui)
+                        .id_salt((i, "array"))
+                        .expand_by_default(false)
+                        .show_header(|ui| {
+                            ui.label("Contents");
+                        })
+                        .body(|ui| {
+                            modified |= show_parameters(ui, stripe, value.iter_mut());
+                        });
+                });
             }
             ParameterType::None => {
                 show_parameter_label(ui, i, "nil");
@@ -425,33 +428,40 @@ impl egui::Widget for CommandView<'_, '_> {
                                             .changed();
                                     });
                                 } else {
-                                    Collapsing::new(ui)
-                                        .id_salt("parameters")
-                                        .expand_by_default(command.child_commands.is_empty())
-                                        .show_header(|ui| {
-                                            ui.label("Parameters");
-                                        })
-                                        .body(|ui| {
-                                            modified |=
-                                                show_parameters(ui, command.parameters.iter_mut());
-                                        });
-                                    Collapsing::new(ui)
-                                        .id_salt("child commands")
-                                        .show_header(|ui| {
-                                            ui.label("Child commands");
-                                        })
-                                        .body(|ui| {
-                                            modified |= ui
-                                                .add(
-                                                    CommandView::new(
-                                                        self.update_state,
-                                                        self.event_info,
-                                                        &mut command.child_commands,
+                                    ui.with_stripe_mut(stripe, |ui, stripe| {
+                                        Collapsing::new(ui)
+                                            .id_salt("parameters")
+                                            .expand_by_default(command.child_commands.is_empty())
+                                            .show_header(|ui| {
+                                                ui.label("Parameters");
+                                            })
+                                            .body(|ui| {
+                                                modified |= show_parameters(
+                                                    ui,
+                                                    stripe,
+                                                    command.parameters.iter_mut(),
+                                                );
+                                            });
+                                    });
+                                    ui.with_stripe_mut(stripe, |ui, stripe| {
+                                        Collapsing::new(ui)
+                                            .id_salt("child commands")
+                                            .show_header(|ui| {
+                                                ui.label("Child commands");
+                                            })
+                                            .body(|ui| {
+                                                modified |= ui
+                                                    .add(
+                                                        CommandView::new(
+                                                            self.update_state,
+                                                            self.event_info,
+                                                            &mut command.child_commands,
+                                                        )
+                                                        .with_stripe(stripe),
                                                     )
-                                                    .with_stripe(stripe),
-                                                )
-                                                .changed();
-                                        });
+                                                    .changed();
+                                            });
+                                    });
                                 }
                             });
                     });
