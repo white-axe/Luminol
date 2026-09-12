@@ -23,6 +23,7 @@
 // Program grant you additional permission to convey the resulting work.
 
 /// Helper for showing a collapsing view in the command view with the correct UI styling.
+#[must_use = "call `.show_header()` or `.show_header_text()` and then `.body()` to build the collapsing view"]
 pub(super) struct Collapsing<'a> {
     layout: egui::Layout,
     id: egui::Id,
@@ -39,6 +40,7 @@ struct CollapsingHeaderResponseInner<H> {
     maybe_header_response: Option<egui::collapsing_header::HeaderResponse<'this, H>>,
 }
 
+#[must_use = "call `.body()` to build the collapsing view"]
 pub(super) struct CollapsingHeaderResponse<'a, H> {
     inner: CollapsingHeaderResponseInner<H>,
     ui: &'a mut egui::Ui,
