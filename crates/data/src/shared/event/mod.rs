@@ -296,7 +296,7 @@ pub struct EventCommand {
 }
 
 impl EventCommand {
-    const fn new() -> Self {
+    const fn with_empty_guid() -> Self {
         Self {
             guid: String::new(),
             state: state::EventCommandState::new(),
@@ -321,7 +321,7 @@ impl Default for EventCommand {
     fn default() -> Self {
         Self {
             guid: Self::generate_guid(),
-            ..Self::new()
+            ..Self::with_empty_guid()
         }
     }
 }
@@ -340,7 +340,7 @@ impl Clone for EventCommand {
     }
 }
 
-static EVENT_COMMAND_TERMINATOR: EventCommand = EventCommand::new();
+static EVENT_COMMAND_TERMINATOR: EventCommand = EventCommand::with_empty_guid();
 
 #[derive(Default)]
 struct IndentedEventCommand {
