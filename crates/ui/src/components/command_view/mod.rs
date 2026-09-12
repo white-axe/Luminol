@@ -26,6 +26,12 @@ use super::UiExt;
 use crate::UpdateState;
 use luminol_data::{rpg::EventCommand, ParameterType};
 
+mod collapsing;
+use collapsing::Collapsing;
+
+mod description_width_callback;
+use description_width_callback::DescriptionWidthCallback;
+
 #[derive(Debug, Clone, Copy)]
 pub struct EventInfo<'a> {
     /// The ID of the map in which the event is located.
@@ -65,54 +71,6 @@ impl<'this, 'update_state> CommandView<'this, 'update_state> {
     fn with_stripe(mut self, stripe: &'this mut bool) -> Self {
         self.stripe = Stripe::Borrowed(stripe);
         self
-    }
-}
-
-struct DescriptionWidthCallback<'a> {
-    ui: &'a egui::Ui,
-    name: &'a str,
-}
-
-impl DescriptionWidthCallback<'_> {
-    /// Returns `true` if the description is too long to fit in the label for this event command
-    /// editor, otherwise `false`.
-    fn is_truncated(&self, description: &str) -> bool {
-        self.ui.text_width(
-            if description.is_empty() {
-                self.name.into()
-            } else {
-                format!("{}: {}", self.name, description)
-            },
-            egui::FontSelection::Default,
-        ) > self.ui.available_width()
-    }
-
-    /// Returns a short prefix of `description_chars` such that `is_truncated` returns `true`.
-    fn exponential_search_chars(
-        &self,
-        description_chars: impl Iterator<Item = char> + Clone,
-    ) -> String {
-        let mut length_in_chars = 16;
-        loop {
-            let text: String = description_chars.clone().take(length_in_chars).collect();
-            if text.chars().count() < length_in_chars || self.is_truncated(&text) {
-                return text;
-            }
-            length_in_chars *= 2;
-        }
-    }
-
-    /// Returns a short prefix of `description_segments` such that `is_truncated` returns `true`.
-    fn exponential_search_segments<'a>(
-        &self,
-        description_segments: impl Iterator<Item = &'a str> + Clone,
-    ) -> String {
-        self.exponential_search_chars(description_segments.flat_map(|segment| segment.chars()))
-    }
-
-    /// Returns a short prefix of `description` such that `is_truncated` returns `true`.
-    fn exponential_search_str(&self, description: &str) -> String {
-        self.exponential_search_chars(description.chars())
     }
 }
 
@@ -221,67 +179,6 @@ static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
 fn show_parameter_label(ui: &mut egui::Ui, index: usize, type_name: &str) {
     let index = index + 1;
     ui.label(format!("Parameter {index} ({type_name})"));
-}
-
-struct Collapsing<'a> {
-    ui: &'a mut egui::Ui,
-    id: egui::Id,
-    layout: egui::Layout,
-    expand_by_default: bool,
-}
-
-impl<'a> Collapsing<'a> {
-    fn new(ui: &'a mut egui::Ui) -> Self {
-        Self {
-            layout: *ui.layout(),
-            id: ui.id(),
-            ui,
-            expand_by_default: true,
-        }
-    }
-
-    fn id(mut self, id: egui::Id) -> Self {
-        self.id = id;
-        self
-    }
-
-    fn id_salt(mut self, id_salt: impl std::hash::Hash) -> Self {
-        self.id = self.id.with(id_salt);
-        self
-    }
-
-    fn expand_by_default(mut self, expand_by_default: bool) -> Self {
-        self.expand_by_default = expand_by_default;
-        self
-    }
-
-    fn show_header<R>(
-        self,
-        f: impl FnOnce(&mut egui::Ui) -> R,
-    ) -> egui::collapsing_header::HeaderResponse<'a, R> {
-        egui::collapsing_header::CollapsingState::load_with_default_open(
-            self.ui.ctx(),
-            self.id,
-            self.expand_by_default,
-        )
-        .show_header(self.ui, |ui| {
-            ui.with_layout(
-                egui::Layout {
-                    main_dir: egui::Direction::LeftToRight,
-                    main_wrap: false,
-                    main_align: egui::Align::Min,
-                    main_justify: self.layout.cross_justify,
-                    cross_align: egui::Align::Center,
-                    cross_justify: self.layout.main_justify,
-                },
-                |ui| {
-                    ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
-                    f(ui)
-                },
-            )
-            .inner
-        })
-    }
 }
 
 /// Returns whether or not at least one parameter was modified.
@@ -400,7 +297,7 @@ impl egui::Widget for CommandView<'_, '_> {
                                     let code = command.code;
                                     let name = editor.name();
                                     let description = editor.description(
-                                        DescriptionWidthCallback { ui, name },
+                                        DescriptionWidthCallback::new(ui, name),
                                         self.update_state,
                                         self.event_info,
                                         command,
