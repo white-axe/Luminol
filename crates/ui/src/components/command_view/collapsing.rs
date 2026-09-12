@@ -158,9 +158,8 @@ impl<H> CollapsingHeaderResponse<'_, H> {
     ) {
         let ret = self
             .inner
-            .with_maybe_header_response_mut(|maybe_header_response| {
-                maybe_header_response.take().unwrap()
-            })
+            .with_maybe_header_response_mut(|maybe_header_response| maybe_header_response.take())
+            .unwrap()
             .body(add_contents);
         self.inner.into_heads().frame.end(self.ui);
         ret
