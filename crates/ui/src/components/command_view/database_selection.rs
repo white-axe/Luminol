@@ -37,7 +37,7 @@ pub trait DatabaseType {
 #[must_use = "call `.fmt()` to convert to a `String` or `.id_salt()` to convert to a `egui::Widget`"]
 pub struct DatabaseSelection<'this, 'update_state, T, P> {
     database_type: std::marker::PhantomData<T>,
-    update_state: &'this mut UpdateState<'update_state>,
+    update_state: &'this UpdateState<'update_state>,
     parameter: P,
 }
 
@@ -129,7 +129,7 @@ where
     T: DatabaseType,
     P: super::IntegerParameterRef,
 {
-    pub fn new(update_state: &'this mut UpdateState<'update_state>, parameter: P) -> Self {
+    pub fn new(update_state: &'this UpdateState<'update_state>, parameter: P) -> Self {
         Self {
             database_type: std::marker::PhantomData,
             update_state,

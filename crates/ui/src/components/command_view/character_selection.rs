@@ -49,7 +49,7 @@ enum CharacterType {
 
 #[must_use = "call `.fmt()` to convert to a `String` or `.id_salt()` to convert to a `egui::Widget`"]
 pub struct CharacterSelection<'this, 'update_state, P> {
-    update_state: &'this mut UpdateState<'update_state>,
+    update_state: &'this UpdateState<'update_state>,
     event_info: Option<&'this EventInfo<'this>>,
     parameter: P,
 }
@@ -66,7 +66,7 @@ where
     P: super::IntegerParameterRef,
 {
     pub fn new(
-        update_state: &'this mut UpdateState<'update_state>,
+        update_state: &'this UpdateState<'update_state>,
         event_info: Option<&'this EventInfo<'this>>,
         parameter: P,
     ) -> Self {
