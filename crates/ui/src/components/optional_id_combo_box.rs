@@ -59,6 +59,12 @@ pub struct OptionalIdComboBox<'a, R, I, H, F> {
     allow_none: bool,
 }
 
+#[derive(Default, Clone)]
+struct State {
+    search_string: String,
+    search_matched_ids: Vec<usize>,
+}
+
 impl<'a, R, I, H, F> OptionalIdComboBox<'a, R, I, H, F>
 where
     I: Iterator<Item = usize> + Clone,
@@ -102,23 +108,17 @@ where
             .selected_text(formatter(&self))
             .show_ui(ui, |ui| {
                 // Get cached search string and search matches from egui memory
-                let (mut search_string, search_matched_ids_lock) = is_popup_open
-                    .then(|| ui.data(|d| d.get_temp(state_id)))
+                let mut state: State = is_popup_open
+                    .then(|| ui.data_mut(|d| d.remove_temp(state_id)))
                     .flatten()
-                    .unwrap_or_else(|| {
-                        (
-                            String::new(),
-                            // We use a mutex here because if we just put the Vec directly into
-                            // memory, egui will clone it every time we get it from memory
-                            std::sync::Arc::new(parking_lot::Mutex::new(
-                                self.id_iter.clone().collect_vec(),
-                            )),
-                        )
+                    .unwrap_or_else(|| State {
+                        search_string: String::new(),
+                        search_matched_ids: self.id_iter.clone().collect(),
                     });
-                let mut search_matched_ids = search_matched_ids_lock.lock();
 
-                let search_box_response =
-                    ui.add(egui::TextEdit::singleline(&mut search_string).hint_text("Search 🔎"));
+                let search_box_response = ui.add(
+                    egui::TextEdit::singleline(&mut state.search_string).hint_text("Search 🔎"),
+                );
 
                 ui.add_space(ui.spacing().item_spacing.y);
 
@@ -139,12 +139,14 @@ where
                 let search_needs_update = self.search_needs_update || search_box_response.changed();
                 if search_needs_update {
                     let matcher = fuzzy_matcher::skim::SkimMatcherV2::default();
-                    search_matched_ids.clear();
-                    search_matched_ids.extend(self.id_iter.clone().filter(|id| {
-                        matcher
-                            .fuzzy(&(self.formatter)(*id), &search_string, false)
-                            .is_some()
-                    }));
+                    state.search_matched_ids.clear();
+                    state
+                        .search_matched_ids
+                        .extend(self.id_iter.clone().filter(|id| {
+                            matcher
+                                .fuzzy(&(self.formatter)(*id), &state.search_string, false)
+                                .is_some()
+                        }));
                 }
 
                 let button_height = ui.spacing().interact_size.y.max(
@@ -154,16 +156,16 @@ where
                 egui::ScrollArea::vertical().show_rows(
                     ui,
                     button_height,
-                    search_matched_ids.len() + self.allow_none as usize,
+                    state.search_matched_ids.len() + self.allow_none as usize,
                     |ui, range| {
                         let first_row_is_faint = range.clone().start % 2 != 0;
                         let show_none = self.allow_none && range.clone().start == 0;
                         let ids = range
                             .filter_map(|i| {
                                 if self.allow_none {
-                                    (i != 0).then(|| search_matched_ids[i - 1])
+                                    (i != 0).then(|| state.search_matched_ids[i - 1])
                                 } else {
-                                    Some(search_matched_ids[i])
+                                    Some(state.search_matched_ids[i])
                                 }
                             })
                             .collect_vec();
@@ -172,8 +174,7 @@ where
                 );
 
                 // Save the search string and the search results back into egui memory
-                drop(search_matched_ids);
-                ui.data_mut(|d| d.insert_temp(state_id, (search_string, search_matched_ids_lock)));
+                ui.data_mut(|d| d.insert_temp(state_id, state));
 
                 search_box_clicked
             });
@@ -182,14 +183,9 @@ where
         if inner_response.inner == Some(true) {
             // Force the combo box to stay open if the search box was clicked
             egui::Popup::open_id(ui.ctx(), popup_id);
-        } else if inner_response.inner.is_none()
-            && ui.data(|d| {
-                d.get_temp::<String>(state_id)
-                    .is_some_and(|s| !s.is_empty())
-            })
-        {
+        } else if inner_response.inner.is_none() {
             // Clear the search box if the combo box is closed
-            ui.data_mut(|d| d.insert_temp(state_id, String::new()));
+            ui.data_mut(|d| d.remove_temp::<State>(state_id));
         }
 
         if changed {

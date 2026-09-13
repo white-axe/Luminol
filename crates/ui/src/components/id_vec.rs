@@ -23,13 +23,12 @@
 // Program grant you additional permission to convey the resulting work.
 
 use super::UiExt;
-use itertools::Itertools;
 
 #[derive(Default, Clone)]
-struct IdVecSelectionState {
+struct State {
     pivot: Option<usize>,
     search_string: String,
-    search_matched_ids_lock: std::sync::Arc<parking_lot::Mutex<Vec<usize>>>,
+    search_matched_ids: Vec<usize>,
 }
 
 pub struct IdVecSelection<'a, H, F> {
@@ -159,26 +158,18 @@ where
         let first_id = self.id_range.start;
 
         let state_id = ui.make_persistent_id(egui::Id::new(self.id_source).with("IdVecSelection"));
-        let mut state = ui
-            .data(|d| d.get_temp::<IdVecSelectionState>(state_id))
-            .unwrap_or_else(|| {
-                IdVecSelectionState {
-                    // We use a mutex here because if we just put the Vec directly into
-                    // memory, egui will clone it every time we get it from memory
-                    search_matched_ids_lock: std::sync::Arc::new(parking_lot::Mutex::new(
-                        self.id_range.clone().collect_vec(),
-                    )),
-                    ..Default::default()
-                }
+        let mut state: State = ui
+            .data_mut(|d| d.remove_temp(state_id))
+            .unwrap_or_else(|| State {
+                search_matched_ids: self.id_range.clone().collect(),
+                ..Default::default()
             });
         if self.clear_search {
             state.search_string = String::new();
         }
         if self.search_needs_update {
-            state.search_matched_ids_lock =
-                std::sync::Arc::new(parking_lot::Mutex::new(self.id_range.clone().collect_vec()));
+            state.search_matched_ids = self.id_range.clone().collect();
         }
-        let mut search_matched_ids = state.search_matched_ids_lock.lock();
 
         let mut clicked_id = None;
 
@@ -199,8 +190,8 @@ where
                         self.search_needs_update || search_box_response.changed();
                     if search_needs_update {
                         let matcher = fuzzy_matcher::skim::SkimMatcherV2::default();
-                        search_matched_ids.clear();
-                        search_matched_ids.extend(self.id_range.filter(|id| {
+                        state.search_matched_ids.clear();
+                        state.search_matched_ids.extend(self.id_range.filter(|id| {
                             matcher
                                 .fuzzy(&(self.formatter)(*id), &state.search_string, false)
                                 .is_some()
@@ -214,26 +205,32 @@ where
                     egui::ScrollArea::vertical()
                         .id_salt(state_id.with("scroll_area"))
                         .min_scrolled_height(200.)
-                        .show_rows(ui, button_height, search_matched_ids.len(), |ui, range| {
-                            let mut is_faint = range.start % 2 != 0;
+                        .show_rows(
+                            ui,
+                            button_height,
+                            state.search_matched_ids.len(),
+                            |ui, range| {
+                                let mut is_faint = range.start % 2 != 0;
 
-                            for id in search_matched_ids[range].iter().copied() {
-                                let is_id_selected =
-                                    self.reference.binary_search(&(id - first_id)).is_ok();
+                                for id in state.search_matched_ids[range].iter().copied() {
+                                    let is_id_selected =
+                                        self.reference.binary_search(&(id - first_id)).is_ok();
 
-                                ui.with_stripe(is_faint, |ui| {
-                                    ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+                                    ui.with_stripe(is_faint, |ui| {
+                                        ui.style_mut().wrap_mode =
+                                            Some(egui::TextWrapMode::Truncate);
 
-                                    if ui
-                                        .selectable_label(is_id_selected, (self.formatter)(id))
-                                        .clicked()
-                                    {
-                                        clicked_id = Some(id - first_id);
-                                    }
-                                });
-                                is_faint = !is_faint;
-                            }
-                        });
+                                        if ui
+                                            .selectable_label(is_id_selected, (self.formatter)(id))
+                                            .clicked()
+                                        {
+                                            clicked_id = Some(id - first_id);
+                                        }
+                                    });
+                                    is_faint = !is_faint;
+                                }
+                            },
+                        );
                 })
                 .inner
             })
@@ -289,7 +286,6 @@ where
             response.mark_changed();
         }
 
-        drop(search_matched_ids);
         ui.data_mut(|d| d.insert_temp(state_id, state));
 
         response
@@ -315,26 +311,16 @@ where
 
         let state_id =
             ui.make_persistent_id(egui::Id::new(self.id_source).with("IdVecPlusMinusSelection"));
-        let mut state = ui
-            .data(|d| d.get_temp::<IdVecSelectionState>(state_id))
-            .unwrap_or_else(|| {
-                IdVecSelectionState {
-                    // We use a mutex here because if we just put the Vec directly into
-                    // memory, egui will clone it every time we get it from memory
-                    search_matched_ids_lock: std::sync::Arc::new(parking_lot::Mutex::new(
-                        self.id_range.clone().collect_vec(),
-                    )),
-                    ..Default::default()
-                }
-            });
+        let mut state: State = ui.data(|d| d.get_temp(state_id)).unwrap_or_else(|| State {
+            search_matched_ids: self.id_range.clone().collect(),
+            ..Default::default()
+        });
         if self.clear_search {
             state.search_string = String::new();
         }
         if self.search_needs_update {
-            state.search_matched_ids_lock =
-                std::sync::Arc::new(parking_lot::Mutex::new(self.id_range.clone().collect_vec()));
+            state.search_matched_ids = self.id_range.clone().collect();
         }
-        let mut search_matched_ids = state.search_matched_ids_lock.lock();
 
         let mut clicked_id = None;
 
@@ -355,8 +341,8 @@ where
                         self.search_needs_update || search_box_response.changed();
                     if search_needs_update {
                         let matcher = fuzzy_matcher::skim::SkimMatcherV2::default();
-                        search_matched_ids.clear();
-                        search_matched_ids.extend(self.id_range.filter(|id| {
+                        state.search_matched_ids.clear();
+                        state.search_matched_ids.extend(self.id_range.filter(|id| {
                             matcher
                                 .fuzzy(&(self.formatter)(*id), &state.search_string, false)
                                 .is_some()
@@ -370,44 +356,51 @@ where
                     egui::ScrollArea::vertical()
                         .id_salt(state_id.with("scroll_area"))
                         .min_scrolled_height(200.)
-                        .show_rows(ui, button_height, search_matched_ids.len(), |ui, range| {
-                            let mut is_faint = range.start % 2 != 0;
+                        .show_rows(
+                            ui,
+                            button_height,
+                            state.search_matched_ids.len(),
+                            |ui, range| {
+                                let mut is_faint = range.start % 2 != 0;
 
-                            for id in search_matched_ids[range].iter().copied() {
-                                let is_id_plus = self.plus.binary_search(&(id - first_id)).is_ok();
-                                let is_id_minus =
-                                    self.minus.binary_search(&(id - first_id)).is_ok();
+                                for id in state.search_matched_ids[range].iter().copied() {
+                                    let is_id_plus =
+                                        self.plus.binary_search(&(id - first_id)).is_ok();
+                                    let is_id_minus =
+                                        self.minus.binary_search(&(id - first_id)).is_ok();
 
-                                ui.with_stripe(is_faint, |ui| {
-                                    ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+                                    ui.with_stripe(is_faint, |ui| {
+                                        ui.style_mut().wrap_mode =
+                                            Some(egui::TextWrapMode::Truncate);
 
-                                    // Make the background of the selectable label red if it's
-                                    // a minus
-                                    if is_id_minus {
-                                        ui.visuals_mut().selection.bg_fill =
-                                            ui.visuals().gray_out(ui.visuals().error_fg_color);
-                                    }
+                                        // Make the background of the selectable label red if it's
+                                        // a minus
+                                        if is_id_minus {
+                                            ui.visuals_mut().selection.bg_fill =
+                                                ui.visuals().gray_out(ui.visuals().error_fg_color);
+                                        }
 
-                                    let label = (self.formatter)(id);
-                                    if ui
-                                        .selectable_label(
-                                            is_id_plus || is_id_minus,
-                                            if is_id_plus {
-                                                format!("+ {label}")
-                                            } else if is_id_minus {
-                                                format!("‒ {label}")
-                                            } else {
-                                                label
-                                            },
-                                        )
-                                        .clicked()
-                                    {
-                                        clicked_id = Some(id - first_id);
-                                    }
-                                });
-                                is_faint = !is_faint;
-                            }
-                        });
+                                        let label = (self.formatter)(id);
+                                        if ui
+                                            .selectable_label(
+                                                is_id_plus || is_id_minus,
+                                                if is_id_plus {
+                                                    format!("+ {label}")
+                                                } else if is_id_minus {
+                                                    format!("‒ {label}")
+                                                } else {
+                                                    label
+                                                },
+                                            )
+                                            .clicked()
+                                        {
+                                            clicked_id = Some(id - first_id);
+                                        }
+                                    });
+                                    is_faint = !is_faint;
+                                }
+                            },
+                        );
                 })
                 .inner
             })
@@ -486,7 +479,6 @@ where
             response.mark_changed();
         }
 
-        drop(search_matched_ids);
         ui.data_mut(|d| d.insert_temp(state_id, state));
 
         response
@@ -500,27 +492,16 @@ where
 {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         let state_id = ui.make_persistent_id(egui::Id::new(self.id_source).with("RankSelection"));
-        let mut state = ui
-            .data(|d| d.get_temp::<IdVecSelectionState>(state_id))
-            .unwrap_or_else(|| {
-                IdVecSelectionState {
-                    // We use a mutex here because if we just put the Vec directly into
-                    // memory, egui will clone it every time we get it from memory
-                    search_matched_ids_lock: std::sync::Arc::new(parking_lot::Mutex::new(
-                        (0..self.reference.xsize() - 1).collect_vec(),
-                    )),
-                    ..Default::default()
-                }
-            });
+        let mut state: State = ui.data(|d| d.get_temp(state_id)).unwrap_or_else(|| State {
+            search_matched_ids: (0..self.reference.xsize() - 1).collect(),
+            ..Default::default()
+        });
         if self.clear_search {
             state.search_string = String::new();
         }
         if self.search_needs_update {
-            state.search_matched_ids_lock = std::sync::Arc::new(parking_lot::Mutex::new(
-                (0..self.reference.xsize() - 1).collect_vec(),
-            ));
+            state.search_matched_ids = (0..self.reference.xsize() - 1).collect();
         }
-        let mut search_matched_ids = state.search_matched_ids_lock.lock();
 
         let mut clicked_id = None;
 
@@ -541,12 +522,14 @@ where
                         self.search_needs_update || search_box_response.changed();
                     if search_needs_update {
                         let matcher = fuzzy_matcher::skim::SkimMatcherV2::default();
-                        search_matched_ids.clear();
-                        search_matched_ids.extend((0..self.reference.xsize() - 1).filter(|id| {
-                            matcher
-                                .fuzzy(&(self.formatter)(*id), &state.search_string, false)
-                                .is_some()
-                        }));
+                        state.search_matched_ids.clear();
+                        state
+                            .search_matched_ids
+                            .extend((0..self.reference.xsize() - 1).filter(|id| {
+                                matcher
+                                    .fuzzy(&(self.formatter)(*id), &state.search_string, false)
+                                    .is_some()
+                            }));
                     }
 
                     let button_height = ui.spacing().interact_size.y.max(
@@ -556,56 +539,64 @@ where
                     egui::ScrollArea::vertical()
                         .id_salt(state_id.with("scroll_area"))
                         .min_scrolled_height(200.)
-                        .show_rows(ui, button_height, search_matched_ids.len(), |ui, range| {
-                            let mut is_faint = range.start % 2 != 0;
+                        .show_rows(
+                            ui,
+                            button_height,
+                            state.search_matched_ids.len(),
+                            |ui, range| {
+                                let mut is_faint = range.start % 2 != 0;
 
-                            for (id, rank) in search_matched_ids[range]
-                                .iter()
-                                .copied()
-                                .map(|id| (id, self.reference[id + 1]))
-                            {
-                                ui.with_stripe(is_faint, |ui| {
-                                    ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+                                for (id, rank) in state.search_matched_ids[range]
+                                    .iter()
+                                    .copied()
+                                    .map(|id| (id, self.reference[id + 1]))
+                                {
+                                    ui.with_stripe(is_faint, |ui| {
+                                        ui.style_mut().wrap_mode =
+                                            Some(egui::TextWrapMode::Truncate);
 
-                                    // Color the background of the selectable label depending on the
-                                    // rank
-                                    ui.visuals_mut().selection.bg_fill = match rank {
-                                        2 => ui.visuals().gray_out(ui.visuals().selection.bg_fill),
-                                        4 => ui.visuals().gray_out(ui.visuals().gray_out(
-                                            ui.visuals().gray_out(ui.visuals().error_fg_color),
-                                        )),
-                                        5 => ui.visuals().gray_out(
-                                            ui.visuals().gray_out(ui.visuals().error_fg_color),
-                                        ),
-                                        6 => ui.visuals().gray_out(ui.visuals().error_fg_color),
-                                        _ => ui.visuals().selection.bg_fill,
-                                    };
-
-                                    let label = (self.formatter)(id);
-                                    if ui
-                                        .selectable_label(
-                                            matches!(rank, 1 | 2 | 4 | 5 | 6),
-                                            format!(
-                                                "{} - {label}",
-                                                match rank {
-                                                    1 => 'A',
-                                                    2 => 'B',
-                                                    3 => 'C',
-                                                    4 => 'D',
-                                                    5 => 'E',
-                                                    6 => 'F',
-                                                    _ => '?',
-                                                }
+                                        // Color the background of the selectable label depending on the
+                                        // rank
+                                        ui.visuals_mut().selection.bg_fill = match rank {
+                                            2 => ui
+                                                .visuals()
+                                                .gray_out(ui.visuals().selection.bg_fill),
+                                            4 => ui.visuals().gray_out(ui.visuals().gray_out(
+                                                ui.visuals().gray_out(ui.visuals().error_fg_color),
+                                            )),
+                                            5 => ui.visuals().gray_out(
+                                                ui.visuals().gray_out(ui.visuals().error_fg_color),
                                             ),
-                                        )
-                                        .clicked()
-                                    {
-                                        clicked_id = Some(id);
-                                    }
-                                });
-                                is_faint = !is_faint;
-                            }
-                        });
+                                            6 => ui.visuals().gray_out(ui.visuals().error_fg_color),
+                                            _ => ui.visuals().selection.bg_fill,
+                                        };
+
+                                        let label = (self.formatter)(id);
+                                        if ui
+                                            .selectable_label(
+                                                matches!(rank, 1 | 2 | 4 | 5 | 6),
+                                                format!(
+                                                    "{} - {label}",
+                                                    match rank {
+                                                        1 => 'A',
+                                                        2 => 'B',
+                                                        3 => 'C',
+                                                        4 => 'D',
+                                                        5 => 'E',
+                                                        6 => 'F',
+                                                        _ => '?',
+                                                    }
+                                                ),
+                                            )
+                                            .clicked()
+                                        {
+                                            clicked_id = Some(id);
+                                        }
+                                    });
+                                    is_faint = !is_faint;
+                                }
+                            },
+                        );
                 })
                 .inner
             })
@@ -649,7 +640,6 @@ where
             response.mark_changed();
         }
 
-        drop(search_matched_ids);
         ui.data_mut(|d| d.insert_temp(state_id, state));
 
         response
