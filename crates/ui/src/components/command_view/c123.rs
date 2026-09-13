@@ -26,6 +26,40 @@ use super::{DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInf
 use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
+#[derive(Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumIter)]
+pub enum SelfSwitchType {
+    A,
+    B,
+    C,
+    D,
+    #[strum(to_string = "Custom self switch")]
+    Custom,
+}
+
+impl From<&str> for SelfSwitchType {
+    fn from(value: &str) -> Self {
+        match value {
+            "A" => SelfSwitchType::A,
+            "B" => SelfSwitchType::B,
+            "C" => SelfSwitchType::C,
+            "D" => SelfSwitchType::D,
+            _ => SelfSwitchType::Custom,
+        }
+    }
+}
+
+impl From<SelfSwitchType> for &str {
+    fn from(value: SelfSwitchType) -> Self {
+        match value {
+            SelfSwitchType::A => "A",
+            SelfSwitchType::B => "B",
+            SelfSwitchType::C => "C",
+            SelfSwitchType::D => "D",
+            _ => "E",
+        }
+    }
+}
+
 #[derive(
     num_enum::TryFromPrimitive,
     num_enum::IntoPrimitive,
@@ -73,10 +107,32 @@ impl EventCommandEditor for Editor {
     ) -> egui::Response {
         let mut modified = false;
 
+        let is_custom_self_switch = command.state.get_or_insert(false);
+
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                let self_switch = command.parameters[0].as_string_mut().unwrap();
                 ui.label("Self switch");
+
+                let self_switch = command.parameters[0].as_string_mut().unwrap();
+                let mut self_switch_type = if *is_custom_self_switch {
+                    SelfSwitchType::Custom
+                } else {
+                    SelfSwitchType::from(self_switch.as_str())
+                };
+                modified |= {
+                    let changed = ui
+                        .add(EnumComboBox::new((3, 1), &mut self_switch_type))
+                        .changed();
+                    if changed {
+                        *self_switch = <&str>::from(self_switch_type).to_string();
+                    }
+                    changed
+                };
+
+                *is_custom_self_switch = self_switch_type == SelfSwitchType::Custom;
+                if *is_custom_self_switch {
+                    modified |= ui.text_edit_singleline(self_switch).changed();
+                }
                 modified |= ui.text_edit_singleline(self_switch).changed();
 
                 let operation = command.parameters[1].as_integer_mut().unwrap();

@@ -123,6 +123,40 @@ pub enum VariableCondition {
     Ne = 5,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumIter)]
+pub enum SelfSwitchType {
+    A,
+    B,
+    C,
+    D,
+    #[strum(to_string = "Custom self switch")]
+    Custom,
+}
+
+impl From<&str> for SelfSwitchType {
+    fn from(value: &str) -> Self {
+        match value {
+            "A" => SelfSwitchType::A,
+            "B" => SelfSwitchType::B,
+            "C" => SelfSwitchType::C,
+            "D" => SelfSwitchType::D,
+            _ => SelfSwitchType::Custom,
+        }
+    }
+}
+
+impl From<SelfSwitchType> for &str {
+    fn from(value: SelfSwitchType) -> Self {
+        match value {
+            SelfSwitchType::A => "A",
+            SelfSwitchType::B => "B",
+            SelfSwitchType::C => "C",
+            SelfSwitchType::D => "D",
+            _ => "E",
+        }
+    }
+}
+
 #[derive(
     num_enum::TryFromPrimitive,
     num_enum::IntoPrimitive,
@@ -722,7 +756,8 @@ impl EventCommandEditor for Editor {
         let terminator = command.sibling_commands.pop().unwrap();
         let mut modified = false;
 
-        let is_custom_button_code = command.state.get_or_insert(false);
+        let (is_custom_self_switch, is_custom_button_code) =
+            command.state.get_or_insert((false, false));
 
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
@@ -863,7 +898,25 @@ impl EventCommandEditor for Editor {
                                 ui.label("Self switch");
 
                                 let self_switch = coerce_to_string(&mut command.parameters[1], "A");
-                                modified |= ui.text_edit_singleline(self_switch).changed();
+                                let mut self_switch_type = if *is_custom_self_switch {
+                                    SelfSwitchType::Custom
+                                } else {
+                                    SelfSwitchType::from(self_switch.as_str())
+                                };
+                                modified |= {
+                                    let changed = ui
+                                        .add(EnumComboBox::new((3, 1), &mut self_switch_type))
+                                        .changed();
+                                    if changed {
+                                        *self_switch = <&str>::from(self_switch_type).to_string();
+                                    }
+                                    changed
+                                };
+
+                                *is_custom_self_switch = self_switch_type == SelfSwitchType::Custom;
+                                if *is_custom_self_switch {
+                                    modified |= ui.text_edit_singleline(self_switch).changed();
+                                }
 
                                 ui.label("Condition");
 
