@@ -47,6 +47,7 @@ enum CharacterType {
     MapEvent = 1,
 }
 
+/// A widget for changing the value of a character parameter.
 #[must_use = "call `.fmt()` to convert to a `String` or `.id_salt()` to convert to a `egui::Widget`"]
 pub struct CharacterSelection<'this, 'update_state, P> {
     update_state: &'this UpdateState<'update_state>,
@@ -60,7 +61,6 @@ pub struct CharacterSelectionWithId<'this, 'update_state, P, H> {
     id_salt: H,
 }
 
-/// A widget for changing the value of a character parameter.
 impl<'this, 'update_state, P> CharacterSelection<'this, 'update_state, P>
 where
     P: super::IntegerParameterRef,

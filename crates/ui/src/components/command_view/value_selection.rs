@@ -43,6 +43,7 @@ pub enum ValueFmt {
     Variable(String),
 }
 
+/// A widget for changing the value of two parameters that represent either a constant or variable.
 #[must_use = "call `.fmt()` to convert to a `ValueFmt` or `.id_salt()` to convert to a `egui::Widget`"]
 pub struct ValueSelection<'this, 'update_state, P, Q> {
     update_state: &'this UpdateState<'update_state>,
@@ -56,7 +57,6 @@ pub struct ValueSelectionWithId<'this, 'update_state, P, Q, H> {
     id_salt: H,
 }
 
-/// A widget for changing the value of two parameters that represent either a constant or variable.
 impl<'this, 'update_state, P, Q> ValueSelection<'this, 'update_state, P, Q>
 where
     P: super::IntegerParameterRef,

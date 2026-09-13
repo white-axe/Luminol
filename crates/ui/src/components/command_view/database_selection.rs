@@ -34,6 +34,8 @@ pub trait DatabaseType {
     fn get_name<'a>(collection: &'a RefMut<'a, Self::Collection>, index: usize) -> Option<&'a str>;
 }
 
+/// A widget for changing the value of an integer parameter hat refers to a database entry, such as
+/// an item or weapon.
 #[must_use = "call `.fmt()` to convert to a `String` or `.id_salt()` to convert to a `egui::Widget`"]
 pub struct DatabaseSelection<'this, 'update_state, T, P> {
     database_type: std::marker::PhantomData<T>,
@@ -122,8 +124,6 @@ impl_system_database_type! {
     Variables => VariableSelection, variables,
 }
 
-/// A widget for changing the value of an integer parameter hat refers to a database entry, such as
-/// an item or weapon.
 impl<'this, 'update_state, T, P> DatabaseSelection<'this, 'update_state, T, P>
 where
     T: DatabaseType,
