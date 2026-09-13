@@ -248,7 +248,7 @@ pub struct TryIntoEnumCast<'a, T, R>(&'a mut R, std::marker::PhantomData<T>);
 
 impl<T, R, E> EnumCast for TryIntoEnumCast<'_, T, R>
 where
-    T: Into<R> + ToString,
+    T: ToString,
     R: TryInto<T, Error = E> + Clone,
 {
     type Enum = T;
