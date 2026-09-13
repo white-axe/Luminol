@@ -55,7 +55,7 @@ fn coerce_to_string<'a>(
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum BranchType {
+enum BranchType {
     Switch = 0,
     Variable = 1,
     #[strum(to_string = "Self switch")]
@@ -84,7 +84,7 @@ pub enum BranchType {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum SwitchCondition {
+enum SwitchCondition {
     #[strum(to_string = "Switch is on")]
     On = 0,
     #[strum(to_string = "Switch is off")]
@@ -98,7 +98,7 @@ pub enum SwitchCondition {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum VariableValueType {
+enum VariableValueType {
     Constant = 0,
     Variable = 1,
 }
@@ -110,7 +110,7 @@ pub enum VariableValueType {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum VariableCondition {
+enum VariableCondition {
     #[strum(to_string = "Value 1 == Value 2")]
     Eq = 0,
     #[strum(to_string = "Value 1 >= Value 2")]
@@ -126,7 +126,7 @@ pub enum VariableCondition {
 }
 
 #[derive(PartialEq, Eq, strum::Display, strum::EnumIter)]
-pub enum SelfSwitchType {
+enum SelfSwitchType {
     A,
     B,
     C,
@@ -166,7 +166,7 @@ impl From<&SelfSwitchType> for &str {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum SelfSwitchCondition {
+enum SelfSwitchCondition {
     #[strum(to_string = "Self switch is on")]
     On = 0,
     #[strum(to_string = "Self switch is off")]
@@ -180,7 +180,7 @@ pub enum SelfSwitchCondition {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum TimerCondition {
+enum TimerCondition {
     #[strum(to_string = "System timer >= value")]
     Ge = 0,
     #[strum(to_string = "System timer <= value")]
@@ -194,7 +194,7 @@ pub enum TimerCondition {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum ActorCondition {
+enum ActorCondition {
     #[strum(to_string = "Actor is in the party")]
     InParty = 0,
     #[strum(to_string = "Actor has name")]
@@ -216,7 +216,7 @@ pub enum ActorCondition {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum EnemyCondition {
+enum EnemyCondition {
     #[strum(to_string = "Enemy exists")]
     Exists = 0,
     #[strum(to_string = "Enemy is affected by a state")]
@@ -230,7 +230,7 @@ pub enum EnemyCondition {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum CharacterCondition {
+enum CharacterCondition {
     #[strum(to_string = "Character is facing down")]
     Down = 2,
     #[strum(to_string = "Character is facing left")]
@@ -248,7 +248,7 @@ pub enum CharacterCondition {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum GoldCondition {
+enum GoldCondition {
     #[strum(to_string = "Party's gold >= value")]
     Ge = 0,
     #[strum(to_string = "Party's gold <= value")]
@@ -267,7 +267,7 @@ pub enum GoldCondition {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum ButtonType {
+enum ButtonType {
     Down = 2,
     Left = 4,
     Right = 6,

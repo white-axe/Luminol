@@ -36,7 +36,7 @@ use std::marker::PhantomData;
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum Operation {
+enum Operation {
     #[strum(to_string = "Set")]
     Set = 0,
     #[strum(to_string = "Add")]
@@ -58,7 +58,7 @@ pub enum Operation {
     strum::EnumIter
 )]
 #[repr(u64)]
-pub enum OperandType {
+enum OperandType {
     #[strum(to_string = "Constant")]
     Constant = 0,
     #[strum(to_string = "Variable")]
@@ -96,7 +96,7 @@ pub enum OperandType {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum ActorProperty {
+enum ActorProperty {
     #[strum(to_string = "Actor's level")]
     Level = 0,
     #[strum(to_string = "Actor's EXP")]
@@ -134,7 +134,7 @@ pub enum ActorProperty {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum EnemyProperty {
+enum EnemyProperty {
     #[strum(to_string = "Enemy's HP")]
     Hp = 0,
     #[strum(to_string = "Enemy's SP")]
@@ -168,7 +168,7 @@ pub enum EnemyProperty {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum CharacterProperty {
+enum CharacterProperty {
     #[strum(to_string = "Character's map x-coordinate")]
     X = 0,
     #[strum(to_string = "Character's map y-coordinate")]

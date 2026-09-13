@@ -33,7 +33,7 @@ use std::marker::PhantomData;
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum Position {
+enum Position {
     Top = 0,
     Middle = 1,
     Bottom = 2,
@@ -46,7 +46,7 @@ pub enum Position {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum Frame {
+enum Frame {
     Show = 0,
     Hide = 1,
 }

@@ -36,7 +36,7 @@ use std::marker::PhantomData;
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum Operation {
+enum Operation {
     #[strum(to_string = "Start system timer")]
     Start = 0,
     #[strum(to_string = "Stop system timer")]

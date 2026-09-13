@@ -36,7 +36,7 @@ use std::marker::PhantomData;
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum Operation {
+enum Operation {
     #[strum(to_string = "Set switch to on")]
     On = 0,
     #[strum(to_string = "Set switch to off")]

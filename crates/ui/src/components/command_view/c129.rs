@@ -36,7 +36,7 @@ use std::marker::PhantomData;
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum Operation {
+enum Operation {
     #[strum(to_string = "Add actor to party")]
     Add = 0,
     #[strum(to_string = "Remove actor from party")]
@@ -50,7 +50,7 @@ pub enum Operation {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum ActorInit {
+enum ActorInit {
     #[strum(to_string = "Don't initialize actor")]
     NoInit = 0,
     #[strum(to_string = "Initialize actor")]

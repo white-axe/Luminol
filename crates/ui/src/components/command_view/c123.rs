@@ -27,7 +27,7 @@ use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
 #[derive(PartialEq, Eq, strum::Display, strum::EnumIter)]
-pub enum SelfSwitchType {
+enum SelfSwitchType {
     A,
     B,
     C,
@@ -67,7 +67,7 @@ impl From<&SelfSwitchType> for &str {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum Operation {
+enum Operation {
     #[strum(to_string = "Set self switch to on")]
     On = 0,
     #[strum(to_string = "Set self switch to off")]

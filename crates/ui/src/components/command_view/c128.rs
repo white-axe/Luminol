@@ -36,7 +36,7 @@ use std::marker::PhantomData;
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum Operation {
+enum Operation {
     #[strum(to_string = "Increase amount of armor by operand")]
     Increase = 0,
     #[strum(to_string = "Decrease amount of armor by operand")]
@@ -50,7 +50,7 @@ pub enum Operation {
     strum::EnumIter
 )]
 #[repr(i32)]
-pub enum OperandType {
+enum OperandType {
     #[strum(to_string = "Constant")]
     Constant = 0,
     #[strum(to_string = "Variable")]
