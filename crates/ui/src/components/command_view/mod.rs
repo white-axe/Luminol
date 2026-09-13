@@ -46,6 +46,9 @@ pub use database_selection::{
     TroopSelection, VariableSelection, WeaponSelection,
 };
 
+mod value_selection;
+pub use value_selection::{ValueFmt, ValueSelection, ValueSelectionWithId};
+
 #[derive(Debug, Clone, Copy)]
 pub struct EventInfo<'a> {
     /// The ID of the map in which the event is located.

@@ -23,8 +23,8 @@
 // Program grant you additional permission to convey the resulting work.
 
 use super::{
-    DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, UpdateState,
-    VariableSelection,
+    DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, UpdateState, ValueFmt,
+    ValueSelection,
 };
 use crate::components::EnumComboBox;
 use std::marker::PhantomData;
@@ -41,20 +41,6 @@ enum Operation {
     Increase = 0,
     #[strum(to_string = "Decrease party's gold by operand")]
     Decrease = 1,
-}
-
-#[derive(
-    num_enum::TryFromPrimitive,
-    num_enum::IntoPrimitive,
-    strum::Display,
-    strum::EnumIter
-)]
-#[repr(i32)]
-enum OperandType {
-    #[strum(to_string = "Constant")]
-    Constant = 0,
-    #[strum(to_string = "Variable")]
-    Variable = 1,
 }
 
 pub(super) struct Editor;
@@ -78,22 +64,21 @@ impl EventCommandEditor for Editor {
                 return String::new();
             }
         };
-        match command.parameters[1].as_integer().unwrap() {
-            0 => {
-                let constant = command.parameters[2].as_integer().unwrap();
+        let Some(operand) = ValueSelection::new(
+            update_state,
+            command.parameters[1].as_integer().unwrap(),
+            command.parameters[2].as_integer().unwrap(),
+        )
+        .fmt() else {
+            return String::new();
+        };
+        match operand {
+            ValueFmt::Constant(constant) => {
                 format!("{operation} {constant}")
             }
-
-            1 => {
-                let Some(variable) =
-                    VariableSelection::new(update_state, &command.parameters[2]).fmt()
-                else {
-                    return String::new();
-                };
+            ValueFmt::Variable(variable) => {
                 format!("{operation} [{variable}]")
             }
-
-            _ => String::new(),
         }
     }
 
@@ -118,40 +103,11 @@ impl EventCommandEditor for Editor {
                     ))
                     .changed();
 
-                let operand = command.parameters[1].as_integer_mut().unwrap();
+                let [discriminant, value] = command.parameters[1..].first_chunk_mut().unwrap();
                 ui.label("Operand");
                 modified |= ui
-                    .add(EnumComboBox::new_with_conversion(
-                        PhantomData::<OperandType>,
-                        "operand",
-                        operand,
-                    ))
+                    .add(ValueSelection::new(update_state, discriminant, value).id_salt("operand"))
                     .changed();
-                let operand = *operand;
-
-                match operand {
-                    0 => {
-                        modified |= ui
-                            .add(
-                                egui::DragValue::new(
-                                    command.parameters[2].as_integer_mut().unwrap(),
-                                )
-                                .range(1..=i32::MAX),
-                            )
-                            .changed();
-                    }
-
-                    1 => {
-                        modified |= ui
-                            .add(
-                                VariableSelection::new(update_state, &mut command.parameters[2])
-                                    .id_salt("variable"),
-                            )
-                            .changed();
-                    }
-
-                    _ => unreachable!(),
-                }
             })
             .response;
 

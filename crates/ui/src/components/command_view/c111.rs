@@ -25,8 +25,8 @@
 use super::{
     ActorSelection, ArmorSelection, CharacterSelection, Collapsing, CommandView,
     DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, ItemSelection,
-    ParameterType, SkillSelection, StateSelection, SwitchSelection, UpdateState, VariableSelection,
-    WeaponSelection,
+    ParameterType, SkillSelection, StateSelection, SwitchSelection, UpdateState, ValueFmt,
+    ValueSelection, VariableSelection, WeaponSelection,
 };
 use crate::components::EnumComboBox;
 use std::marker::PhantomData;
@@ -89,18 +89,6 @@ enum SwitchCondition {
     On = 0,
     #[strum(to_string = "Switch is off")]
     Off = 1,
-}
-
-#[derive(
-    num_enum::TryFromPrimitive,
-    num_enum::IntoPrimitive,
-    strum::Display,
-    strum::EnumIter
-)]
-#[repr(i32)]
-enum VariableValueType {
-    Constant = 0,
-    Variable = 1,
 }
 
 #[derive(
@@ -377,35 +365,29 @@ impl EventCommandEditor for Editor {
                         return String::new();
                     }
                 };
-                match command
-                    .parameters
-                    .get(2)
-                    .and_then(|parameter| parameter.as_integer().copied())
-                    .unwrap_or_default()
-                {
-                    0 => {
-                        let constant = command
-                            .parameters
-                            .get(3)
-                            .and_then(|parameter| parameter.as_integer().copied())
-                            .unwrap_or_default();
+                let Some(value) = ValueSelection::new(
+                    update_state,
+                    command
+                        .parameters
+                        .get(2)
+                        .and_then(|parameter| parameter.as_integer().copied())
+                        .unwrap_or_default(),
+                    command
+                        .parameters
+                        .get(3)
+                        .and_then(|parameter| parameter.as_integer().copied())
+                        .unwrap_or_default(),
+                )
+                .fmt() else {
+                    return String::new();
+                };
+                match value {
+                    ValueFmt::Constant(constant) => {
                         format!("[{variable}] {condition} {constant}")
                     }
-                    1 => {
-                        let Some(variable2) = VariableSelection::new(
-                            update_state,
-                            command
-                                .parameters
-                                .get(3)
-                                .and_then(|parameter| parameter.as_integer().copied())
-                                .unwrap_or_default(),
-                        )
-                        .fmt() else {
-                            return String::new();
-                        };
+                    ValueFmt::Variable(variable2) => {
                         format!("[{variable}] {condition} [{variable2}]")
                     }
-                    _ => String::new(),
                 }
             }
 
@@ -775,24 +757,14 @@ impl EventCommandEditor for Editor {
 
                                 ui.label("Value 2");
 
-                                let value_type = coerce_to_integer(&mut command.parameters[2]);
+                                let [discriminant, value] =
+                                    command.parameters[2..].first_chunk_mut().unwrap();
                                 modified |= ui
-                                    .add(EnumComboBox::new_with_conversion(
-                                        PhantomData::<VariableValueType>,
-                                        (1, 2),
-                                        value_type,
-                                    ))
+                                    .add(
+                                        ValueSelection::new(update_state, discriminant, value)
+                                            .id_salt((1, 2)),
+                                    )
                                     .changed();
-                                let value_type = *value_type;
-
-                                let value = coerce_to_integer(&mut command.parameters[3]);
-                                modified |= match value_type {
-                                    1 => ui.add(
-                                        VariableSelection::new(update_state, value).id_salt((1, 3)),
-                                    ),
-                                    _ => ui.add(egui::DragValue::new(value)),
-                                }
-                                .changed();
 
                                 ui.label("Condition");
 
