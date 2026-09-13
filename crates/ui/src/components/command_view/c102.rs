@@ -40,7 +40,7 @@ impl EventCommandEditor for Editor {
     fn description(
         &self,
         callback: DescriptionWidthCallback<'_>,
-        _update_state: &mut UpdateState<'_>,
+        _update_state: &UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
     ) -> String {
@@ -58,7 +58,7 @@ impl EventCommandEditor for Editor {
         &self,
         ui: &mut egui::Ui,
         stripe: &mut bool,
-        update_state: &mut UpdateState<'_>,
+        update_state: &UpdateState<'_>,
         event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
     ) -> egui::Response {

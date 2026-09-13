@@ -39,7 +39,7 @@ impl EventCommandEditor for Editor {
         &self,
         ui: &mut egui::Ui,
         stripe: &mut bool,
-        update_state: &mut UpdateState<'_>,
+        update_state: &UpdateState<'_>,
         event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
     ) -> egui::Response {
