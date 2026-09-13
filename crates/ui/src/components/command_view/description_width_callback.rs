@@ -25,7 +25,7 @@
 use super::UiExt;
 
 /// Helper for determining the width of the description text in event command editors.
-pub(super) struct DescriptionWidthCallback<'a> {
+pub struct DescriptionWidthCallback<'a> {
     ui: &'a egui::Ui,
     name: &'a str,
 }

@@ -27,10 +27,10 @@ use crate::UpdateState;
 use luminol_data::{rpg::EventCommand, ParameterType};
 
 mod collapsing;
-use collapsing::Collapsing;
+pub use collapsing::{Collapsing, CollapsingHeaderResponse};
 
 mod description_width_callback;
-use description_width_callback::DescriptionWidthCallback;
+pub use description_width_callback::DescriptionWidthCallback;
 
 #[derive(Debug, Clone, Copy)]
 pub struct EventInfo<'a> {
@@ -74,7 +74,7 @@ impl<'this, 'update_state> CommandView<'this, 'update_state> {
     }
 }
 
-trait EventCommandEditor
+pub trait EventCommandEditor
 where
     Self: Sync + 'static,
 {

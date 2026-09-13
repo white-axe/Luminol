@@ -35,7 +35,7 @@ pub use tilepicker::{SelectedTile, Tilepicker};
 mod sound_tab;
 pub use sound_tab::SoundTab;
 
-mod command_view;
+pub mod command_view;
 pub use command_view::{CommandView, EventInfo};
 
 mod filesystem_view;

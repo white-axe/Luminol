@@ -17,7 +17,7 @@
 
 use super::EventCommand;
 
-pub(super) trait EventCommandSchema
+pub trait EventCommandSchema
 where
     Self: Sync + 'static,
 {

@@ -16,7 +16,7 @@
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 
 mod audio_file;
-mod command;
+pub mod command;
 mod event;
 mod mapinfo;
 mod move_route;
