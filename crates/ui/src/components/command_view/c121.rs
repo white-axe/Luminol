@@ -22,9 +22,11 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, UpdateState};
-use crate::components::{EnumComboBox, OptionalIdComboBox};
-use itertools::Itertools;
+use super::{
+    DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, SwitchSelection,
+    UpdateState,
+};
+use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
 #[derive(
@@ -57,27 +59,21 @@ impl EventCommandEditor for Editor {
     ) -> String {
         let start_id = command.parameters[0].as_integer().unwrap();
         let end_id = command.parameters[1].as_integer().unwrap();
-        let system = update_state.data.system();
-        let (start_name, end_name) = std::iter::once(start_id)
-            .chain(std::iter::once(end_id))
-            .map(|id| {
-                id.checked_sub(1)
-                    .and_then(|id| usize::try_from(id).ok())
-                    .and_then(|id| system.switches.get(id))
-                    .map(|name| name.as_str())
-                    .unwrap_or_default()
-            })
-            .collect_tuple()
-            .unwrap();
         let value = match command.parameters[2].as_integer().unwrap() {
             0 => "on",
             1 => "off",
             _ => return String::new(),
         };
+        let Some(start) = SwitchSelection::new(update_state, start_id).fmt() else {
+            return String::new();
+        };
         if start_id == end_id {
-            format!("Set [{start_id:0>4}: {start_name}] to {value}")
+            format!("Set [{start}] to {value}")
         } else {
-            format!("Set [{start_id:0>4}: {start_name}] - [{end_id:0>4}: {end_name}] to {value}")
+            let Some(end) = SwitchSelection::new(update_state, end_id).fmt() else {
+                return String::new();
+            };
+            format!("Set [{start}] - [{end}] to {value}")
         }
     }
 
@@ -96,8 +92,8 @@ impl EventCommandEditor for Editor {
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
                 let [start, end] = command.parameters.first_chunk_mut().unwrap();
-                let start = start.as_integer_mut().unwrap();
-                let end = end.as_integer_mut().unwrap();
+                let mut start = start.as_integer_mut().unwrap();
+                let mut end = end.as_integer_mut().unwrap();
 
                 if start != end {
                     *is_batch_edit = true;
@@ -111,80 +107,41 @@ impl EventCommandEditor for Editor {
                     changed
                 };
 
-                {
-                    let system = update_state.data.system();
-                    if !*is_batch_edit {
-                        ui.label("Switch");
-                        modified |= {
-                            let changed = ui
-                                .add(OptionalIdComboBox::new(
-                                    update_state,
-                                    "switch",
-                                    start,
-                                    1..=system.switches.len(),
-                                    |id| {
-                                        id.checked_sub(1)
-                                            .and_then(|id| system.switches.get(id))
-                                            .map_or_else(
-                                                || "".into(),
-                                                |x| format!("{:0>4}: {}", id, x),
-                                            )
-                                    },
-                                ))
-                                .changed();
-                            if changed {
-                                *end = *start;
-                            }
-                            changed
-                        };
-                    } else {
-                        ui.label("First switch");
-                        modified |= {
-                            let changed = ui
-                                .add(OptionalIdComboBox::new(
-                                    update_state,
-                                    "start switch",
-                                    start,
-                                    1..=system.switches.len(),
-                                    |id| {
-                                        id.checked_sub(1)
-                                            .and_then(|id| system.switches.get(id))
-                                            .map_or_else(
-                                                || "".into(),
-                                                |x| format!("{:0>4}: {}", id, x),
-                                            )
-                                    },
-                                ))
-                                .changed();
-                            if changed && start > end {
-                                *end = *start;
-                            }
-                            changed
-                        };
-                        ui.label("Last switch");
-                        modified |= {
-                            let changed = ui
-                                .add(OptionalIdComboBox::new(
-                                    update_state,
-                                    "end switch",
-                                    end,
-                                    1..=system.switches.len(),
-                                    |id| {
-                                        id.checked_sub(1)
-                                            .and_then(|id| system.switches.get(id))
-                                            .map_or_else(
-                                                || "".into(),
-                                                |x| format!("{:0>4}: {}", id, x),
-                                            )
-                                    },
-                                ))
-                                .changed();
-                            if changed && start > end {
-                                *start = *end;
-                            }
-                            changed
-                        };
-                    }
+                if !*is_batch_edit {
+                    ui.label("Switch");
+                    modified |= {
+                        let changed = ui
+                            .add(SwitchSelection::new(update_state, &mut start).id_salt("switch"))
+                            .changed();
+                        if changed {
+                            *end = *start;
+                        }
+                        changed
+                    };
+                } else {
+                    ui.label("First switch");
+                    modified |= {
+                        let changed = ui
+                            .add(
+                                SwitchSelection::new(update_state, &mut start)
+                                    .id_salt("start switch"),
+                            )
+                            .changed();
+                        if changed && start > end {
+                            *end = *start;
+                        }
+                        changed
+                    };
+                    ui.label("Last switch");
+                    modified |= {
+                        let changed = ui
+                            .add(SwitchSelection::new(update_state, &mut end).id_salt("end switch"))
+                            .changed();
+                        if changed && start > end {
+                            *start = *end;
+                        }
+                        changed
+                    };
                 }
 
                 let operation = command.parameters[2].as_integer_mut().unwrap();

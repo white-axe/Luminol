@@ -32,6 +32,20 @@ pub use collapsing::{Collapsing, CollapsingHeaderResponse};
 mod description_width_callback;
 pub use description_width_callback::DescriptionWidthCallback;
 
+mod parameter_ref;
+pub use parameter_ref::{IntegerParameterMut, IntegerParameterRef};
+
+mod character_selection;
+pub use character_selection::{CharacterSelection, CharacterSelectionWithId};
+
+mod database_selection;
+pub use database_selection::{
+    ActorSelection, AnimationSelection, ArmorSelection, ClassSelection, CommonEventSelection,
+    DatabaseSelection, DatabaseSelectionWithId, ElementSelection, EnemySelection, ItemSelection,
+    ScriptSelection, SkillSelection, StateSelection, SwitchSelection, TilesetSelection,
+    TroopSelection, VariableSelection, WeaponSelection,
+};
+
 #[derive(Debug, Clone, Copy)]
 pub struct EventInfo<'a> {
     /// The ID of the map in which the event is located.

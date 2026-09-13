@@ -22,8 +22,10 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, UpdateState};
-use crate::components::OptionalIdComboBox;
+use super::{
+    CommonEventSelection, DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo,
+    UpdateState,
+};
 
 pub(super) struct Editor;
 
@@ -39,15 +41,12 @@ impl EventCommandEditor for Editor {
         _event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
     ) -> String {
-        let id = command.parameters[0].as_integer().unwrap();
-        let common_events = update_state.data.common_events();
-        let name = id
-            .checked_sub(1)
-            .and_then(|id| usize::try_from(id).ok())
-            .and_then(|id| common_events.data.get(id))
-            .map(|data| data.name.as_str())
-            .unwrap_or_default();
-        format!("[{id:0>4}: {name}]")
+        let Some(common_event) =
+            CommonEventSelection::new(update_state, &command.parameters[0]).fmt()
+        else {
+            return String::new();
+        };
+        format!("[{common_event}]")
     }
 
     fn ui(
@@ -58,36 +57,9 @@ impl EventCommandEditor for Editor {
         _event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
     ) -> egui::Response {
-        let mut modified = false;
-
-        let mut response = egui::Frame::NONE
-            .show(ui, |ui| {
-                let common_event = command.parameters[0].as_integer_mut().unwrap();
-                {
-                    let common_events = update_state.data.common_events();
-                    modified |= ui
-                        .add(OptionalIdComboBox::new(
-                            update_state,
-                            "common event",
-                            common_event,
-                            1..=common_events.data.len(),
-                            |id| {
-                                id.checked_sub(1)
-                                    .and_then(|id| common_events.data.get(id))
-                                    .map_or_else(
-                                        || "".into(),
-                                        |x| format!("{:0>4}: {}", id, x.name),
-                                    )
-                            },
-                        ))
-                        .changed();
-                };
-            })
-            .response;
-
-        if modified {
-            response.mark_changed();
-        }
-        response
+        ui.add(
+            CommonEventSelection::new(update_state, &mut command.parameters[0])
+                .id_salt("common event"),
+        )
     }
 }

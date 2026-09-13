@@ -23,11 +23,10 @@
 // Program grant you additional permission to convey the resulting work.
 
 use super::{
-    DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, ParameterType,
-    UpdateState,
+    ActorSelection, CharacterSelection, DescriptionWidthCallback, EventCommand, EventCommandEditor,
+    EventInfo, ItemSelection, ParameterType, UpdateState, VariableSelection,
 };
-use crate::components::{EnumComboBox, OptionalIdComboBox};
-use itertools::Itertools;
+use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
 #[derive(
@@ -163,27 +162,6 @@ pub enum EnemyProperty {
 }
 
 #[derive(
-    Clone,
-    Copy,
-    Default,
-    PartialEq,
-    Eq,
-    num_enum::TryFromPrimitive,
-    num_enum::IntoPrimitive,
-    strum::Display,
-    strum::EnumIter
-)]
-#[repr(i32)]
-pub enum CharacterType {
-    Player = -1,
-    #[strum(to_string = "This event")]
-    ThisEvent = 0,
-    #[default]
-    #[strum(to_string = "Map event")]
-    MapEvent = 1,
-}
-
-#[derive(
     num_enum::TryFromPrimitive,
     num_enum::IntoPrimitive,
     strum::Display,
@@ -221,18 +199,6 @@ impl EventCommandEditor for Editor {
     ) -> String {
         let start_id = command.parameters[0].as_integer().unwrap();
         let end_id = command.parameters[1].as_integer().unwrap();
-        let system = update_state.data.system();
-        let (start_name, end_name) = std::iter::once(start_id)
-            .chain(std::iter::once(end_id))
-            .map(|id| {
-                id.checked_sub(1)
-                    .and_then(|id| usize::try_from(id).ok())
-                    .and_then(|id| system.variables.get(id))
-                    .map(|name| name.as_str())
-                    .unwrap_or_default()
-            })
-            .collect_tuple()
-            .unwrap();
         let operation = match command.parameters[2].as_integer().unwrap() {
             0 => "=",
             1 => "+=",
@@ -244,10 +210,16 @@ impl EventCommandEditor for Editor {
                 return String::new();
             }
         };
+        let Some(start) = VariableSelection::new(update_state, start_id).fmt() else {
+            return String::new();
+        };
         let variable_string = if start_id == end_id {
-            format!("[{start_id:0>4}: {start_name}] {operation}")
+            format!("{start} {operation}")
         } else {
-            format!("[{start_id:0>4}: {start_name}] - [{end_id:0>4}: {end_name}] {operation}")
+            let Some(end) = VariableSelection::new(update_state, end_id).fmt() else {
+                return String::new();
+            };
+            format!("[{end}] - [{end}] {operation}")
         };
         match command.parameters[3].as_integer().unwrap() {
             0 => {
@@ -260,18 +232,18 @@ impl EventCommandEditor for Editor {
             }
 
             1 => {
-                let variable_id = command
-                    .parameters
-                    .get(4)
-                    .map(|parameter| *parameter.as_integer().unwrap())
-                    .unwrap_or_default();
-                let variable_name = variable_id
-                    .checked_sub(1)
-                    .and_then(|id| usize::try_from(id).ok())
-                    .and_then(|id| system.variables.get(id))
-                    .map(|name| name.as_str())
-                    .unwrap_or_default();
-                format!("{variable_string} [{variable_id:0>4}: {variable_name}]")
+                let Some(variable) = VariableSelection::new(
+                    update_state,
+                    command
+                        .parameters
+                        .get(4)
+                        .map(|parameter| *parameter.as_integer().unwrap())
+                        .unwrap_or_default(),
+                )
+                .fmt() else {
+                    return String::new();
+                };
+                format!("{variable_string} [{variable}]")
             }
 
             2 => {
@@ -289,34 +261,32 @@ impl EventCommandEditor for Editor {
             }
 
             3 => {
-                let item_id = command
-                    .parameters
-                    .get(4)
-                    .map(|parameter| *parameter.as_integer().unwrap())
-                    .unwrap_or_default();
-                let items = update_state.data.items();
-                let item_name = item_id
-                    .checked_sub(1)
-                    .and_then(|id| usize::try_from(id).ok())
-                    .and_then(|id| items.data.get(id))
-                    .map(|data| data.name.as_str())
-                    .unwrap_or_default();
-                format!("{variable_string} amount of [{item_id:0>4}: {item_name}] in inventory")
+                let Some(item) = ItemSelection::new(
+                    update_state,
+                    command
+                        .parameters
+                        .get(4)
+                        .map(|parameter| *parameter.as_integer().unwrap())
+                        .unwrap_or_default(),
+                )
+                .fmt() else {
+                    return String::new();
+                };
+                format!("{variable_string} amount of [{item}] in inventory")
             }
 
             4 => {
-                let actor_id = command
-                    .parameters
-                    .get(4)
-                    .map(|parameter| *parameter.as_integer().unwrap())
-                    .unwrap_or_default();
-                let actors = update_state.data.actors();
-                let actor_name = actor_id
-                    .checked_sub(1)
-                    .and_then(|id| usize::try_from(id).ok())
-                    .and_then(|id| actors.data.get(id))
-                    .map(|data| data.name.as_str())
-                    .unwrap_or_default();
+                let Some(actor) = ActorSelection::new(
+                    update_state,
+                    command
+                        .parameters
+                        .get(4)
+                        .map(|parameter| *parameter.as_integer().unwrap())
+                        .unwrap_or_default(),
+                )
+                .fmt() else {
+                    return String::new();
+                };
                 let actor_property = match command
                     .parameters
                     .get(5)
@@ -339,7 +309,7 @@ impl EventCommandEditor for Editor {
                     13 => "EVA",
                     _ => return String::new(),
                 };
-                format!("{variable_string} [{actor_id:0>4}: {actor_name}]'s {actor_property}")
+                format!("{variable_string} [{actor}]'s {actor_property}")
             }
 
             5 => {
@@ -373,33 +343,17 @@ impl EventCommandEditor for Editor {
             }
 
             6 => {
-                let event_id = command
-                    .parameters
-                    .get(4)
-                    .map(|parameter| *parameter.as_integer().unwrap())
-                    .unwrap_or_default();
-                let event_string = match event_id {
-                    -1 => "Player".into(),
-                    0 => "This event".into(),
-                    _ => {
-                        if let Some(event_info) = event_info.copied() {
-                            let map = update_state.data.get_map(event_info.map_id);
-                            let event_name = if usize::try_from(event_id)
-                                .is_ok_and(|id| id == event_info.event_id)
-                            {
-                                event_info.event_name
-                            } else {
-                                usize::try_from(event_id)
-                                    .ok()
-                                    .and_then(|id| map.events.get(id))
-                                    .map(|data| data.name.as_str())
-                                    .unwrap_or_default()
-                            };
-                            format!("[{event_id:0>4}: {event_name}]")
-                        } else {
-                            format!("[{event_id:0>4}]")
-                        }
-                    }
+                let Some(character) = CharacterSelection::new(
+                    update_state,
+                    event_info,
+                    command
+                        .parameters
+                        .get(4)
+                        .map(|parameter| *parameter.as_integer().unwrap())
+                        .unwrap_or_default(),
+                )
+                .fmt() else {
+                    return String::new();
                 };
                 let character_property = match command
                     .parameters
@@ -415,7 +369,7 @@ impl EventCommandEditor for Editor {
                     5 => "terrain tag",
                     _ => return String::new(),
                 };
-                format!("{variable_string} {event_string}'s {character_property}")
+                format!("{variable_string} [{character}]'s {character_property}")
             }
 
             7 => {
@@ -476,8 +430,8 @@ impl EventCommandEditor for Editor {
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
                 let [start, end] = command.parameters.first_chunk_mut().unwrap();
-                let start = start.as_integer_mut().unwrap();
-                let end = end.as_integer_mut().unwrap();
+                let mut start = start.as_integer_mut().unwrap();
+                let mut end = end.as_integer_mut().unwrap();
 
                 if start != end {
                     *is_batch_edit = true;
@@ -491,80 +445,47 @@ impl EventCommandEditor for Editor {
                     changed
                 };
 
-                {
-                    let system = update_state.data.system();
-                    if !*is_batch_edit {
-                        ui.label("Variable");
-                        modified |= {
-                            let changed = ui
-                                .add(OptionalIdComboBox::new(
-                                    update_state,
-                                    "variable",
-                                    start,
-                                    1..=system.variables.len(),
-                                    |id| {
-                                        id.checked_sub(1)
-                                            .and_then(|id| system.variables.get(id))
-                                            .map_or_else(
-                                                || "".into(),
-                                                |x| format!("{:0>4}: {}", id, x),
-                                            )
-                                    },
-                                ))
-                                .changed();
-                            if changed {
-                                *end = *start;
-                            }
-                            changed
-                        };
-                    } else {
-                        ui.label("First variable");
-                        modified |= {
-                            let changed = ui
-                                .add(OptionalIdComboBox::new(
-                                    update_state,
-                                    "start variable",
-                                    start,
-                                    1..=system.variables.len(),
-                                    |id| {
-                                        id.checked_sub(1)
-                                            .and_then(|id| system.variables.get(id))
-                                            .map_or_else(
-                                                || "".into(),
-                                                |x| format!("{:0>4}: {}", id, x),
-                                            )
-                                    },
-                                ))
-                                .changed();
-                            if changed && start > end {
-                                *end = *start;
-                            }
-                            changed
-                        };
-                        ui.label("Last variable");
-                        modified |= {
-                            let changed = ui
-                                .add(OptionalIdComboBox::new(
-                                    update_state,
-                                    "end variable",
-                                    end,
-                                    1..=system.variables.len(),
-                                    |id| {
-                                        id.checked_sub(1)
-                                            .and_then(|id| system.variables.get(id))
-                                            .map_or_else(
-                                                || "".into(),
-                                                |x| format!("{:0>4}: {}", id, x),
-                                            )
-                                    },
-                                ))
-                                .changed();
-                            if changed && start > end {
-                                *start = *end;
-                            }
-                            changed
-                        };
-                    }
+                if !*is_batch_edit {
+                    ui.label("Variable");
+                    modified |= {
+                        let changed = ui
+                            .add(
+                                VariableSelection::new(update_state, &mut start)
+                                    .id_salt("variable"),
+                            )
+                            .changed();
+                        if changed {
+                            *end = *start;
+                        }
+                        changed
+                    };
+                } else {
+                    ui.label("First variable");
+                    modified |= {
+                        let changed = ui
+                            .add(
+                                VariableSelection::new(update_state, &mut start)
+                                    .id_salt("start variable"),
+                            )
+                            .changed();
+                        if changed && start > end {
+                            *end = *start;
+                        }
+                        changed
+                    };
+                    ui.label("Last variable");
+                    modified |= {
+                        let changed = ui
+                            .add(
+                                VariableSelection::new(update_state, &mut end)
+                                    .id_salt("end variable"),
+                            )
+                            .changed();
+                        if changed && start > end {
+                            *start = *end;
+                        }
+                        changed
+                    };
                 }
 
                 let operation = command.parameters[2].as_integer_mut().unwrap();
@@ -611,19 +532,11 @@ impl EventCommandEditor for Editor {
                     1 => {
                         command.parameters.resize(5, ParameterType::Integer(0));
 
-                        let system = update_state.data.system();
                         modified |= ui
-                            .add(OptionalIdComboBox::new(
-                                update_state,
-                                (1, 4),
-                                command.parameters[4].as_integer_mut().unwrap(),
-                                1..=system.variables.len(),
-                                |id| {
-                                    id.checked_sub(1)
-                                        .and_then(|id| system.variables.get(id))
-                                        .map_or_else(|| "".into(), |x| format!("{:0>4}: {}", id, x))
-                                },
-                            ))
+                            .add(
+                                VariableSelection::new(update_state, &mut command.parameters[4])
+                                    .id_salt((1, 4)),
+                            )
                             .changed();
                     }
 
@@ -660,48 +573,23 @@ impl EventCommandEditor for Editor {
                     3 => {
                         command.parameters.resize(5, ParameterType::Integer(0));
 
-                        let items = update_state.data.items();
                         modified |= ui
-                            .add(OptionalIdComboBox::new(
-                                update_state,
-                                (3, 4),
-                                command.parameters[4].as_integer_mut().unwrap(),
-                                1..=items.data.len(),
-                                |id| {
-                                    id.checked_sub(1)
-                                        .and_then(|id| items.data.get(id))
-                                        .map_or_else(
-                                            || "".into(),
-                                            |x| format!("{:0>4}: {}", id, x.name),
-                                        )
-                                },
-                            ))
+                            .add(
+                                ItemSelection::new(update_state, &mut command.parameters[4])
+                                    .id_salt((3, 4)),
+                            )
                             .changed();
                     }
 
                     4 => {
                         command.parameters.resize(6, ParameterType::Integer(0));
 
-                        ui.label("Actor");
-                        {
-                            let actors = update_state.data.actors();
-                            modified |= ui
-                                .add(OptionalIdComboBox::new(
-                                    update_state,
-                                    (4, 4),
-                                    command.parameters[4].as_integer_mut().unwrap(),
-                                    1..=actors.data.len(),
-                                    |id| {
-                                        id.checked_sub(1)
-                                            .and_then(|id| actors.data.get(id))
-                                            .map_or_else(
-                                                || "".into(),
-                                                |x| format!("{:0>4}: {}", id, x.name),
-                                            )
-                                    },
-                                ))
-                                .changed();
-                        }
+                        modified |= ui
+                            .add(
+                                ActorSelection::new(update_state, &mut command.parameters[4])
+                                    .id_salt((4, 4)),
+                            )
+                            .changed();
 
                         ui.label("Actor property");
                         modified |= ui
@@ -742,52 +630,16 @@ impl EventCommandEditor for Editor {
                         command.parameters.resize(6, ParameterType::Integer(0));
 
                         ui.label("Character");
-                        let character = command.parameters[4].as_integer_mut().unwrap();
-                        if let Some(event_info) = event_info.copied() {
-                            *character = character.wrapping_add(1);
-                            let map = update_state.data.get_map(event_info.map_id);
-                            modified |= ui
-                                .add(OptionalIdComboBox::new(
+                        modified |= ui
+                            .add(
+                                CharacterSelection::new(
                                     update_state,
-                                    (6, 4, true),
-                                    character,
-                                    0..=map.events.len(),
-                                    |id| match id {
-                                        0 => "Player".into(),
-                                        1 => "This event".into(),
-                                        _ => {
-                                            let id = id - 1;
-                                            if id == event_info.event_id {
-                                                format!("{:0>4}: {}", id, event_info.event_name)
-                                            } else {
-                                                map.events.get(id).map_or_else(
-                                                    || "".into(),
-                                                    |x| format!("{:0>4}: {}", id, x.name),
-                                                )
-                                            }
-                                        }
-                                    },
-                                ))
-                                .changed();
-                            *character = character.wrapping_sub(1);
-                        } else {
-                            let mut character_type =
-                                CharacterType::try_from(*character).unwrap_or_default();
-                            modified |= {
-                                let changed = ui
-                                    .add(EnumComboBox::new((6, 4, false), &mut character_type))
-                                    .changed();
-                                if changed {
-                                    *character = character_type.into();
-                                }
-                                changed
-                            };
-                            if character_type == CharacterType::MapEvent {
-                                modified |= ui
-                                    .add(egui::DragValue::new(character).range(1..=i32::MAX))
-                                    .changed();
-                            }
-                        };
+                                    event_info,
+                                    &mut command.parameters[4],
+                                )
+                                .id_salt((6, 4)),
+                            )
+                            .changed();
 
                         ui.label("Character property");
                         modified |= ui

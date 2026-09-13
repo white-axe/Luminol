@@ -23,10 +23,10 @@
 // Program grant you additional permission to convey the resulting work.
 
 use super::{
-    DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, ParameterType,
-    UpdateState,
+    ActorSelection, DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo,
+    ParameterType, UpdateState,
 };
-use crate::components::{EnumComboBox, OptionalIdComboBox};
+use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
 #[derive(
@@ -71,14 +71,9 @@ impl EventCommandEditor for Editor {
         _event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
     ) -> String {
-        let id = command.parameters[0].as_integer().unwrap();
-        let actors = update_state.data.actors();
-        let name = id
-            .checked_sub(1)
-            .and_then(|id| usize::try_from(id).ok())
-            .and_then(|id| actors.data.get(id))
-            .map(|data| data.name.as_str())
-            .unwrap_or_default();
+        let Some(actor) = ActorSelection::new(update_state, &command.parameters[0]).fmt() else {
+            return String::new();
+        };
         match command.parameters[1].as_integer().unwrap() {
             0 => {
                 match command
@@ -88,11 +83,11 @@ impl EventCommandEditor for Editor {
                     .unwrap_or_default()
                 {
                     0 => {
-                        format!("Add [{id:0>4}: {name}] to the party")
+                        format!("Add [{actor}] to the party")
                     }
 
                     1 => {
-                        format!("Initialize and add [{id:0>4}: {name}] to the party")
+                        format!("Initialize and add [{actor}] to the party")
                     }
 
                     _ => String::new(),
@@ -100,7 +95,7 @@ impl EventCommandEditor for Editor {
             }
 
             1 => {
-                format!("Remove [{id:0>4}: {name}] from the party")
+                format!("Remove [{actor}] from the party")
             }
 
             _ => String::new(),
@@ -120,25 +115,12 @@ impl EventCommandEditor for Editor {
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
                 ui.label("Actor");
-                {
-                    let actors = update_state.data.actors();
-                    modified |= ui
-                        .add(OptionalIdComboBox::new(
-                            update_state,
-                            "actor",
-                            command.parameters[0].as_integer_mut().unwrap(),
-                            1..=actors.data.len(),
-                            |id| {
-                                id.checked_sub(1)
-                                    .and_then(|id| actors.data.get(id))
-                                    .map_or_else(
-                                        || "".into(),
-                                        |x| format!("{:0>4}: {}", id, x.name),
-                                    )
-                            },
-                        ))
-                        .changed();
-                }
+                modified |= ui
+                    .add(
+                        ActorSelection::new(update_state, &mut command.parameters[0])
+                            .id_salt("actor"),
+                    )
+                    .changed();
 
                 let operation = command.parameters[1].as_integer_mut().unwrap();
                 ui.label("Operation");

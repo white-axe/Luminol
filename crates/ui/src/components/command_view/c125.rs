@@ -22,8 +22,11 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, UpdateState};
-use crate::components::{EnumComboBox, OptionalIdComboBox};
+use super::{
+    DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, UpdateState,
+    VariableSelection,
+};
+use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
 #[derive(
@@ -82,15 +85,12 @@ impl EventCommandEditor for Editor {
             }
 
             1 => {
-                let id = command.parameters[2].as_integer().unwrap();
-                let system = update_state.data.system();
-                let name = id
-                    .checked_sub(1)
-                    .and_then(|id| usize::try_from(id).ok())
-                    .and_then(|id| system.variables.get(id))
-                    .map(|name| name.as_str())
-                    .unwrap_or_default();
-                format!("{operation} [{id:0>4}: {name}]")
+                let Some(variable) =
+                    VariableSelection::new(update_state, &command.parameters[2]).fmt()
+                else {
+                    return String::new();
+                };
+                format!("{operation} [{variable}]")
             }
 
             _ => String::new(),
@@ -142,19 +142,11 @@ impl EventCommandEditor for Editor {
                     }
 
                     1 => {
-                        let system = update_state.data.system();
                         modified |= ui
-                            .add(OptionalIdComboBox::new(
-                                update_state,
-                                "variable",
-                                command.parameters[2].as_integer_mut().unwrap(),
-                                1..=system.variables.len(),
-                                |id| {
-                                    id.checked_sub(1)
-                                        .and_then(|id| system.variables.get(id))
-                                        .map_or_else(|| "".into(), |x| format!("{:0>4}: {}", id, x))
-                                },
-                            ))
+                            .add(
+                                VariableSelection::new(update_state, &mut command.parameters[2])
+                                    .id_salt("variable"),
+                            )
                             .changed();
                     }
 

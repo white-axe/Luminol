@@ -22,8 +22,11 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, UpdateState};
-use crate::components::{EnumComboBox, OptionalIdComboBox};
+use super::{
+    DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, ItemSelection,
+    UpdateState, VariableSelection,
+};
+use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
 #[derive(
@@ -68,14 +71,9 @@ impl EventCommandEditor for Editor {
         _event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
     ) -> String {
-        let id = command.parameters[0].as_integer().unwrap();
-        let items = update_state.data.items();
-        let name = id
-            .checked_sub(1)
-            .and_then(|id| usize::try_from(id).ok())
-            .and_then(|id| items.data.get(id))
-            .map(|data| data.name.as_str())
-            .unwrap_or_default();
+        let Some(item) = ItemSelection::new(update_state, &command.parameters[1]).fmt() else {
+            return String::new();
+        };
         let operation = match command.parameters[1].as_integer().unwrap() {
             0 => "+=",
             1 => "-=",
@@ -86,19 +84,16 @@ impl EventCommandEditor for Editor {
         match command.parameters[2].as_integer().unwrap() {
             0 => {
                 let constant = command.parameters[3].as_integer().unwrap();
-                format!("[{id:0>4}: {name}] {operation} {constant}")
+                format!("[{item}] {operation} {constant}")
             }
 
             1 => {
-                let variable_id = command.parameters[3].as_integer().unwrap();
-                let system = update_state.data.system();
-                let variable_name = variable_id
-                    .checked_sub(1)
-                    .and_then(|id| usize::try_from(id).ok())
-                    .and_then(|id| system.variables.get(id))
-                    .map(|name| name.as_str())
-                    .unwrap_or_default();
-                format!("[{id:0>4}: {name}] {operation} [{variable_id:0>4}: {variable_name}]")
+                let Some(variable) =
+                    VariableSelection::new(update_state, &command.parameters[3]).fmt()
+                else {
+                    return String::new();
+                };
+                format!("[{item}] {operation} [{variable}]")
             }
 
             _ => String::new(),
@@ -118,25 +113,12 @@ impl EventCommandEditor for Editor {
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
                 ui.label("Item");
-                {
-                    let items = update_state.data.items();
-                    modified |= ui
-                        .add(OptionalIdComboBox::new(
-                            update_state,
-                            "item",
-                            command.parameters[0].as_integer_mut().unwrap(),
-                            1..=items.data.len(),
-                            |id| {
-                                id.checked_sub(1)
-                                    .and_then(|id| items.data.get(id))
-                                    .map_or_else(
-                                        || "".into(),
-                                        |x| format!("{:0>4}: {}", id, x.name),
-                                    )
-                            },
-                        ))
-                        .changed();
-                }
+                modified |= ui
+                    .add(
+                        ItemSelection::new(update_state, &mut command.parameters[0])
+                            .id_salt("item"),
+                    )
+                    .changed();
 
                 ui.label("Operation");
                 modified |= ui
@@ -171,19 +153,11 @@ impl EventCommandEditor for Editor {
                     }
 
                     1 => {
-                        let system = update_state.data.system();
                         modified |= ui
-                            .add(OptionalIdComboBox::new(
-                                update_state,
-                                "variable",
-                                command.parameters[3].as_integer_mut().unwrap(),
-                                1..=system.variables.len(),
-                                |id| {
-                                    id.checked_sub(1)
-                                        .and_then(|id| system.variables.get(id))
-                                        .map_or_else(|| "".into(), |x| format!("{:0>4}: {}", id, x))
-                                },
-                            ))
+                            .add(
+                                VariableSelection::new(update_state, &mut command.parameters[3])
+                                    .id_salt("variable"),
+                            )
                             .changed();
                     }
 

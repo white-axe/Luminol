@@ -23,10 +23,12 @@
 // Program grant you additional permission to convey the resulting work.
 
 use super::{
-    Collapsing, CommandView, DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo,
-    ParameterType, UpdateState,
+    ActorSelection, ArmorSelection, CharacterSelection, Collapsing, CommandView,
+    DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, ItemSelection,
+    ParameterType, SkillSelection, StateSelection, SwitchSelection, UpdateState, VariableSelection,
+    WeaponSelection,
 };
-use crate::components::{EnumComboBox, OptionalIdComboBox};
+use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
 fn coerce_to_integer(parameter: &mut ParameterType) -> &mut i32 {
@@ -222,27 +224,6 @@ pub enum EnemyCondition {
 }
 
 #[derive(
-    Clone,
-    Copy,
-    Default,
-    PartialEq,
-    Eq,
-    num_enum::TryFromPrimitive,
-    num_enum::IntoPrimitive,
-    strum::Display,
-    strum::EnumIter
-)]
-#[repr(i32)]
-pub enum CharacterType {
-    Player = -1,
-    #[strum(to_string = "This event")]
-    ThisEvent = 0,
-    #[default]
-    #[strum(to_string = "Map event")]
-    MapEvent = 1,
-}
-
-#[derive(
     num_enum::TryFromPrimitive,
     num_enum::IntoPrimitive,
     strum::Display,
@@ -342,18 +323,17 @@ impl EventCommandEditor for Editor {
     ) -> String {
         match *command.parameters[0].as_integer().unwrap() {
             0 => {
-                let id = command
-                    .parameters
-                    .get(1)
-                    .and_then(|parameter| parameter.as_integer().copied())
-                    .unwrap_or_default();
-                let system = update_state.data.system();
-                let name = id
-                    .checked_sub(1)
-                    .and_then(|id| usize::try_from(id).ok())
-                    .and_then(|id| system.variables.get(id))
-                    .map(|name| name.as_str())
-                    .unwrap_or_default();
+                let Some(switch) = SwitchSelection::new(
+                    update_state,
+                    command
+                        .parameters
+                        .get(1)
+                        .and_then(|parameter| parameter.as_integer().copied())
+                        .unwrap_or_default(),
+                )
+                .fmt() else {
+                    return String::new();
+                };
                 let condition = match command
                     .parameters
                     .get(2)
@@ -366,22 +346,21 @@ impl EventCommandEditor for Editor {
                         return String::new();
                     }
                 };
-                format!("[{id:0>4}: {name}] {condition}")
+                format!("[{switch}] {condition}")
             }
 
             1 => {
-                let id = command
-                    .parameters
-                    .get(1)
-                    .and_then(|parameter| parameter.as_integer().copied())
-                    .unwrap_or_default();
-                let system = update_state.data.system();
-                let name = id
-                    .checked_sub(1)
-                    .and_then(|id| usize::try_from(id).ok())
-                    .and_then(|id| system.variables.get(id))
-                    .map(|name| name.as_str())
-                    .unwrap_or_default();
+                let Some(variable) = VariableSelection::new(
+                    update_state,
+                    command
+                        .parameters
+                        .get(1)
+                        .and_then(|parameter| parameter.as_integer().copied())
+                        .unwrap_or_default(),
+                )
+                .fmt() else {
+                    return String::new();
+                };
                 let condition = match command
                     .parameters
                     .get(4)
@@ -410,23 +389,21 @@ impl EventCommandEditor for Editor {
                             .get(3)
                             .and_then(|parameter| parameter.as_integer().copied())
                             .unwrap_or_default();
-                        format!("[{id:0>4}: {name}] {condition} {constant}")
+                        format!("[{variable}] {condition} {constant}")
                     }
                     1 => {
-                        let variable_id = command
-                            .parameters
-                            .get(3)
-                            .and_then(|parameter| parameter.as_integer().copied())
-                            .unwrap_or_default();
-                        let variable_name = variable_id
-                            .checked_sub(1)
-                            .and_then(|id| usize::try_from(id).ok())
-                            .and_then(|id| system.variables.get(id))
-                            .map(|name| name.as_str())
-                            .unwrap_or_default();
-                        format!(
-                            "[{id:0>4}: {name}] {condition} [{variable_id:0>4}: {variable_name}]"
+                        let Some(variable2) = VariableSelection::new(
+                            update_state,
+                            command
+                                .parameters
+                                .get(3)
+                                .and_then(|parameter| parameter.as_integer().copied())
+                                .unwrap_or_default(),
                         )
+                        .fmt() else {
+                            return String::new();
+                        };
+                        format!("[{variable}] {condition} [{variable2}]")
                     }
                     _ => String::new(),
                 }
@@ -474,25 +451,24 @@ impl EventCommandEditor for Editor {
             }
 
             4 => {
-                let id = command
-                    .parameters
-                    .get(1)
-                    .and_then(|parameter| parameter.as_integer().copied())
-                    .unwrap_or_default();
-                let actors = update_state.data.actors();
-                let name = id
-                    .checked_sub(1)
-                    .and_then(|id| usize::try_from(id).ok())
-                    .and_then(|id| actors.data.get(id))
-                    .map(|data| data.name.as_str())
-                    .unwrap_or_default();
+                let Some(actor) = ActorSelection::new(
+                    update_state,
+                    command
+                        .parameters
+                        .get(1)
+                        .and_then(|parameter| parameter.as_integer().copied())
+                        .unwrap_or_default(),
+                )
+                .fmt() else {
+                    return String::new();
+                };
                 match command
                     .parameters
                     .get(2)
                     .and_then(|parameter| parameter.as_integer().copied())
                     .unwrap_or_default()
                 {
-                    0 => format!("[{id:0>4}: {name}] is in the party"),
+                    0 => format!("[{actor}] is in the party"),
 
                     1 => {
                         let actor_name = command
@@ -501,71 +477,67 @@ impl EventCommandEditor for Editor {
                             .and_then(|parameter| parameter.as_string())
                             .map(|parameter| parameter.as_str())
                             .unwrap_or_default();
-                        format!("[{id:0>4}: {name}] is named {actor_name}")
+                        format!("[{actor}] is named {actor_name}")
                     }
 
                     2 => {
-                        let skill_id = command
-                            .parameters
-                            .get(3)
-                            .and_then(|parameter| parameter.as_integer().copied())
-                            .unwrap_or_default();
-                        let skills = update_state.data.skills();
-                        let skill_name = skill_id
-                            .checked_sub(1)
-                            .and_then(|id| usize::try_from(id).ok())
-                            .and_then(|id| skills.data.get(id))
-                            .map(|data| data.name.as_str())
-                            .unwrap_or_default();
-                        format!("[{id:0>4}: {name}] knows [{skill_id:0>4}: {skill_name}]")
+                        let Some(skill) = SkillSelection::new(
+                            update_state,
+                            command
+                                .parameters
+                                .get(3)
+                                .and_then(|parameter| parameter.as_integer().copied())
+                                .unwrap_or_default(),
+                        )
+                        .fmt() else {
+                            return String::new();
+                        };
+                        format!("[{actor}] knows [{skill}]")
                     }
 
                     3 => {
-                        let weapon_id = command
-                            .parameters
-                            .get(3)
-                            .and_then(|parameter| parameter.as_integer().copied())
-                            .unwrap_or_default();
-                        let weapons = update_state.data.weapons();
-                        let weapon_name = weapon_id
-                            .checked_sub(1)
-                            .and_then(|id| usize::try_from(id).ok())
-                            .and_then(|id| weapons.data.get(id))
-                            .map(|data| data.name.as_str())
-                            .unwrap_or_default();
-                        format!("[{id:0>4}: {name}] is holding [{weapon_id:0>4}: {weapon_name}]")
+                        let Some(weapon) = WeaponSelection::new(
+                            update_state,
+                            command
+                                .parameters
+                                .get(3)
+                                .and_then(|parameter| parameter.as_integer().copied())
+                                .unwrap_or_default(),
+                        )
+                        .fmt() else {
+                            return String::new();
+                        };
+                        format!("[{actor}] is holding [{weapon}]")
                     }
 
                     4 => {
-                        let armor_id = command
-                            .parameters
-                            .get(3)
-                            .and_then(|parameter| parameter.as_integer().copied())
-                            .unwrap_or_default();
-                        let armors = update_state.data.armors();
-                        let armor_name = armor_id
-                            .checked_sub(1)
-                            .and_then(|id| usize::try_from(id).ok())
-                            .and_then(|id| armors.data.get(id))
-                            .map(|data| data.name.as_str())
-                            .unwrap_or_default();
-                        format!("[{id:0>4}: {name}] is wearing [{armor_id:0>4}: {armor_name}]")
+                        let Some(armor) = ArmorSelection::new(
+                            update_state,
+                            command
+                                .parameters
+                                .get(3)
+                                .and_then(|parameter| parameter.as_integer().copied())
+                                .unwrap_or_default(),
+                        )
+                        .fmt() else {
+                            return String::new();
+                        };
+                        format!("[{actor}] is wearing [{armor}]")
                     }
 
                     5 => {
-                        let state_id = command
-                            .parameters
-                            .get(3)
-                            .and_then(|parameter| parameter.as_integer().copied())
-                            .unwrap_or_default();
-                        let states = update_state.data.states();
-                        let state_name = state_id
-                            .checked_sub(1)
-                            .and_then(|id| usize::try_from(id).ok())
-                            .and_then(|id| states.data.get(id))
-                            .map(|data| data.name.as_str())
-                            .unwrap_or_default();
-                        format!("[{id:0>4}: {name}] is affected by [{state_id:0>4}: {state_name}]")
+                        let Some(state) = StateSelection::new(
+                            update_state,
+                            command
+                                .parameters
+                                .get(3)
+                                .and_then(|parameter| parameter.as_integer().copied())
+                                .unwrap_or_default(),
+                        )
+                        .fmt() else {
+                            return String::new();
+                        };
+                        format!("[{actor}] is affected by [{state}]")
                     }
 
                     _ => String::new(),
@@ -588,19 +560,18 @@ impl EventCommandEditor for Editor {
                     0 => format!("enemy #{index} exists"),
 
                     1 => {
-                        let state_id = command
-                            .parameters
-                            .get(3)
-                            .and_then(|parameter| parameter.as_integer().copied())
-                            .unwrap_or_default();
-                        let states = update_state.data.states();
-                        let state_name = state_id
-                            .checked_sub(1)
-                            .and_then(|id| usize::try_from(id).ok())
-                            .and_then(|id| states.data.get(id))
-                            .map(|data| data.name.as_str())
-                            .unwrap_or_default();
-                        format!("enemy #{index} is affected by [{state_id:0>4}: {state_name}]")
+                        let Some(state) = StateSelection::new(
+                            update_state,
+                            command
+                                .parameters
+                                .get(3)
+                                .and_then(|parameter| parameter.as_integer().copied())
+                                .unwrap_or_default(),
+                        )
+                        .fmt() else {
+                            return String::new();
+                        };
+                        format!("enemy #{index} is affected by [{state}]")
                     }
 
                     _ => String::new(),
@@ -608,32 +579,17 @@ impl EventCommandEditor for Editor {
             }
 
             6 => {
-                let id = command
-                    .parameters
-                    .get(1)
-                    .and_then(|parameter| parameter.as_integer().copied())
-                    .unwrap_or_default();
-                let event_string = match id {
-                    -1 => "Player".into(),
-                    0 => "This event".into(),
-                    _ => {
-                        if let Some(event_info) = event_info.copied() {
-                            let map = update_state.data.get_map(event_info.map_id);
-                            let name =
-                                if usize::try_from(id).is_ok_and(|id| id == event_info.event_id) {
-                                    event_info.event_name
-                                } else {
-                                    usize::try_from(id)
-                                        .ok()
-                                        .and_then(|id| map.events.get(id))
-                                        .map(|data| data.name.as_str())
-                                        .unwrap_or_default()
-                                };
-                            format!("[{id:0>4}: {name}]")
-                        } else {
-                            format!("[{id:0>4}]")
-                        }
-                    }
+                let Some(character) = CharacterSelection::new(
+                    update_state,
+                    event_info,
+                    command
+                        .parameters
+                        .get(1)
+                        .and_then(|parameter| parameter.as_integer().copied())
+                        .unwrap_or_default(),
+                )
+                .fmt() else {
+                    return String::new();
                 };
                 match command
                     .parameters
@@ -641,10 +597,10 @@ impl EventCommandEditor for Editor {
                     .and_then(|parameter| parameter.as_integer().copied())
                     .unwrap_or_default()
                 {
-                    2 => format!("{event_string} is facing down"),
-                    4 => format!("{event_string} is facing left"),
-                    6 => format!("{event_string} is facing right"),
-                    8 => format!("{event_string} is facing up"),
+                    2 => format!("[{character}] is facing down"),
+                    4 => format!("[{character}] is facing left"),
+                    6 => format!("[{character}] is facing right"),
+                    8 => format!("[{character}] is facing up"),
                     _ => String::new(),
                 }
             }
@@ -671,51 +627,48 @@ impl EventCommandEditor for Editor {
             }
 
             8 => {
-                let id = command
-                    .parameters
-                    .get(1)
-                    .and_then(|parameter| parameter.as_integer().copied())
-                    .unwrap_or_default();
-                let items = update_state.data.items();
-                let name = id
-                    .checked_sub(1)
-                    .and_then(|id| usize::try_from(id).ok())
-                    .and_then(|id| items.data.get(id))
-                    .map(|data| data.name.as_str())
-                    .unwrap_or_default();
-                format!("[{id:0>4}: {name}] is in inventory")
+                let Some(item) = ItemSelection::new(
+                    update_state,
+                    command
+                        .parameters
+                        .get(1)
+                        .and_then(|parameter| parameter.as_integer().copied())
+                        .unwrap_or_default(),
+                )
+                .fmt() else {
+                    return String::new();
+                };
+                format!("[{item}] is in inventory")
             }
 
             9 => {
-                let id = command
-                    .parameters
-                    .get(1)
-                    .and_then(|parameter| parameter.as_integer().copied())
-                    .unwrap_or_default();
-                let weapons = update_state.data.weapons();
-                let name = id
-                    .checked_sub(1)
-                    .and_then(|id| usize::try_from(id).ok())
-                    .and_then(|id| weapons.data.get(id))
-                    .map(|data| data.name.as_str())
-                    .unwrap_or_default();
-                format!("[{id:0>4}: {name}] is in inventory")
+                let Some(weapon) = WeaponSelection::new(
+                    update_state,
+                    command
+                        .parameters
+                        .get(1)
+                        .and_then(|parameter| parameter.as_integer().copied())
+                        .unwrap_or_default(),
+                )
+                .fmt() else {
+                    return String::new();
+                };
+                format!("[{weapon}] is in inventory")
             }
 
             10 => {
-                let id = command
-                    .parameters
-                    .get(1)
-                    .and_then(|parameter| parameter.as_integer().copied())
-                    .unwrap_or_default();
-                let armors = update_state.data.armors();
-                let name = id
-                    .checked_sub(1)
-                    .and_then(|id| usize::try_from(id).ok())
-                    .and_then(|id| armors.data.get(id))
-                    .map(|data| data.name.as_str())
-                    .unwrap_or_default();
-                format!("[{id:0>4}: {name}] is in inventory")
+                let Some(armor) = ArmorSelection::new(
+                    update_state,
+                    command
+                        .parameters
+                        .get(1)
+                        .and_then(|parameter| parameter.as_integer().copied())
+                        .unwrap_or_default(),
+                )
+                .fmt() else {
+                    return String::new();
+                };
+                format!("[{armor}] is in inventory")
             }
 
             11 => {
@@ -783,26 +736,15 @@ impl EventCommandEditor for Editor {
 
                                 ui.label("Switch");
 
-                                let switch = coerce_to_integer(&mut command.parameters[1]);
-                                {
-                                    let system = update_state.data.system();
-                                    modified |= ui
-                                        .add(OptionalIdComboBox::new(
+                                modified |= ui
+                                    .add(
+                                        SwitchSelection::new(
                                             update_state,
-                                            (1, 1),
-                                            switch,
-                                            1..=system.switches.len(),
-                                            |id| {
-                                                id.checked_sub(1)
-                                                    .and_then(|id| system.switches.get(id))
-                                                    .map_or_else(
-                                                        || "".into(),
-                                                        |x| format!("{:0>4}: {}", id, x),
-                                                    )
-                                            },
-                                        ))
-                                        .changed();
-                                }
+                                            &mut command.parameters[1],
+                                        )
+                                        .id_salt((0, 1)),
+                                    )
+                                    .changed();
 
                                 ui.label("Condition");
 
@@ -821,26 +763,15 @@ impl EventCommandEditor for Editor {
 
                                 ui.label("Value 1");
 
-                                let variable = coerce_to_integer(&mut command.parameters[1]);
-                                {
-                                    let system = update_state.data.system();
-                                    modified |= ui
-                                        .add(OptionalIdComboBox::new(
+                                modified |= ui
+                                    .add(
+                                        VariableSelection::new(
                                             update_state,
-                                            (1, 1),
-                                            variable,
-                                            1..=system.variables.len(),
-                                            |id| {
-                                                id.checked_sub(1)
-                                                    .and_then(|id| system.variables.get(id))
-                                                    .map_or_else(
-                                                        || "".into(),
-                                                        |x| format!("{:0>4}: {}", id, x),
-                                                    )
-                                            },
-                                        ))
-                                        .changed();
-                                };
+                                            &mut command.parameters[1],
+                                        )
+                                        .id_salt((1, 1)),
+                                    )
+                                    .changed();
 
                                 ui.label("Value 2");
 
@@ -855,30 +786,13 @@ impl EventCommandEditor for Editor {
                                 let value_type = *value_type;
 
                                 let value = coerce_to_integer(&mut command.parameters[3]);
-                                match value_type {
-                                    1 => {
-                                        let system = update_state.data.system();
-                                        modified |= ui
-                                            .add(OptionalIdComboBox::new(
-                                                update_state,
-                                                (1, 3),
-                                                value,
-                                                1..=system.variables.len(),
-                                                |id| {
-                                                    id.checked_sub(1)
-                                                        .and_then(|id| system.variables.get(id))
-                                                        .map_or_else(
-                                                            || "".into(),
-                                                            |x| format!("{:0>4}: {}", id, x),
-                                                        )
-                                                },
-                                            ))
-                                            .changed();
-                                    }
-                                    _ => {
-                                        modified |= ui.add(egui::DragValue::new(value)).changed();
-                                    }
+                                modified |= match value_type {
+                                    1 => ui.add(
+                                        VariableSelection::new(update_state, value).id_salt((1, 3)),
+                                    ),
+                                    _ => ui.add(egui::DragValue::new(value)),
                                 }
+                                .changed();
 
                                 ui.label("Condition");
 
@@ -959,26 +873,15 @@ impl EventCommandEditor for Editor {
 
                                 ui.label("Actor");
 
-                                let actor = coerce_to_integer(&mut command.parameters[1]);
-                                {
-                                    let actors = update_state.data.actors();
-                                    modified |= ui
-                                        .add(OptionalIdComboBox::new(
+                                modified |= ui
+                                    .add(
+                                        ActorSelection::new(
                                             update_state,
-                                            (4, 1),
-                                            actor,
-                                            1..=actors.data.len(),
-                                            |id| {
-                                                id.checked_sub(1)
-                                                    .and_then(|id| actors.data.get(id))
-                                                    .map_or_else(
-                                                        || "".into(),
-                                                        |x| format!("{:0>4}: {}", id, x.name),
-                                                    )
-                                            },
-                                        ))
-                                        .changed();
-                                };
+                                            &mut command.parameters[1],
+                                        )
+                                        .id_salt((4, 1)),
+                                    )
+                                    .changed();
 
                                 ui.label("Condition");
 
@@ -1005,118 +908,54 @@ impl EventCommandEditor for Editor {
 
                                     2 => {
                                         command.parameters.resize(4, ParameterType::None);
-                                        let skill = coerce_to_integer(&mut command.parameters[3]);
-                                        {
-                                            let skills = update_state.data.skills();
-                                            modified |= ui
-                                                .add(OptionalIdComboBox::new(
+                                        modified |= ui
+                                            .add(
+                                                SkillSelection::new(
                                                     update_state,
-                                                    (4, 3, 2),
-                                                    skill,
-                                                    1..=skills.data.len(),
-                                                    |id| {
-                                                        id.checked_sub(1)
-                                                            .and_then(|id| skills.data.get(id))
-                                                            .map_or_else(
-                                                                || "".into(),
-                                                                |x| {
-                                                                    format!(
-                                                                        "{:0>4}: {}",
-                                                                        id, x.name
-                                                                    )
-                                                                },
-                                                            )
-                                                    },
-                                                ))
-                                                .changed();
-                                        };
+                                                    &mut command.parameters[3],
+                                                )
+                                                .id_salt((4, 3, 2)),
+                                            )
+                                            .changed();
                                     }
 
                                     3 => {
                                         command.parameters.resize(4, ParameterType::None);
-                                        let weapon = coerce_to_integer(&mut command.parameters[3]);
-                                        {
-                                            let weapons = update_state.data.weapons();
-                                            modified |= ui
-                                                .add(OptionalIdComboBox::new(
+                                        modified |= ui
+                                            .add(
+                                                WeaponSelection::new(
                                                     update_state,
-                                                    (4, 3, 3),
-                                                    weapon,
-                                                    1..=weapons.data.len(),
-                                                    |id| {
-                                                        id.checked_sub(1)
-                                                            .and_then(|id| weapons.data.get(id))
-                                                            .map_or_else(
-                                                                || "".into(),
-                                                                |x| {
-                                                                    format!(
-                                                                        "{:0>4}: {}",
-                                                                        id, x.name
-                                                                    )
-                                                                },
-                                                            )
-                                                    },
-                                                ))
-                                                .changed();
-                                        };
+                                                    &mut command.parameters[3],
+                                                )
+                                                .id_salt((4, 3, 3)),
+                                            )
+                                            .changed();
                                     }
 
                                     4 => {
                                         command.parameters.resize(4, ParameterType::None);
-                                        let armor = coerce_to_integer(&mut command.parameters[3]);
-                                        {
-                                            let armors = update_state.data.armors();
-                                            modified |= ui
-                                                .add(OptionalIdComboBox::new(
+                                        modified |= ui
+                                            .add(
+                                                ArmorSelection::new(
                                                     update_state,
-                                                    (4, 3, 4),
-                                                    armor,
-                                                    1..=armors.data.len(),
-                                                    |id| {
-                                                        id.checked_sub(1)
-                                                            .and_then(|id| armors.data.get(id))
-                                                            .map_or_else(
-                                                                || "".into(),
-                                                                |x| {
-                                                                    format!(
-                                                                        "{:0>4}: {}",
-                                                                        id, x.name
-                                                                    )
-                                                                },
-                                                            )
-                                                    },
-                                                ))
-                                                .changed();
-                                        };
+                                                    &mut command.parameters[3],
+                                                )
+                                                .id_salt((4, 3, 4)),
+                                            )
+                                            .changed();
                                     }
 
                                     5 => {
                                         command.parameters.resize(4, ParameterType::None);
-                                        let state = coerce_to_integer(&mut command.parameters[3]);
-                                        {
-                                            let states = update_state.data.states();
-                                            modified |= ui
-                                                .add(OptionalIdComboBox::new(
+                                        modified |= ui
+                                            .add(
+                                                StateSelection::new(
                                                     update_state,
-                                                    (4, 3, 5),
-                                                    state,
-                                                    1..=states.data.len(),
-                                                    |id| {
-                                                        id.checked_sub(1)
-                                                            .and_then(|id| states.data.get(id))
-                                                            .map_or_else(
-                                                                || "".into(),
-                                                                |x| {
-                                                                    format!(
-                                                                        "{:0>4}: {}",
-                                                                        id, x.name
-                                                                    )
-                                                                },
-                                                            )
-                                                    },
-                                                ))
-                                                .changed();
-                                        };
+                                                    &mut command.parameters[3],
+                                                )
+                                                .id_salt((4, 3, 5)),
+                                            )
+                                            .changed();
                                     }
 
                                     _ => unreachable!(),
@@ -1167,31 +1006,15 @@ impl EventCommandEditor for Editor {
 
                                     1 => {
                                         command.parameters.resize(4, ParameterType::None);
-                                        let state = coerce_to_integer(&mut command.parameters[3]);
-                                        {
-                                            let states = update_state.data.states();
-                                            modified |= ui
-                                                .add(OptionalIdComboBox::new(
+                                        modified |= ui
+                                            .add(
+                                                StateSelection::new(
                                                     update_state,
-                                                    (5, 3, 1),
-                                                    state,
-                                                    1..=states.data.len(),
-                                                    |id| {
-                                                        id.checked_sub(1)
-                                                            .and_then(|id| states.data.get(id))
-                                                            .map_or_else(
-                                                                || "".into(),
-                                                                |x| {
-                                                                    format!(
-                                                                        "{:0>4}: {}",
-                                                                        id, x.name
-                                                                    )
-                                                                },
-                                                            )
-                                                    },
-                                                ))
-                                                .changed();
-                                        };
+                                                    &mut command.parameters[3],
+                                                )
+                                                .id_salt((5, 3, 1)),
+                                            )
+                                            .changed();
                                     }
 
                                     _ => unreachable!(),
@@ -1203,60 +1026,16 @@ impl EventCommandEditor for Editor {
 
                                 ui.label("Character");
 
-                                let character = coerce_to_integer(&mut command.parameters[1]);
-                                if let Some(event_info) = event_info.copied() {
-                                    *character = character.wrapping_add(1);
-                                    let map = update_state.data.get_map(event_info.map_id);
-                                    modified |= ui
-                                        .add(OptionalIdComboBox::new(
+                                modified |= ui
+                                    .add(
+                                        CharacterSelection::new(
                                             update_state,
-                                            (6, 1, true),
-                                            character,
-                                            0..=map.events.len(),
-                                            |id| match id {
-                                                0 => "Player".into(),
-                                                1 => "This event".into(),
-                                                _ => {
-                                                    let id = id - 1;
-                                                    if id == event_info.event_id {
-                                                        format!(
-                                                            "{:0>4}: {}",
-                                                            id, event_info.event_name
-                                                        )
-                                                    } else {
-                                                        map.events.get(id).map_or_else(
-                                                            || "".into(),
-                                                            |x| format!("{:0>4}: {}", id, x.name),
-                                                        )
-                                                    }
-                                                }
-                                            },
-                                        ))
-                                        .changed();
-                                    *character = character.wrapping_sub(1);
-                                } else {
-                                    let mut character_type =
-                                        CharacterType::try_from(*character).unwrap_or_default();
-                                    modified |= {
-                                        let changed = ui
-                                            .add(EnumComboBox::new(
-                                                (6, 1, false),
-                                                &mut character_type,
-                                            ))
-                                            .changed();
-                                        if changed {
-                                            *character = character_type.into();
-                                        }
-                                        changed
-                                    };
-                                    if character_type == CharacterType::MapEvent {
-                                        modified |= ui
-                                            .add(
-                                                egui::DragValue::new(character).range(1..=i32::MAX),
-                                            )
-                                            .changed();
-                                    }
-                                };
+                                            event_info,
+                                            &mut command.parameters[1],
+                                        )
+                                        .id_salt((6, 1)),
+                                    )
+                                    .changed();
 
                                 ui.label("Condition");
 
@@ -1295,76 +1074,43 @@ impl EventCommandEditor for Editor {
                             8 => {
                                 command.parameters.resize(2, ParameterType::None);
 
-                                let item = coerce_to_integer(&mut command.parameters[1]);
-                                {
-                                    let items = update_state.data.items();
-                                    modified |= ui
-                                        .add(OptionalIdComboBox::new(
+                                modified |= ui
+                                    .add(
+                                        ItemSelection::new(
                                             update_state,
-                                            (4, 1),
-                                            item,
-                                            1..=items.data.len(),
-                                            |id| {
-                                                id.checked_sub(1)
-                                                    .and_then(|id| items.data.get(id))
-                                                    .map_or_else(
-                                                        || "".into(),
-                                                        |x| format!("{:0>4}: {}", id, x.name),
-                                                    )
-                                            },
-                                        ))
-                                        .changed();
-                                };
+                                            &mut command.parameters[1],
+                                        )
+                                        .id_salt((8, 1)),
+                                    )
+                                    .changed();
                             }
 
                             9 => {
                                 command.parameters.resize(2, ParameterType::None);
 
-                                let weapon = coerce_to_integer(&mut command.parameters[1]);
-                                {
-                                    let weapons = update_state.data.weapons();
-                                    modified |= ui
-                                        .add(OptionalIdComboBox::new(
+                                modified |= ui
+                                    .add(
+                                        WeaponSelection::new(
                                             update_state,
-                                            (4, 1),
-                                            weapon,
-                                            1..=weapons.data.len(),
-                                            |id| {
-                                                id.checked_sub(1)
-                                                    .and_then(|id| weapons.data.get(id))
-                                                    .map_or_else(
-                                                        || "".into(),
-                                                        |x| format!("{:0>4}: {}", id, x.name),
-                                                    )
-                                            },
-                                        ))
-                                        .changed();
-                                };
+                                            &mut command.parameters[1],
+                                        )
+                                        .id_salt((9, 1)),
+                                    )
+                                    .changed();
                             }
 
                             10 => {
                                 command.parameters.resize(2, ParameterType::None);
 
-                                let armor = coerce_to_integer(&mut command.parameters[1]);
-                                {
-                                    let armors = update_state.data.armors();
-                                    modified |= ui
-                                        .add(OptionalIdComboBox::new(
+                                modified |= ui
+                                    .add(
+                                        ArmorSelection::new(
                                             update_state,
-                                            (4, 1),
-                                            armor,
-                                            1..=armors.data.len(),
-                                            |id| {
-                                                id.checked_sub(1)
-                                                    .and_then(|id| armors.data.get(id))
-                                                    .map_or_else(
-                                                        || "".into(),
-                                                        |x| format!("{:0>4}: {}", id, x.name),
-                                                    )
-                                            },
-                                        ))
-                                        .changed();
-                                };
+                                            &mut command.parameters[1],
+                                        )
+                                        .id_salt((10, 1)),
+                                    )
+                                    .changed();
                             }
 
                             11 => {
