@@ -26,7 +26,7 @@ use super::{DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInf
 use crate::components::EnumComboBox;
 use std::marker::PhantomData;
 
-#[derive(Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumIter)]
+#[derive(PartialEq, Eq, strum::Display, strum::EnumIter)]
 pub enum SelfSwitchType {
     A,
     B,
@@ -48,8 +48,8 @@ impl From<&str> for SelfSwitchType {
     }
 }
 
-impl From<SelfSwitchType> for &str {
-    fn from(value: SelfSwitchType) -> Self {
+impl From<&SelfSwitchType> for &str {
+    fn from(value: &SelfSwitchType) -> Self {
         match value {
             SelfSwitchType::A => "A",
             SelfSwitchType::B => "B",
@@ -124,7 +124,7 @@ impl EventCommandEditor for Editor {
                         .add(EnumComboBox::new((3, 1), &mut self_switch_type))
                         .changed();
                     if changed {
-                        *self_switch = <&str>::from(self_switch_type).to_string();
+                        *self_switch = <&str>::from(&self_switch_type).to_string();
                     }
                     changed
                 };

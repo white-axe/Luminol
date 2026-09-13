@@ -219,32 +219,75 @@ where
     }
 }
 
-pub struct EnumComboBox<'a, T, R, H> {
-    enum_type: std::marker::PhantomData<T>,
+trait EnumCast {
+    type Enum;
+    type Reference;
+    fn get_mut(&mut self) -> &mut Self::Reference;
+    fn cast(&self) -> Option<(std::mem::Discriminant<Self::Enum>, String)>;
+}
 
+pub struct TrivialEnumCast<'a, T>(&'a mut T);
+
+impl<'a, T> EnumCast for TrivialEnumCast<'a, T>
+where
+    T: ToString,
+{
+    type Enum = T;
+    type Reference = T;
+
+    fn get_mut(&mut self) -> &mut Self::Reference {
+        self.0
+    }
+
+    fn cast(&self) -> Option<(std::mem::Discriminant<Self::Enum>, String)> {
+        Some((std::mem::discriminant(self.0), self.0.to_string()))
+    }
+}
+
+pub struct TryIntoEnumCast<'a, T, R>(&'a mut R, std::marker::PhantomData<T>);
+
+impl<'a, T, R, E> EnumCast for TryIntoEnumCast<'a, T, R>
+where
+    T: Into<R> + ToString,
+    R: TryInto<T, Error = E> + Clone,
+{
+    type Enum = T;
+    type Reference = R;
+
+    fn get_mut(&mut self) -> &mut Self::Reference {
+        self.0
+    }
+
+    fn cast(&self) -> Option<(std::mem::Discriminant<Self::Enum>, String)> {
+        let value = self.0.clone().try_into().ok()?;
+        Some((std::mem::discriminant(&value), value.to_string()))
+    }
+}
+
+pub struct EnumComboBox<C, H> {
     id_source: H,
-    reference: &'a mut R,
+    reference: C,
 
     max_width: f32,
     wrap_mode: egui::TextWrapMode,
 }
 
-impl<'a, T, H> EnumComboBox<'a, T, T, H>
+impl<'a, T, H> EnumComboBox<TrivialEnumCast<'a, T>, H>
 where
-    T: Copy + ToString + strum::IntoEnumIterator,
+    T: ToString + strum::IntoEnumIterator,
     H: std::hash::Hash,
 {
     /// Creates a combo box that can be used to change the variant of an enum `T` that implements
     /// `ToString + strum::IntoEnumIterator`.
     pub fn new(id_source: H, reference: &'a mut T) -> Self {
-        Self::new_with_conversion(std::marker::PhantomData, id_source, reference)
+        Self::new_impl(id_source, TrivialEnumCast(reference))
     }
 }
 
-impl<'a, T, R, H, E> EnumComboBox<'a, T, R, H>
+impl<'a, T, R, H, E> EnumComboBox<TryIntoEnumCast<'a, T, R>, H>
 where
     T: Into<R> + ToString + strum::IntoEnumIterator,
-    R: TryInto<T, Error = E> + Copy,
+    R: TryInto<T, Error = E> + Clone,
     H: std::hash::Hash,
 {
     /// Creates a combo box that can be used to change a value that can be converted to/from an enum
@@ -254,8 +297,13 @@ where
         id_source: H,
         reference: &'a mut R,
     ) -> Self {
+        Self::new_impl(id_source, TryIntoEnumCast(reference, enum_type))
+    }
+}
+
+impl<C, H> EnumComboBox<C, H> {
+    fn new_impl(id_source: H, reference: C) -> Self {
         Self {
-            enum_type,
             id_source,
             reference,
             max_width: f32::INFINITY,
@@ -274,18 +322,18 @@ where
     }
 }
 
-impl<T, R, H, E> egui::Widget for EnumComboBox<'_, T, R, H>
+impl<C, T, R, H> egui::Widget for EnumComboBox<C, H>
 where
+    C: EnumCast<Enum = T, Reference = R>,
     T: Into<R> + ToString + strum::IntoEnumIterator,
-    R: TryInto<T, Error = E> + Copy,
     H: std::hash::Hash,
 {
-    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+    fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
         let mut changed = false;
         let available_width = ui.available_width() - ui.spacing().item_spacing.x;
         let width = self.max_width.min(available_width);
-        let (discriminant, text) = if let Ok(value) = (*self.reference).try_into() {
-            (Some(std::mem::discriminant(&value)), value.to_string())
+        let (discriminant, text) = if let Some((discriminant, text)) = self.reference.cast() {
+            (Some(discriminant), text)
         } else {
             (None, Default::default())
         };
@@ -307,7 +355,7 @@ where
                             )
                             .clicked()
                         {
-                            *self.reference = variant.into();
+                            *self.reference.get_mut() = variant.into();
                             changed = true;
                         }
                     });
