@@ -228,7 +228,7 @@ trait EnumCast {
 
 pub struct TrivialEnumCast<'a, T>(&'a mut T);
 
-impl<'a, T> EnumCast for TrivialEnumCast<'a, T>
+impl<T> EnumCast for TrivialEnumCast<'_, T>
 where
     T: ToString,
 {
@@ -246,7 +246,7 @@ where
 
 pub struct TryIntoEnumCast<'a, T, R>(&'a mut R, std::marker::PhantomData<T>);
 
-impl<'a, T, R, E> EnumCast for TryIntoEnumCast<'a, T, R>
+impl<T, R, E> EnumCast for TryIntoEnumCast<'_, T, R>
 where
     T: Into<R> + ToString,
     R: TryInto<T, Error = E> + Clone,
