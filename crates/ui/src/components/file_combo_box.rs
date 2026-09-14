@@ -49,7 +49,11 @@ where
     }
 
     fn set(&mut self, value: Option<String>) {
-        self.get_or_insert_default().set(value)
+        if value.is_some() {
+            self.get_or_insert_default().set(value)
+        } else {
+            *self = None;
+        }
     }
 }
 
