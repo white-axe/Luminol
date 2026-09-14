@@ -70,7 +70,7 @@ where
 }
 
 pub struct EnumComboBox<C, H> {
-    id_source: H,
+    id_salt: H,
     reference: C,
 
     max_width: f32,
@@ -84,8 +84,8 @@ where
 {
     /// Creates a combo box that can be used to change the variant of an enum `T` that implements
     /// `ToString + strum::IntoEnumIterator`.
-    pub fn new(id_source: H, reference: &'a mut T) -> Self {
-        Self::new_impl(id_source, TrivialEnumCast(reference))
+    pub fn new(id_salt: H, reference: &'a mut T) -> Self {
+        Self::new_impl(id_salt, TrivialEnumCast(reference))
     }
 }
 
@@ -99,17 +99,17 @@ where
     /// `T` that implements `ToString + strum::IntoEnumIterator`.
     pub fn new_with_conversion(
         enum_type: std::marker::PhantomData<T>,
-        id_source: H,
+        id_salt: H,
         reference: &'a mut R,
     ) -> Self {
-        Self::new_impl(id_source, TryIntoEnumCast(reference, enum_type))
+        Self::new_impl(id_salt, TryIntoEnumCast(reference, enum_type))
     }
 }
 
 impl<C, H> EnumComboBox<C, H> {
-    fn new_impl(id_source: H, reference: C) -> Self {
+    fn new_impl(id_salt: H, reference: C) -> Self {
         Self {
-            id_source,
+            id_salt,
             reference,
             max_width: f32::INFINITY,
             wrap_mode: egui::TextWrapMode::Wrap,
@@ -142,7 +142,7 @@ where
         } else {
             (None, Default::default())
         };
-        let mut response = egui::ComboBox::from_id_salt(&self.id_source)
+        let mut response = egui::ComboBox::from_id_salt(&self.id_salt)
             .wrap()
             .width(width)
             .selected_text(text)

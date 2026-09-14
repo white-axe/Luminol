@@ -51,7 +51,7 @@ macro_rules! impl_into_optional_id {
 impl_into_optional_id!(i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize);
 
 pub struct OptionalIdComboBox<'a, R, I, H, F> {
-    id_source: H,
+    id_salt: H,
     reference: &'a mut R,
     id_iter: I,
     formatter: F,
@@ -75,13 +75,13 @@ where
     /// cache.
     pub fn new(
         update_state: &luminol_core::UpdateState<'_>,
-        id_source: H,
+        id_salt: H,
         reference: &'a mut R,
         id_iter: I,
         formatter: F,
     ) -> Self {
         Self {
-            id_source,
+            id_salt,
             reference,
             id_iter,
             formatter,
@@ -96,13 +96,13 @@ where
         formatter: impl Fn(&Self) -> String,
         f: impl FnOnce(Self, &mut egui::Ui, Vec<usize>, bool, bool) -> bool,
     ) -> egui::Response {
-        let source = egui::Id::new(&self.id_source);
-        let state_id = ui.make_persistent_id(source).with("OptionalIdComboBox");
-        let popup_id = ui.make_persistent_id(source).with("popup");
+        let salt = egui::Id::new(&self.id_salt);
+        let state_id = ui.make_persistent_id(salt).with("OptionalIdComboBox");
+        let popup_id = ui.make_persistent_id(salt).with("popup");
         let is_popup_open = egui::Popup::is_id_open(ui.ctx(), popup_id);
 
         let mut changed = false;
-        let inner_response = egui::ComboBox::from_id_salt(&self.id_source)
+        let inner_response = egui::ComboBox::from_id_salt(&self.id_salt)
             .wrap()
             .width(ui.available_width() - ui.spacing().item_spacing.x)
             .selected_text(formatter(&self))

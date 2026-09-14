@@ -32,7 +32,7 @@ struct State {
 }
 
 pub struct IdVecSelection<'a, H, F> {
-    id_source: H,
+    id_salt: H,
     reference: &'a mut Vec<usize>,
     id_range: std::ops::Range<usize>,
     formatter: F,
@@ -41,7 +41,7 @@ pub struct IdVecSelection<'a, H, F> {
 }
 
 pub struct IdVecPlusMinusSelection<'a, H, F> {
-    id_source: H,
+    id_salt: H,
     plus: &'a mut Vec<usize>,
     minus: &'a mut Vec<usize>,
     id_range: std::ops::Range<usize>,
@@ -51,7 +51,7 @@ pub struct IdVecPlusMinusSelection<'a, H, F> {
 }
 
 pub struct RankSelection<'a, H, F> {
-    id_source: H,
+    id_salt: H,
     reference: &'a mut luminol_data::Table1,
     formatter: F,
     clear_search: bool,
@@ -66,13 +66,13 @@ where
     /// Creates a new widget for changing the contents of an `id_vec`.
     pub fn new(
         update_state: &luminol_core::UpdateState<'_>,
-        id_source: H,
+        id_salt: H,
         reference: &'a mut Vec<usize>,
         id_range: std::ops::Range<usize>,
         formatter: F,
     ) -> Self {
         Self {
-            id_source,
+            id_salt,
             reference,
             id_range,
             formatter,
@@ -95,14 +95,14 @@ where
     /// Creates a new widget for changing the contents of a pair of `id_vec`s.
     pub fn new(
         update_state: &luminol_core::UpdateState<'_>,
-        id_source: H,
+        id_salt: H,
         plus: &'a mut Vec<usize>,
         minus: &'a mut Vec<usize>,
         id_range: std::ops::Range<usize>,
         formatter: F,
     ) -> Self {
         Self {
-            id_source,
+            id_salt,
             plus,
             minus,
             id_range,
@@ -126,12 +126,12 @@ where
     /// Creates a new widget for changing the contents of a rank table.
     pub fn new(
         update_state: &luminol_core::UpdateState<'_>,
-        id_source: H,
+        id_salt: H,
         reference: &'a mut luminol_data::Table1,
         formatter: F,
     ) -> Self {
         Self {
-            id_source,
+            id_salt,
             reference,
             formatter,
             clear_search: false,
@@ -157,7 +157,7 @@ where
 
         let first_id = self.id_range.start;
 
-        let state_id = ui.make_persistent_id(egui::Id::new(self.id_source).with("IdVecSelection"));
+        let state_id = ui.make_persistent_id(egui::Id::new(self.id_salt).with("IdVecSelection"));
         let mut state: State = ui
             .data_mut(|d| d.remove_temp(state_id))
             .unwrap_or_else(|| State {
@@ -310,7 +310,7 @@ where
         let first_id = self.id_range.start;
 
         let state_id =
-            ui.make_persistent_id(egui::Id::new(self.id_source).with("IdVecPlusMinusSelection"));
+            ui.make_persistent_id(egui::Id::new(self.id_salt).with("IdVecPlusMinusSelection"));
         let mut state: State = ui.data(|d| d.get_temp(state_id)).unwrap_or_else(|| State {
             search_matched_ids: self.id_range.clone().collect(),
             ..Default::default()
@@ -491,7 +491,7 @@ where
     F: Fn(usize) -> String,
 {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
-        let state_id = ui.make_persistent_id(egui::Id::new(self.id_source).with("RankSelection"));
+        let state_id = ui.make_persistent_id(egui::Id::new(self.id_salt).with("RankSelection"));
         let mut state: State = ui.data(|d| d.get_temp(state_id)).unwrap_or_else(|| State {
             search_matched_ids: (0..self.reference.xsize() - 1).collect(),
             ..Default::default()
