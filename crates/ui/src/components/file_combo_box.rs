@@ -90,6 +90,8 @@ impl FileCast for camino::Utf8PathBuf {
     }
 }
 
+/// A combo box widget for changing the value of a field containing a filename of a file within a
+/// specific subdirectory of the project.
 pub struct FileComboBox<'this, 'update_state, R, P, H> {
     update_state: &'this UpdateState<'update_state>,
     id_salt: H,
@@ -100,8 +102,6 @@ pub struct FileComboBox<'this, 'update_state, R, P, H> {
     allow_none: bool,
 }
 
-/// A combo box widget for changing the value of a field containing a filename of a file within a
-/// specific subdirectory of the project.
 impl<'this, 'update_state, R, P, H> FileComboBox<'this, 'update_state, R, P, H>
 where
     R: FileCast,
