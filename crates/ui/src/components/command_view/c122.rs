@@ -633,7 +633,7 @@ impl EventCommandEditor for Editor {
                         command.parameters.resize(5, ParameterType::Integer(0));
                     }
 
-                    _ => unreachable!(),
+                    _ => {}
                 }
             })
             .response;

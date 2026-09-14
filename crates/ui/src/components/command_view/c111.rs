@@ -898,7 +898,7 @@ impl EventCommandEditor for Editor {
                                             .changed();
                                     }
 
-                                    _ => unreachable!(),
+                                    _ => {}
                                 }
                             }
 
@@ -957,7 +957,7 @@ impl EventCommandEditor for Editor {
                                             .changed();
                                     }
 
-                                    _ => unreachable!(),
+                                    _ => {}
                                 }
                             }
 

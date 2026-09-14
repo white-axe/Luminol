@@ -115,7 +115,7 @@ impl EventCommandEditor for Editor {
                         command.parameters.resize(1, ParameterType::Integer(0));
                     }
 
-                    _ => unreachable!(),
+                    _ => {}
                 }
             })
             .response;
