@@ -43,15 +43,17 @@ impl EventCommandEditor for Editor {
         _update_state: &UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
-    ) -> String {
-        callback.exponential_search_segments(itertools::intersperse(
-            command.parameters[0]
-                .as_array()
-                .unwrap()
-                .iter()
-                .map(|choice| choice.as_string().unwrap().as_str()),
-            ", ",
-        ))
+    ) -> Option<String> {
+        Some(
+            callback.exponential_search_segments(itertools::intersperse(
+                command.parameters[0]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|choice| choice.as_string().unwrap().as_str()),
+                ", ",
+            )),
+        )
     }
 
     fn ui(

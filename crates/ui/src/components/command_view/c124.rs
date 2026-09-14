@@ -56,7 +56,7 @@ impl EventCommandEditor for Editor {
         _update_state: &UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
-    ) -> String {
+    ) -> Option<String> {
         match command.parameters[0].as_integer().unwrap() {
             0 => {
                 let start_time = command
@@ -64,12 +64,12 @@ impl EventCommandEditor for Editor {
                     .get(1)
                     .map(|parameter| *parameter.as_integer().unwrap())
                     .unwrap_or_default();
-                format!("Start timer at {start_time} frames")
+                Some(format!("Start timer at {start_time} frames"))
             }
 
-            1 => "Stop timer".into(),
+            1 => Some("Stop timer".into()),
 
-            _ => String::new(),
+            _ => None,
         }
     }
 

@@ -64,14 +64,14 @@ impl EventCommandEditor for Editor {
         _update_state: &UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
-    ) -> String {
+    ) -> Option<String> {
         let position = Position::try_from(*command.parameters[0].as_integer().unwrap())
-            .map(|value| value.to_string())
-            .unwrap_or_default();
+            .ok()?
+            .to_string();
         let frame = Frame::try_from(*command.parameters[1].as_integer().unwrap())
-            .map(|value| value.to_string())
-            .unwrap_or_default();
-        format!("{position}, {frame}")
+            .ok()?
+            .to_string();
+        Some(format!("{position}, {frame}"))
     }
 
     fn ui(

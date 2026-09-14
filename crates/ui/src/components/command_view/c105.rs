@@ -40,12 +40,9 @@ impl EventCommandEditor for Editor {
         update_state: &UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
-    ) -> String {
-        let Some(variable) = VariableSelection::new(update_state, &command.parameters[0]).fmt()
-        else {
-            return String::new();
-        };
-        format!("[{variable}]")
+    ) -> Option<String> {
+        let variable = VariableSelection::new(update_state, &command.parameters[0]).fmt()?;
+        Some(format!("[{variable}]"))
     }
 
     fn ui(

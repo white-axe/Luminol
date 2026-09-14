@@ -37,9 +37,9 @@ impl EventCommandEditor for Editor {
         _update_state: &UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
-    ) -> String {
+    ) -> Option<String> {
         let frames = command.parameters[0].as_integer().unwrap();
-        format!("{frames} frames")
+        Some(format!("{frames} frames"))
     }
 
     fn ui(

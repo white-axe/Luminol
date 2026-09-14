@@ -119,8 +119,8 @@ where
         update_state: &UpdateState<'_>,
         event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
-    ) -> String {
-        String::new()
+    ) -> Option<String> {
+        None
     }
 
     /// Renders the UI for this event command editor.
@@ -308,12 +308,14 @@ impl egui::Widget for CommandView<'_, '_> {
                             if let Some(editor) = maybe_editor {
                                 let code = command.code;
                                 let name = editor.name();
-                                let description = editor.description(
-                                    DescriptionWidthCallback::new(ui, name),
-                                    self.update_state,
-                                    self.event_info,
-                                    command,
-                                );
+                                let description = editor
+                                    .description(
+                                        DescriptionWidthCallback::new(ui, name),
+                                        self.update_state,
+                                        self.event_info,
+                                        command,
+                                    )
+                                    .unwrap_or_default();
                                 if description.is_empty() {
                                     ui.label(format!("{code} {name}"));
                                 } else {

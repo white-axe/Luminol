@@ -56,32 +56,22 @@ impl EventCommandEditor for Editor {
         update_state: &UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
-    ) -> String {
-        let Some(item) = ItemSelection::new(update_state, &command.parameters[1]).fmt() else {
-            return String::new();
-        };
+    ) -> Option<String> {
+        let item = ItemSelection::new(update_state, &command.parameters[1]).fmt()?;
         let operation = match command.parameters[1].as_integer().unwrap() {
-            0 => "+=",
-            1 => "-=",
-            _ => {
-                return String::new();
-            }
-        };
-        let Some(operand) = ValueSelection::new(
+            0 => Some("+="),
+            1 => Some("-="),
+            _ => None,
+        }?;
+        let operand = ValueSelection::new(
             update_state,
             command.parameters[2].as_integer().unwrap(),
             command.parameters[3].as_integer().unwrap(),
         )
-        .fmt() else {
-            return String::new();
-        };
+        .fmt()?;
         match operand {
-            ValueFmt::Constant(constant) => {
-                format!("[{item}] {operation} {constant}")
-            }
-            ValueFmt::Variable(variable) => {
-                format!("[{item}] {operation} [{variable}]")
-            }
+            ValueFmt::Constant(constant) => Some(format!("[{item}] {operation} {constant}")),
+            ValueFmt::Variable(variable) => Some(format!("[{item}] {operation} [{variable}]")),
         }
     }
 

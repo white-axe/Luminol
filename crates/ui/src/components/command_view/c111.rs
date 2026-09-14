@@ -308,10 +308,10 @@ impl EventCommandEditor for Editor {
         update_state: &UpdateState<'_>,
         event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
-    ) -> String {
+    ) -> Option<String> {
         match *command.parameters[0].as_integer().unwrap() {
             0 => {
-                let Some(switch) = SwitchSelection::new(
+                let switch = SwitchSelection::new(
                     update_state,
                     command
                         .parameters
@@ -319,26 +319,22 @@ impl EventCommandEditor for Editor {
                         .and_then(|parameter| parameter.as_integer().copied())
                         .unwrap_or_default(),
                 )
-                .fmt() else {
-                    return String::new();
-                };
+                .fmt()?;
                 let condition = match command
                     .parameters
                     .get(2)
                     .and_then(|parameter| parameter.as_integer().copied())
                     .unwrap_or_default()
                 {
-                    0 => "is on",
-                    1 => "is off",
-                    _ => {
-                        return String::new();
-                    }
-                };
-                format!("[{switch}] {condition}")
+                    0 => Some("is on"),
+                    1 => Some("is off"),
+                    _ => None,
+                }?;
+                Some(format!("[{switch}] {condition}"))
             }
 
             1 => {
-                let Some(variable) = VariableSelection::new(
+                let variable = VariableSelection::new(
                     update_state,
                     command
                         .parameters
@@ -346,26 +342,22 @@ impl EventCommandEditor for Editor {
                         .and_then(|parameter| parameter.as_integer().copied())
                         .unwrap_or_default(),
                 )
-                .fmt() else {
-                    return String::new();
-                };
+                .fmt()?;
                 let condition = match command
                     .parameters
                     .get(4)
                     .and_then(|parameter| parameter.as_integer().copied())
                     .unwrap_or_default()
                 {
-                    0 => "==",
-                    1 => ">=",
-                    2 => "<=",
-                    3 => ">",
-                    4 => "<",
-                    5 => "!=",
-                    _ => {
-                        return String::new();
-                    }
-                };
-                let Some(value) = ValueSelection::new(
+                    0 => Some("=="),
+                    1 => Some(">="),
+                    2 => Some("<="),
+                    3 => Some(">"),
+                    4 => Some("<"),
+                    5 => Some("!="),
+                    _ => None,
+                }?;
+                let value = ValueSelection::new(
                     update_state,
                     command
                         .parameters
@@ -378,15 +370,13 @@ impl EventCommandEditor for Editor {
                         .and_then(|parameter| parameter.as_integer().copied())
                         .unwrap_or_default(),
                 )
-                .fmt() else {
-                    return String::new();
-                };
+                .fmt()?;
                 match value {
                     ValueFmt::Constant(constant) => {
-                        format!("[{variable}] {condition} {constant}")
+                        Some(format!("[{variable}] {condition} {constant}"))
                     }
                     ValueFmt::Variable(variable2) => {
-                        format!("[{variable}] {condition} [{variable2}]")
+                        Some(format!("[{variable}] {condition} [{variable2}]"))
                     }
                 }
             }
@@ -404,11 +394,11 @@ impl EventCommandEditor for Editor {
                     .and_then(|parameter| parameter.as_integer().copied())
                     .unwrap_or_default()
                 {
-                    0 => "is on",
-                    1 => "is off",
-                    _ => return String::new(),
-                };
-                format!("[{name}] {condition}")
+                    0 => Some("is on"),
+                    1 => Some("is off"),
+                    _ => None,
+                }?;
+                Some(format!("[{name}] {condition}"))
             }
 
             3 => {
@@ -423,17 +413,15 @@ impl EventCommandEditor for Editor {
                     .and_then(|parameter| parameter.as_integer().copied())
                     .unwrap_or_default()
                 {
-                    0 => ">=",
-                    1 => "<=",
-                    _ => {
-                        return String::new();
-                    }
-                };
-                format!("Timer {condition} {value}")
+                    0 => Some(">="),
+                    1 => Some("<="),
+                    _ => None,
+                }?;
+                Some(format!("Timer {condition} {value}"))
             }
 
             4 => {
-                let Some(actor) = ActorSelection::new(
+                let actor = ActorSelection::new(
                     update_state,
                     command
                         .parameters
@@ -441,16 +429,14 @@ impl EventCommandEditor for Editor {
                         .and_then(|parameter| parameter.as_integer().copied())
                         .unwrap_or_default(),
                 )
-                .fmt() else {
-                    return String::new();
-                };
+                .fmt()?;
                 match command
                     .parameters
                     .get(2)
                     .and_then(|parameter| parameter.as_integer().copied())
                     .unwrap_or_default()
                 {
-                    0 => format!("[{actor}] is in the party"),
+                    0 => Some(format!("[{actor}] is in the party")),
 
                     1 => {
                         let actor_name = command
@@ -459,11 +445,11 @@ impl EventCommandEditor for Editor {
                             .and_then(|parameter| parameter.as_string())
                             .map(|parameter| parameter.as_str())
                             .unwrap_or_default();
-                        format!("[{actor}] is named {actor_name}")
+                        Some(format!("[{actor}] is named {actor_name}"))
                     }
 
                     2 => {
-                        let Some(skill) = SkillSelection::new(
+                        let skill = SkillSelection::new(
                             update_state,
                             command
                                 .parameters
@@ -471,14 +457,12 @@ impl EventCommandEditor for Editor {
                                 .and_then(|parameter| parameter.as_integer().copied())
                                 .unwrap_or_default(),
                         )
-                        .fmt() else {
-                            return String::new();
-                        };
-                        format!("[{actor}] knows [{skill}]")
+                        .fmt()?;
+                        Some(format!("[{actor}] knows [{skill}]"))
                     }
 
                     3 => {
-                        let Some(weapon) = WeaponSelection::new(
+                        let weapon = WeaponSelection::new(
                             update_state,
                             command
                                 .parameters
@@ -486,14 +470,12 @@ impl EventCommandEditor for Editor {
                                 .and_then(|parameter| parameter.as_integer().copied())
                                 .unwrap_or_default(),
                         )
-                        .fmt() else {
-                            return String::new();
-                        };
-                        format!("[{actor}] is holding [{weapon}]")
+                        .fmt()?;
+                        Some(format!("[{actor}] is holding [{weapon}]"))
                     }
 
                     4 => {
-                        let Some(armor) = ArmorSelection::new(
+                        let armor = ArmorSelection::new(
                             update_state,
                             command
                                 .parameters
@@ -501,14 +483,12 @@ impl EventCommandEditor for Editor {
                                 .and_then(|parameter| parameter.as_integer().copied())
                                 .unwrap_or_default(),
                         )
-                        .fmt() else {
-                            return String::new();
-                        };
-                        format!("[{actor}] is wearing [{armor}]")
+                        .fmt()?;
+                        Some(format!("[{actor}] is wearing [{armor}]"))
                     }
 
                     5 => {
-                        let Some(state) = StateSelection::new(
+                        let state = StateSelection::new(
                             update_state,
                             command
                                 .parameters
@@ -516,13 +496,11 @@ impl EventCommandEditor for Editor {
                                 .and_then(|parameter| parameter.as_integer().copied())
                                 .unwrap_or_default(),
                         )
-                        .fmt() else {
-                            return String::new();
-                        };
-                        format!("[{actor}] is affected by [{state}]")
+                        .fmt()?;
+                        Some(format!("[{actor}] is affected by [{state}]"))
                     }
 
-                    _ => String::new(),
+                    _ => None,
                 }
             }
 
@@ -539,10 +517,10 @@ impl EventCommandEditor for Editor {
                     .and_then(|parameter| parameter.as_integer().copied())
                     .unwrap_or_default()
                 {
-                    0 => format!("enemy #{index} exists"),
+                    0 => Some(format!("enemy #{index} exists")),
 
                     1 => {
-                        let Some(state) = StateSelection::new(
+                        let state = StateSelection::new(
                             update_state,
                             command
                                 .parameters
@@ -550,18 +528,16 @@ impl EventCommandEditor for Editor {
                                 .and_then(|parameter| parameter.as_integer().copied())
                                 .unwrap_or_default(),
                         )
-                        .fmt() else {
-                            return String::new();
-                        };
-                        format!("enemy #{index} is affected by [{state}]")
+                        .fmt()?;
+                        Some(format!("enemy #{index} is affected by [{state}]"))
                     }
 
-                    _ => String::new(),
+                    _ => None,
                 }
             }
 
             6 => {
-                let Some(character) = CharacterSelection::new(
+                let character = CharacterSelection::new(
                     update_state,
                     event_info,
                     command
@@ -570,20 +546,18 @@ impl EventCommandEditor for Editor {
                         .and_then(|parameter| parameter.as_integer().copied())
                         .unwrap_or_default(),
                 )
-                .fmt() else {
-                    return String::new();
-                };
+                .fmt()?;
                 match command
                     .parameters
                     .get(2)
                     .and_then(|parameter| parameter.as_integer().copied())
                     .unwrap_or_default()
                 {
-                    2 => format!("[{character}] is facing down"),
-                    4 => format!("[{character}] is facing left"),
-                    6 => format!("[{character}] is facing right"),
-                    8 => format!("[{character}] is facing up"),
-                    _ => String::new(),
+                    2 => Some(format!("[{character}] is facing down")),
+                    4 => Some(format!("[{character}] is facing left")),
+                    6 => Some(format!("[{character}] is facing right")),
+                    8 => Some(format!("[{character}] is facing up")),
+                    _ => None,
                 }
             }
 
@@ -599,17 +573,15 @@ impl EventCommandEditor for Editor {
                     .and_then(|parameter| parameter.as_integer().copied())
                     .unwrap_or_default()
                 {
-                    0 => ">=",
-                    1 => "<=",
-                    _ => {
-                        return String::new();
-                    }
-                };
-                format!("Gold {condition} {value}")
+                    0 => Some(">="),
+                    1 => Some("<="),
+                    _ => None,
+                }?;
+                Some(format!("Gold {condition} {value}"))
             }
 
             8 => {
-                let Some(item) = ItemSelection::new(
+                let item = ItemSelection::new(
                     update_state,
                     command
                         .parameters
@@ -617,14 +589,12 @@ impl EventCommandEditor for Editor {
                         .and_then(|parameter| parameter.as_integer().copied())
                         .unwrap_or_default(),
                 )
-                .fmt() else {
-                    return String::new();
-                };
-                format!("[{item}] is in inventory")
+                .fmt()?;
+                Some(format!("[{item}] is in inventory"))
             }
 
             9 => {
-                let Some(weapon) = WeaponSelection::new(
+                let weapon = WeaponSelection::new(
                     update_state,
                     command
                         .parameters
@@ -632,14 +602,12 @@ impl EventCommandEditor for Editor {
                         .and_then(|parameter| parameter.as_integer().copied())
                         .unwrap_or_default(),
                 )
-                .fmt() else {
-                    return String::new();
-                };
-                format!("[{weapon}] is in inventory")
+                .fmt()?;
+                Some(format!("[{weapon}] is in inventory"))
             }
 
             10 => {
-                let Some(armor) = ArmorSelection::new(
+                let armor = ArmorSelection::new(
                     update_state,
                     command
                         .parameters
@@ -647,10 +615,8 @@ impl EventCommandEditor for Editor {
                         .and_then(|parameter| parameter.as_integer().copied())
                         .unwrap_or_default(),
                 )
-                .fmt() else {
-                    return String::new();
-                };
-                format!("[{armor}] is in inventory")
+                .fmt()?;
+                Some(format!("[{armor}] is in inventory"))
             }
 
             11 => {
@@ -661,22 +627,24 @@ impl EventCommandEditor for Editor {
                     .unwrap_or_default();
                 let button_type = ButtonType::try_from(id).unwrap_or_default();
                 if button_type == ButtonType::Custom {
-                    format!("Button {id} is being pressed")
+                    Some(format!("Button {id} is being pressed"))
                 } else {
-                    format!("{button_type} is being pressed")
+                    Some(format!("{button_type} is being pressed"))
                 }
             }
 
-            12 => callback.exponential_search_str(
-                command
-                    .parameters
-                    .get(1)
-                    .and_then(|parameter| parameter.as_string())
-                    .map(|parameter| parameter.as_str())
-                    .unwrap_or_default(),
+            12 => Some(
+                callback.exponential_search_str(
+                    command
+                        .parameters
+                        .get(1)
+                        .and_then(|parameter| parameter.as_string())
+                        .map(|parameter| parameter.as_str())
+                        .unwrap_or_default(),
+                ),
             ),
 
-            _ => String::new(),
+            _ => None,
         }
     }
 

@@ -37,8 +37,8 @@ impl EventCommandEditor for Editor {
         _update_state: &UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
-    ) -> String {
-        callback.exponential_search_str(command.parameters[0].as_string().unwrap())
+    ) -> Option<String> {
+        Some(callback.exponential_search_str(command.parameters[0].as_string().unwrap()))
     }
 
     fn ui(

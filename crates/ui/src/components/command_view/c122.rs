@@ -196,29 +196,23 @@ impl EventCommandEditor for Editor {
         update_state: &UpdateState<'_>,
         event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
-    ) -> String {
+    ) -> Option<String> {
         let start_id = command.parameters[0].as_integer().unwrap();
         let end_id = command.parameters[1].as_integer().unwrap();
         let operation = match command.parameters[2].as_integer().unwrap() {
-            0 => "=",
-            1 => "+=",
-            2 => "-=",
-            3 => "*=",
-            4 => "/=",
-            5 => "%=",
-            _ => {
-                return String::new();
-            }
-        };
-        let Some(start) = VariableSelection::new(update_state, start_id).fmt() else {
-            return String::new();
-        };
+            0 => Some("="),
+            1 => Some("+="),
+            2 => Some("-="),
+            3 => Some("*="),
+            4 => Some("/="),
+            5 => Some("%="),
+            _ => None,
+        }?;
+        let start = VariableSelection::new(update_state, start_id).fmt()?;
         let variable_string = if start_id == end_id {
             format!("{start} {operation}")
         } else {
-            let Some(end) = VariableSelection::new(update_state, end_id).fmt() else {
-                return String::new();
-            };
+            let end = VariableSelection::new(update_state, end_id).fmt()?;
             format!("[{end}] - [{end}] {operation}")
         };
         match command.parameters[3].as_integer().unwrap() {
@@ -228,11 +222,11 @@ impl EventCommandEditor for Editor {
                     .get(4)
                     .map(|parameter| *parameter.as_integer().unwrap())
                     .unwrap_or_default();
-                format!("{variable_string} {constant}")
+                Some(format!("{variable_string} {constant}"))
             }
 
             1 => {
-                let Some(variable) = VariableSelection::new(
+                let variable = VariableSelection::new(
                     update_state,
                     command
                         .parameters
@@ -240,10 +234,8 @@ impl EventCommandEditor for Editor {
                         .map(|parameter| *parameter.as_integer().unwrap())
                         .unwrap_or_default(),
                 )
-                .fmt() else {
-                    return String::new();
-                };
-                format!("{variable_string} [{variable}]")
+                .fmt()?;
+                Some(format!("{variable_string} [{variable}]"))
             }
 
             2 => {
@@ -257,11 +249,13 @@ impl EventCommandEditor for Editor {
                     .get(5)
                     .map(|parameter| *parameter.as_integer().unwrap())
                     .unwrap_or_default();
-                format!("{variable_string} random in range {random_start} - {random_end}")
+                Some(format!(
+                    "{variable_string} random in range {random_start} - {random_end}"
+                ))
             }
 
             3 => {
-                let Some(item) = ItemSelection::new(
+                let item = ItemSelection::new(
                     update_state,
                     command
                         .parameters
@@ -269,14 +263,12 @@ impl EventCommandEditor for Editor {
                         .map(|parameter| *parameter.as_integer().unwrap())
                         .unwrap_or_default(),
                 )
-                .fmt() else {
-                    return String::new();
-                };
-                format!("{variable_string} amount of [{item}] in inventory")
+                .fmt()?;
+                Some(format!("{variable_string} amount of [{item}] in inventory"))
             }
 
             4 => {
-                let Some(actor) = ActorSelection::new(
+                let actor = ActorSelection::new(
                     update_state,
                     command
                         .parameters
@@ -284,32 +276,30 @@ impl EventCommandEditor for Editor {
                         .map(|parameter| *parameter.as_integer().unwrap())
                         .unwrap_or_default(),
                 )
-                .fmt() else {
-                    return String::new();
-                };
+                .fmt()?;
                 let actor_property = match command
                     .parameters
                     .get(5)
                     .map(|parameter| *parameter.as_integer().unwrap())
                     .unwrap_or_default()
                 {
-                    0 => "level",
-                    1 => "EXP",
-                    2 => "HP",
-                    3 => "SP",
-                    4 => "max HP",
-                    5 => "max SP",
-                    6 => "STR",
-                    7 => "DEX",
-                    8 => "AGI",
-                    9 => "INT",
-                    10 => "ATK",
-                    11 => "PDEF",
-                    12 => "MDEF",
-                    13 => "EVA",
-                    _ => return String::new(),
-                };
-                format!("{variable_string} [{actor}]'s {actor_property}")
+                    0 => Some("level"),
+                    1 => Some("EXP"),
+                    2 => Some("HP"),
+                    3 => Some("SP"),
+                    4 => Some("max HP"),
+                    5 => Some("max SP"),
+                    6 => Some("STR"),
+                    7 => Some("DEX"),
+                    8 => Some("AGI"),
+                    9 => Some("INT"),
+                    10 => Some("ATK"),
+                    11 => Some("PDEF"),
+                    12 => Some("MDEF"),
+                    13 => Some("EVA"),
+                    _ => None,
+                }?;
+                Some(format!("{variable_string} [{actor}]'s {actor_property}"))
             }
 
             5 => {
@@ -325,25 +315,27 @@ impl EventCommandEditor for Editor {
                     .map(|parameter| *parameter.as_integer().unwrap())
                     .unwrap_or_default()
                 {
-                    0 => "HP",
-                    1 => "SP",
-                    2 => "max HP",
-                    3 => "max SP",
-                    4 => "STR",
-                    5 => "DEX",
-                    6 => "AGI",
-                    7 => "INT",
-                    8 => "ATK",
-                    9 => "PDEF",
-                    10 => "MDEF",
-                    11 => "EVA",
-                    _ => return String::new(),
-                };
-                format!("{variable_string} enemy #{enemy_index}'s {enemy_property}")
+                    0 => Some("HP"),
+                    1 => Some("SP"),
+                    2 => Some("max HP"),
+                    3 => Some("max SP"),
+                    4 => Some("STR"),
+                    5 => Some("DEX"),
+                    6 => Some("AGI"),
+                    7 => Some("INT"),
+                    8 => Some("ATK"),
+                    9 => Some("PDEF"),
+                    10 => Some("MDEF"),
+                    11 => Some("EVA"),
+                    _ => None,
+                }?;
+                Some(format!(
+                    "{variable_string} enemy #{enemy_index}'s {enemy_property}"
+                ))
             }
 
             6 => {
-                let Some(character) = CharacterSelection::new(
+                let character = CharacterSelection::new(
                     update_state,
                     event_info,
                     command
@@ -352,24 +344,24 @@ impl EventCommandEditor for Editor {
                         .map(|parameter| *parameter.as_integer().unwrap())
                         .unwrap_or_default(),
                 )
-                .fmt() else {
-                    return String::new();
-                };
+                .fmt()?;
                 let character_property = match command
                     .parameters
                     .get(5)
                     .map(|parameter| *parameter.as_integer().unwrap())
                     .unwrap_or_default()
                 {
-                    0 => "map x-coordinate",
-                    1 => "map y-coordinate",
-                    2 => "direction",
-                    3 => "screen x-coordinate",
-                    4 => "screen y-coordinate",
-                    5 => "terrain tag",
-                    _ => return String::new(),
-                };
-                format!("{variable_string} [{character}]'s {character_property}")
+                    0 => Some("map x-coordinate"),
+                    1 => Some("map y-coordinate"),
+                    2 => Some("direction"),
+                    3 => Some("screen x-coordinate"),
+                    4 => Some("screen y-coordinate"),
+                    5 => Some("terrain tag"),
+                    _ => None,
+                }?;
+                Some(format!(
+                    "{variable_string} [{character}]'s {character_property}"
+                ))
             }
 
             7 => {
@@ -379,39 +371,25 @@ impl EventCommandEditor for Editor {
                     .map(|parameter| *parameter.as_integer().unwrap())
                     .unwrap_or_default()
                 {
-                    0 => {
-                        format!("{variable_string} Map ID")
-                    }
+                    0 => Some(format!("{variable_string} Map ID")),
 
-                    1 => {
-                        format!("{variable_string} Party size")
-                    }
+                    1 => Some(format!("{variable_string} Party size")),
 
-                    2 => {
-                        format!("{variable_string} Gold")
-                    }
+                    2 => Some(format!("{variable_string} Gold")),
 
-                    3 => {
-                        format!("{variable_string} Step count")
-                    }
+                    3 => Some(format!("{variable_string} Step count")),
 
-                    4 => {
-                        format!("{variable_string} Play time")
-                    }
+                    4 => Some(format!("{variable_string} Play time")),
 
-                    5 => {
-                        format!("{variable_string} Timer")
-                    }
+                    5 => Some(format!("{variable_string} Timer")),
 
-                    6 => {
-                        format!("{variable_string} Save count")
-                    }
+                    6 => Some(format!("{variable_string} Save count")),
 
-                    _ => String::new(),
+                    _ => None,
                 }
             }
 
-            _ => String::new(),
+            _ => None,
         }
     }
 

@@ -70,10 +70,8 @@ impl EventCommandEditor for Editor {
         update_state: &UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
-    ) -> String {
-        let Some(actor) = ActorSelection::new(update_state, &command.parameters[0]).fmt() else {
-            return String::new();
-        };
+    ) -> Option<String> {
+        let actor = ActorSelection::new(update_state, &command.parameters[0]).fmt()?;
         match command.parameters[1].as_integer().unwrap() {
             0 => {
                 match command
@@ -82,23 +80,17 @@ impl EventCommandEditor for Editor {
                     .map(|parameter| *parameter.as_integer().unwrap())
                     .unwrap_or_default()
                 {
-                    0 => {
-                        format!("Add [{actor}] to the party")
-                    }
+                    0 => Some(format!("Add [{actor}] to the party")),
 
-                    1 => {
-                        format!("Initialize and add [{actor}] to the party")
-                    }
+                    1 => Some(format!("Initialize and add [{actor}] to the party")),
 
-                    _ => String::new(),
+                    _ => None,
                 }
             }
 
-            1 => {
-                format!("Remove [{actor}] from the party")
-            }
+            1 => Some(format!("Remove [{actor}] from the party")),
 
-            _ => String::new(),
+            _ => None,
         }
     }
 

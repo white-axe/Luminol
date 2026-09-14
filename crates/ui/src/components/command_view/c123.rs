@@ -87,14 +87,14 @@ impl EventCommandEditor for Editor {
         _update_state: &UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
-    ) -> String {
+    ) -> Option<String> {
         let name = command.parameters[0].as_string().unwrap();
         let value = match command.parameters[1].as_integer().unwrap() {
-            0 => "on",
-            1 => "off",
-            _ => return String::new(),
-        };
-        format!("Set [{name}] to {value}")
+            0 => Some("on"),
+            1 => Some("off"),
+            _ => None,
+        }?;
+        Some(format!("Set [{name}] to {value}"))
     }
 
     fn ui(

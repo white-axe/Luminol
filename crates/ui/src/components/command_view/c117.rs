@@ -40,13 +40,9 @@ impl EventCommandEditor for Editor {
         update_state: &UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
-    ) -> String {
-        let Some(common_event) =
-            CommonEventSelection::new(update_state, &command.parameters[0]).fmt()
-        else {
-            return String::new();
-        };
-        format!("[{common_event}]")
+    ) -> Option<String> {
+        let common_event = CommonEventSelection::new(update_state, &command.parameters[0]).fmt()?;
+        Some(format!("[{common_event}]"))
     }
 
     fn ui(

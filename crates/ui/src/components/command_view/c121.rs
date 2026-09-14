@@ -56,24 +56,20 @@ impl EventCommandEditor for Editor {
         update_state: &UpdateState<'_>,
         _event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
-    ) -> String {
+    ) -> Option<String> {
         let start_id = command.parameters[0].as_integer().unwrap();
         let end_id = command.parameters[1].as_integer().unwrap();
         let value = match command.parameters[2].as_integer().unwrap() {
-            0 => "on",
-            1 => "off",
-            _ => return String::new(),
-        };
-        let Some(start) = SwitchSelection::new(update_state, start_id).fmt() else {
-            return String::new();
-        };
+            0 => Some("on"),
+            1 => Some("off"),
+            _ => None,
+        }?;
+        let start = SwitchSelection::new(update_state, start_id).fmt()?;
         if start_id == end_id {
-            format!("Set [{start}] to {value}")
+            Some(format!("Set [{start}] to {value}"))
         } else {
-            let Some(end) = SwitchSelection::new(update_state, end_id).fmt() else {
-                return String::new();
-            };
-            format!("Set [{start}] - [{end}] to {value}")
+            let end = SwitchSelection::new(update_state, end_id).fmt()?;
+            Some(format!("Set [{start}] - [{end}] to {value}"))
         }
     }
 
