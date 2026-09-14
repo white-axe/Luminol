@@ -73,10 +73,10 @@ pub struct EnumMenuButton<'e, T> {
 }
 
 impl<'e, T> EnumMenuButton<'e, T> {
-    pub fn new(current_value: &'e mut T, id_source: impl std::hash::Hash) -> Self {
+    pub fn new(current_value: &'e mut T, id_salt: impl std::hash::Hash) -> Self {
         Self {
             current_value,
-            id: egui::Id::new(id_source),
+            id: egui::Id::new(id_salt),
         }
     }
 }
