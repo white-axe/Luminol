@@ -55,11 +55,13 @@ pub use cellpicker::Cellpicker;
 mod troop_view;
 pub use troop_view::TroopView;
 
-mod enum_combo_box;
+pub mod enum_combo_box;
 pub use enum_combo_box::EnumComboBox;
-mod id_vec;
+pub mod file_combo_box;
+pub use file_combo_box::FileComboBox;
+pub mod id_vec;
 pub use id_vec::{IdVecPlusMinusSelection, IdVecSelection, RankSelection};
-mod optional_id_combo_box;
+pub mod optional_id_combo_box;
 pub use optional_id_combo_box::OptionalIdComboBox;
 
 mod ui_ext;
