@@ -69,6 +69,7 @@ where
     }
 }
 
+#[must_use = "use `ui.add()` to show this widget"]
 pub struct EnumComboBox<C, H> {
     id_salt: H,
     reference: C,

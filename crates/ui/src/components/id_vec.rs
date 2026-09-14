@@ -31,6 +31,7 @@ struct State {
     search_matched_ids: Vec<usize>,
 }
 
+#[must_use = "use `ui.add()` to show this widget"]
 pub struct IdVecSelection<'a, H, F> {
     id_salt: H,
     reference: &'a mut Vec<usize>,
@@ -40,6 +41,7 @@ pub struct IdVecSelection<'a, H, F> {
     search_needs_update: bool,
 }
 
+#[must_use = "use `ui.add()` to show this widget"]
 pub struct IdVecPlusMinusSelection<'a, H, F> {
     id_salt: H,
     plus: &'a mut Vec<usize>,
@@ -50,6 +52,7 @@ pub struct IdVecPlusMinusSelection<'a, H, F> {
     search_needs_update: bool,
 }
 
+#[must_use = "use `ui.add()` to show this widget"]
 pub struct RankSelection<'a, H, F> {
     id_salt: H,
     reference: &'a mut luminol_data::Table1,

@@ -50,6 +50,7 @@ macro_rules! impl_into_optional_id {
 
 impl_into_optional_id!(i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize);
 
+#[must_use = "use `ui.add()` to show this widget"]
 pub struct OptionalIdComboBox<'a, R, I, H, F> {
     id_salt: H,
     reference: &'a mut R,
