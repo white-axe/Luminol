@@ -145,7 +145,7 @@ where
     ///
     /// This will fail if the parameter does not refer to a valid database entry.
     pub fn fmt(&self) -> Option<String> {
-        let id = usize::try_from(self.parameter.to_integer()).ok()?;
+        let id = usize::try_from(self.parameter.as_integer()).ok()?;
         let collection = T::get_collection(self.update_state.data);
         let name = T::get_name(&collection, id.checked_sub(1)?)?;
         Some(Self::fmt_impl(id, name))

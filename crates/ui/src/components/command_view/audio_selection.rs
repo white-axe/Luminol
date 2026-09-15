@@ -51,7 +51,7 @@ where
 
     /// Formats the audio file as a string.
     pub fn fmt(&self) -> String {
-        let audio_file = self.parameter.to_audio_file();
+        let audio_file = self.parameter.as_audio_file();
         let name = audio_file.name.0.unwrap_or("(None)".into());
         let volume = audio_file.volume;
         let pitch = audio_file.pitch;

@@ -78,8 +78,8 @@ where
     ///
     /// This will fail if the parameters do not refer to a valid value.
     pub fn fmt(&self) -> Option<ValueFmt> {
-        match self.discriminant_parameter.to_integer() {
-            0 => Some(ValueFmt::Constant(self.value_parameter.to_integer())),
+        match self.discriminant_parameter.as_integer() {
+            0 => Some(ValueFmt::Constant(self.value_parameter.as_integer())),
             1 => VariableSelection::new(self.update_state, &self.value_parameter)
                 .fmt()
                 .map(ValueFmt::Variable),

@@ -89,7 +89,7 @@ where
     ///
     /// This will fail if the parameter does not refer to a valid character.
     pub fn fmt(&self) -> Option<String> {
-        let id = self.parameter.to_integer();
+        let id = self.parameter.as_integer();
         match id {
             -1 => Some("Player".into()),
             0 => Some("This event".into()),

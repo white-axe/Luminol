@@ -26,8 +26,8 @@ use super::{AudioFile, AudioFileRef, ParameterType};
 
 /// An immutable reference to an integer parameter.
 pub trait IntegerParameterRef {
-    /// Converts this parameter into an integer.
-    fn to_integer(&self) -> i32;
+    /// Immutably borrows this parameter as an integer.
+    fn as_integer(&self) -> i32;
 }
 
 /// A mutable reference to an integer parameter.
@@ -43,8 +43,8 @@ impl<T> IntegerParameterRef for &T
 where
     T: IntegerParameterRef,
 {
-    fn to_integer(&self) -> i32 {
-        (*self).to_integer()
+    fn as_integer(&self) -> i32 {
+        (*self).as_integer()
     }
 }
 
@@ -52,9 +52,9 @@ impl<T> IntegerParameterRef for &mut T
 where
     T: IntegerParameterRef,
 {
-    fn to_integer(&self) -> i32 {
+    fn as_integer(&self) -> i32 {
         let self_immutable: &T = self;
-        self_immutable.to_integer()
+        self_immutable.as_integer()
     }
 }
 
@@ -68,7 +68,7 @@ where
 }
 
 impl IntegerParameterRef for i32 {
-    fn to_integer(&self) -> i32 {
+    fn as_integer(&self) -> i32 {
         *self
     }
 }
@@ -80,7 +80,7 @@ impl IntegerParameterMut for i32 {
 }
 
 impl IntegerParameterRef for ParameterType {
-    fn to_integer(&self) -> i32 {
+    fn as_integer(&self) -> i32 {
         self.as_integer().copied().unwrap_or(0)
     }
 }
@@ -96,8 +96,8 @@ impl IntegerParameterMut for ParameterType {
 
 /// An immutable reference to a string parameter.
 pub trait StringParameterRef {
-    /// Converts this parameter into a string.
-    fn to_string(&self) -> &str;
+    /// Immutably borrows this parameter as a string.
+    fn as_string(&self) -> &str;
 }
 
 /// A mutable reference to a string parameter.
@@ -113,8 +113,8 @@ impl<T> StringParameterRef for &T
 where
     T: StringParameterRef,
 {
-    fn to_string(&self) -> &str {
-        (*self).to_string()
+    fn as_string(&self) -> &str {
+        (*self).as_string()
     }
 }
 
@@ -122,9 +122,9 @@ impl<T> StringParameterRef for &mut T
 where
     T: StringParameterRef,
 {
-    fn to_string(&self) -> &str {
+    fn as_string(&self) -> &str {
         let self_immutable: &T = self;
-        self_immutable.to_string()
+        self_immutable.as_string()
     }
 }
 
@@ -138,13 +138,13 @@ where
 }
 
 impl StringParameterRef for str {
-    fn to_string(&self) -> &str {
+    fn as_string(&self) -> &str {
         self
     }
 }
 
 impl StringParameterRef for String {
-    fn to_string(&self) -> &str {
+    fn as_string(&self) -> &str {
         self
     }
 }
@@ -156,7 +156,7 @@ impl StringParameterMut for String {
 }
 
 impl StringParameterRef for ParameterType {
-    fn to_string(&self) -> &str {
+    fn as_string(&self) -> &str {
         self.as_string().map(|value| value.as_str()).unwrap_or("")
     }
 }
@@ -172,8 +172,8 @@ impl StringParameterMut for ParameterType {
 
 /// An immutable reference to an audio file parameter.
 pub trait AudioFileParameterRef {
-    /// Converts this parameter into an audio file.
-    fn to_audio_file(&self) -> AudioFileRef<'_>;
+    /// Immutably borrows this parameter as an audio file.
+    fn as_audio_file(&self) -> AudioFileRef<'_>;
 }
 
 /// A mutable reference to an audio file parameter.
@@ -189,8 +189,8 @@ impl<T> AudioFileParameterRef for &T
 where
     T: AudioFileParameterRef,
 {
-    fn to_audio_file(&self) -> AudioFileRef<'_> {
-        (*self).to_audio_file()
+    fn as_audio_file(&self) -> AudioFileRef<'_> {
+        (*self).as_audio_file()
     }
 }
 
@@ -198,9 +198,9 @@ impl<T> AudioFileParameterRef for &mut T
 where
     T: AudioFileParameterRef,
 {
-    fn to_audio_file(&self) -> AudioFileRef<'_> {
+    fn as_audio_file(&self) -> AudioFileRef<'_> {
         let self_immutable: &T = self;
-        self_immutable.to_audio_file()
+        self_immutable.as_audio_file()
     }
 }
 
@@ -214,13 +214,13 @@ where
 }
 
 impl AudioFileParameterRef for AudioFileRef<'_> {
-    fn to_audio_file(&self) -> AudioFileRef<'_> {
+    fn as_audio_file(&self) -> AudioFileRef<'_> {
         *self
     }
 }
 
 impl AudioFileParameterRef for AudioFile {
-    fn to_audio_file(&self) -> AudioFileRef<'_> {
+    fn as_audio_file(&self) -> AudioFileRef<'_> {
         self.into()
     }
 }
@@ -232,7 +232,7 @@ impl AudioFileParameterMut for AudioFile {
 }
 
 impl AudioFileParameterRef for ParameterType {
-    fn to_audio_file(&self) -> AudioFileRef<'_> {
+    fn as_audio_file(&self) -> AudioFileRef<'_> {
         self.as_audio_file().map(Into::into).unwrap_or_default()
     }
 }
