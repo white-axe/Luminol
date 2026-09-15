@@ -23,6 +23,7 @@
 // Program grant you additional permission to convey the resulting work.
 
 use super::{
+    audio_selection::AudioSelection,
     character_selection::CharacterSelection,
     collapsing::Collapsing,
     database_selection::{
@@ -109,6 +110,8 @@ mod c127;
 mod c128;
 mod c129;
 mod c131;
+mod c132;
+mod c133;
 
 /// A mapping from event command codes to the [`EventCommandEditor`] for that event command.
 pub static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
@@ -137,5 +140,7 @@ pub static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
     128u16 => &c128::Editor,
     129u16 => &c129::Editor,
     131u16 => &c131::Editor,
+    132u16 => &c132::Editor,
+    133u16 => &c133::Editor,
     355u16 => &c101::Editor { continuation_code: 655, name: "Script" },
 };

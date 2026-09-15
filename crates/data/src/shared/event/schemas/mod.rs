@@ -58,6 +58,7 @@ mod c124;
 mod c125;
 mod c126;
 mod c129;
+mod c132;
 
 /// A mapping from event command codes to the [`EventCommandSchema`] for that event command.
 pub static SCHEMAS: phf::Map<u16, &dyn EventCommandSchema> = phf::phf_map! {
@@ -86,5 +87,7 @@ pub static SCHEMAS: phf::Map<u16, &dyn EventCommandSchema> = phf::phf_map! {
     128u16 => &c126::Schema,
     129u16 => &c129::Schema,
     131u16 => &c118::Schema,
+    132u16 => &c132::Schema,
+    133u16 => &c132::Schema,
     355u16 => &c101::Schema { continuation_code: 655 },
 };

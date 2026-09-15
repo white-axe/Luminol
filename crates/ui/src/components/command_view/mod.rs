@@ -32,8 +32,12 @@ pub mod description_width_callback;
 use description_width_callback::DescriptionWidthCallback;
 
 pub mod parameter_ref;
-use parameter_ref::{IntegerParameterMut, IntegerParameterRef, StringParameterMut};
+use parameter_ref::{
+    AudioFileParameterMut, AudioFileParameterRef, IntegerParameterMut, IntegerParameterRef,
+    StringParameterMut,
+};
 
+pub mod audio_selection;
 pub mod character_selection;
 pub mod database_selection;
 pub mod graphic_selection;
@@ -42,7 +46,10 @@ use database_selection::VariableSelection;
 
 use super::UiExt;
 use crate::UpdateState;
-use luminol_data::{rpg::EventCommand, ParameterType};
+use luminol_data::{
+    rpg::{AudioFile, AudioFileRef, EventCommand},
+    ParameterType,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct EventInfo<'a> {

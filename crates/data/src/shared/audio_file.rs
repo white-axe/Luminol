@@ -14,7 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
-use crate::Path;
+use crate::{Path, PathRef};
 
 #[derive(Debug, Clone, PartialEq)]
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -26,7 +26,34 @@ pub struct AudioFile {
     pub pitch: u8,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AudioFileRef<'a> {
+    pub name: PathRef<'a>,
+    pub volume: u8,
+    pub pitch: u8,
+}
+
+impl<'a> From<&'a AudioFile> for AudioFileRef<'a> {
+    fn from(value: &'a AudioFile) -> Self {
+        Self {
+            name: value.name.0.as_ref().map(|name| name.as_path()).into(),
+            volume: value.volume,
+            pitch: value.pitch,
+        }
+    }
+}
+
 impl Default for AudioFile {
+    fn default() -> Self {
+        Self {
+            name: None.into(),
+            volume: 100,
+            pitch: 100,
+        }
+    }
+}
+
+impl Default for AudioFileRef<'_> {
     fn default() -> Self {
         Self {
             name: None.into(),

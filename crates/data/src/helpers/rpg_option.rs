@@ -16,7 +16,7 @@
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 
 /// Wrapper for `Option<T>` that implements serialization and deserialization
-#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RpgOption<T>(pub Option<T>);
 
 impl<T> From<Option<T>> for RpgOption<T> {

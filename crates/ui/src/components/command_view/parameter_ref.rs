@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::ParameterType;
+use super::{AudioFile, AudioFileRef, ParameterType};
 
 /// An immutable reference to an integer parameter.
 pub trait IntegerParameterRef {
@@ -167,5 +167,81 @@ impl StringParameterMut for ParameterType {
             *self = ParameterType::String(String::new());
         }
         self.as_string_mut().unwrap()
+    }
+}
+
+/// An immutable reference to an audio file parameter.
+pub trait AudioFileParameterRef {
+    /// Converts this parameter into an audio file.
+    fn to_audio_file(&self) -> AudioFileRef<'_>;
+}
+
+/// A mutable reference to an audio file parameter.
+pub trait AudioFileParameterMut
+where
+    Self: AudioFileParameterRef,
+{
+    /// Mutably borrows this parameter as an audio file.
+    fn as_audio_file_mut(&mut self) -> &mut AudioFile;
+}
+
+impl<T> AudioFileParameterRef for &T
+where
+    T: AudioFileParameterRef,
+{
+    fn to_audio_file(&self) -> AudioFileRef<'_> {
+        (*self).to_audio_file()
+    }
+}
+
+impl<T> AudioFileParameterRef for &mut T
+where
+    T: AudioFileParameterRef,
+{
+    fn to_audio_file(&self) -> AudioFileRef<'_> {
+        let self_immutable: &T = self;
+        self_immutable.to_audio_file()
+    }
+}
+
+impl<T> AudioFileParameterMut for &mut T
+where
+    T: AudioFileParameterMut,
+{
+    fn as_audio_file_mut(&mut self) -> &mut AudioFile {
+        (*self).as_audio_file_mut()
+    }
+}
+
+impl AudioFileParameterRef for AudioFileRef<'_> {
+    fn to_audio_file(&self) -> AudioFileRef<'_> {
+        *self
+    }
+}
+
+impl AudioFileParameterRef for AudioFile {
+    fn to_audio_file(&self) -> AudioFileRef<'_> {
+        self.into()
+    }
+}
+
+impl AudioFileParameterMut for AudioFile {
+    fn as_audio_file_mut(&mut self) -> &mut AudioFile {
+        self
+    }
+}
+
+impl AudioFileParameterRef for ParameterType {
+    fn to_audio_file(&self) -> AudioFileRef<'_> {
+        self.as_audio_file().map(Into::into).unwrap_or_default()
+    }
+}
+
+impl AudioFileParameterMut for ParameterType {
+    fn as_audio_file_mut(&mut self) -> &mut AudioFile {
+        if !self.is_audio_file() {
+            *self = ParameterType::AudioFile(Default::default());
+        }
+        self.as_audio_file_mut().unwrap()
     }
 }

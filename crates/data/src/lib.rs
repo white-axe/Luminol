@@ -94,3 +94,4 @@ pub mod rpg {
 pub use shared::BlendMode;
 
 pub type Path = RpgOption<camino::Utf8PathBuf>;
+pub type PathRef<'a> = RpgOption<&'a camino::Utf8Path>;
