@@ -203,6 +203,9 @@ impl Audio {
     /// Returns true if a sound is playing on the given source, otherwise false.
     pub fn is_playing(&self, source: Source) -> bool {
         let inner = self.inner.lock();
-        inner.sinks.contains_key(&source)
+        inner
+            .sinks
+            .get(&source)
+            .is_some_and(|sink| !sink.empty() && !sink.is_paused())
     }
 }
