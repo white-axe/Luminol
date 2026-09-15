@@ -3403,6 +3403,7 @@ dependencies = [
  "color-eyre",
  "egui",
  "egui-wgpu",
+ "fragile",
  "futures-lite 2.6.0",
  "futures-util",
  "fuzzy-matcher",

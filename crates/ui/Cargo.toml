@@ -59,6 +59,7 @@ futures-lite.workspace = true
 futures-util = "0.3.30"       # Common utilities and extension traits for the futures-rs library
 oneshot.workspace = true
 async-std.workspace = true
+fragile.workspace = true
 poll-promise.workspace = true
 
 # * File system interfaces * #

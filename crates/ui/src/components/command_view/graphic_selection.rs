@@ -35,7 +35,7 @@ struct GraphicSelectionStateInner {
 #[derive(Default)]
 pub struct GraphicSelectionState {
     attempted_to_load: bool,
-    inner: Option<GraphicSelectionStateInner>,
+    inner: Option<fragile::Fragile<GraphicSelectionStateInner>>,
 }
 
 /// A widget for changing the value of a graphic parameter.
@@ -109,18 +109,18 @@ where
                                     Viewport::new(&self.update_state.graphics, Default::default());
                                 let sprite =
                                     Sprite::basic(&self.update_state.graphics, &texture, &viewport);
-                                GraphicSelectionStateInner {
+                                fragile::Fragile::new(GraphicSelectionStateInner {
                                     texture,
                                     viewport,
                                     sprite,
-                                }
+                                })
                             });
                     }
 
                     changed
                 };
 
-                if let Some(state) = &mut self.state.inner {
+                if let Some(state) = self.state.inner.as_mut().map(|state| state.get_mut()) {
                     egui::ScrollArea::both()
                         .id_salt((&self.id_salt, "scroll"))
                         .max_height(200.)
