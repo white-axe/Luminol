@@ -72,14 +72,14 @@ enum Stripe<'a> {
 #[must_use = "use `ui.add()` to show this widget"]
 pub struct CommandView<'this, 'update_state> {
     stripe: Stripe<'this>,
-    update_state: &'this UpdateState<'update_state>,
+    update_state: &'this mut UpdateState<'update_state>,
     event_info: Option<&'this EventInfo<'this>>,
     commands: &'this mut Vec<EventCommand>,
 }
 
 impl<'this, 'update_state> CommandView<'this, 'update_state> {
     pub fn new(
-        update_state: &'this UpdateState<'update_state>,
+        update_state: &'this mut UpdateState<'update_state>,
         event_info: Option<&'this EventInfo<'this>>,
         commands: &'this mut Vec<EventCommand>,
     ) -> Self {
@@ -122,7 +122,7 @@ where
     fn description(
         &self,
         callback: DescriptionWidthCallback<'_>,
-        update_state: &UpdateState<'_>,
+        update_state: &mut UpdateState<'_>,
         event_info: Option<&EventInfo<'_>>,
         command: &EventCommand,
     ) -> Option<String> {
@@ -141,7 +141,7 @@ where
         &self,
         ui: &mut egui::Ui,
         stripe: &mut bool,
-        update_state: &UpdateState<'_>,
+        update_state: &mut UpdateState<'_>,
         event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
     ) -> egui::Response;
