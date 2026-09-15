@@ -44,7 +44,7 @@ pub enum ValueFmt {
 }
 
 /// A widget for changing the value of two parameters that represent either a constant or variable.
-#[must_use = "call `.fmt()` to convert to a `ValueFmt` or `.id_salt()` to convert to a `egui::Widget`"]
+#[must_use = "call `.fmt()` to convert to a `ValueFmt` or `.prepare()` to convert to a `egui::Widget`"]
 pub struct ValueSelection<'this, 'update_state, P, Q> {
     update_state: &'this UpdateState<'update_state>,
     discriminant_parameter: P,
@@ -52,7 +52,7 @@ pub struct ValueSelection<'this, 'update_state, P, Q> {
 }
 
 #[must_use = "use `ui.add()` to show this widget"]
-pub struct ValueSelectionWithId<'this, 'update_state, P, Q, H> {
+pub struct ValueSelectionPrepared<'this, 'update_state, P, Q, H> {
     inner: ValueSelection<'this, 'update_state, P, Q>,
     id_salt: H,
 }
@@ -87,19 +87,21 @@ where
         }
     }
 
-    /// Sets the ID salt that this widget will use to persist UI state.
-    pub fn id_salt<H>(self, id_salt: H) -> ValueSelectionWithId<'this, 'update_state, P, Q, H>
+    /// Prepares a [`egui::Widget`] from the character.
+    pub fn prepare<H>(self, id_salt: H) -> ValueSelectionPrepared<'this, 'update_state, P, Q, H>
     where
+        P: super::IntegerParameterMut,
+        Q: super::IntegerParameterMut,
         H: std::hash::Hash,
     {
-        ValueSelectionWithId {
+        ValueSelectionPrepared {
             inner: self,
             id_salt,
         }
     }
 }
 
-impl<P, Q, H> egui::Widget for ValueSelectionWithId<'_, '_, P, Q, H>
+impl<P, Q, H> egui::Widget for ValueSelectionPrepared<'_, '_, P, Q, H>
 where
     P: super::IntegerParameterMut,
     Q: super::IntegerParameterMut,
@@ -129,7 +131,7 @@ where
                                 self.inner.update_state,
                                 self.inner.value_parameter.as_integer_mut(),
                             )
-                            .id_salt((&self.id_salt, "value")),
+                            .prepare((&self.id_salt, "value")),
                         )
                         .changed(),
                     _ => false,

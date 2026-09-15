@@ -36,7 +36,7 @@ pub trait DatabaseType {
 
 /// A widget for changing the value of an integer parameter that refers to a database entry, such as
 /// an item or weapon.
-#[must_use = "call `.fmt()` to convert to a `String` or `.id_salt()` to convert to a `egui::Widget`"]
+#[must_use = "call `.fmt()` to convert to a `String` or `.prepare()` to convert to a `egui::Widget`"]
 pub struct DatabaseSelection<'this, 'update_state, T, P> {
     database_type: std::marker::PhantomData<T>,
     update_state: &'this UpdateState<'update_state>,
@@ -44,7 +44,7 @@ pub struct DatabaseSelection<'this, 'update_state, T, P> {
 }
 
 #[must_use = "use `ui.add()` to show this widget"]
-pub struct DatabaseSelectionWithId<'this, 'update_state, T, P, H> {
+pub struct DatabaseSelectionPrepared<'this, 'update_state, T, P, H> {
     inner: DatabaseSelection<'this, 'update_state, T, P>,
     id_salt: H,
 }
@@ -151,19 +151,20 @@ where
         Some(Self::fmt_impl(id, name))
     }
 
-    /// Sets the ID salt that this widget will use to persist UI state.
-    pub fn id_salt<H>(self, id_salt: H) -> DatabaseSelectionWithId<'this, 'update_state, T, P, H>
+    /// Prepares a [`egui::Widget`] from the database entry.
+    pub fn prepare<H>(self, id_salt: H) -> DatabaseSelectionPrepared<'this, 'update_state, T, P, H>
     where
+        P: super::IntegerParameterMut,
         H: std::hash::Hash,
     {
-        DatabaseSelectionWithId {
+        DatabaseSelectionPrepared {
             inner: self,
             id_salt,
         }
     }
 }
 
-impl<T, P, H> egui::Widget for DatabaseSelectionWithId<'_, '_, T, P, H>
+impl<T, P, H> egui::Widget for DatabaseSelectionPrepared<'_, '_, T, P, H>
 where
     T: DatabaseType,
     P: super::IntegerParameterMut,

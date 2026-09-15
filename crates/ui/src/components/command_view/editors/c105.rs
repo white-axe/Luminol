@@ -53,6 +53,6 @@ impl EventCommandEditor for Editor {
         _event_info: Option<&EventInfo<'_>>,
         command: &mut EventCommand,
     ) -> egui::Response {
-        ui.add(VariableSelection::new(update_state, &mut command.parameters[0]).id_salt("variable"))
+        ui.add(VariableSelection::new(update_state, &mut command.parameters[0]).prepare("variable"))
     }
 }

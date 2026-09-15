@@ -692,7 +692,7 @@ impl EventCommandEditor for Editor {
                                             update_state,
                                             &mut command.parameters[1],
                                         )
-                                        .id_salt((0, 1)),
+                                        .prepare((0, 1)),
                                     )
                                     .changed();
 
@@ -719,7 +719,7 @@ impl EventCommandEditor for Editor {
                                             update_state,
                                             &mut command.parameters[1],
                                         )
-                                        .id_salt((1, 1)),
+                                        .prepare((1, 1)),
                                     )
                                     .changed();
 
@@ -730,7 +730,7 @@ impl EventCommandEditor for Editor {
                                 modified |= ui
                                     .add(
                                         ValueSelection::new(update_state, discriminant, value)
-                                            .id_salt((1, 2)),
+                                            .prepare((1, 2)),
                                     )
                                     .changed();
 
@@ -819,7 +819,7 @@ impl EventCommandEditor for Editor {
                                             update_state,
                                             &mut command.parameters[1],
                                         )
-                                        .id_salt((4, 1)),
+                                        .prepare((4, 1)),
                                     )
                                     .changed();
 
@@ -854,7 +854,7 @@ impl EventCommandEditor for Editor {
                                                     update_state,
                                                     &mut command.parameters[3],
                                                 )
-                                                .id_salt((4, 3, 2)),
+                                                .prepare((4, 3, 2)),
                                             )
                                             .changed();
                                     }
@@ -867,7 +867,7 @@ impl EventCommandEditor for Editor {
                                                     update_state,
                                                     &mut command.parameters[3],
                                                 )
-                                                .id_salt((4, 3, 3)),
+                                                .prepare((4, 3, 3)),
                                             )
                                             .changed();
                                     }
@@ -880,7 +880,7 @@ impl EventCommandEditor for Editor {
                                                     update_state,
                                                     &mut command.parameters[3],
                                                 )
-                                                .id_salt((4, 3, 4)),
+                                                .prepare((4, 3, 4)),
                                             )
                                             .changed();
                                     }
@@ -893,7 +893,7 @@ impl EventCommandEditor for Editor {
                                                     update_state,
                                                     &mut command.parameters[3],
                                                 )
-                                                .id_salt((4, 3, 5)),
+                                                .prepare((4, 3, 5)),
                                             )
                                             .changed();
                                     }
@@ -952,7 +952,7 @@ impl EventCommandEditor for Editor {
                                                     update_state,
                                                     &mut command.parameters[3],
                                                 )
-                                                .id_salt((5, 3, 1)),
+                                                .prepare((5, 3, 1)),
                                             )
                                             .changed();
                                     }
@@ -973,7 +973,7 @@ impl EventCommandEditor for Editor {
                                             event_info,
                                             &mut command.parameters[1],
                                         )
-                                        .id_salt((6, 1)),
+                                        .prepare((6, 1)),
                                     )
                                     .changed();
 
@@ -1020,7 +1020,7 @@ impl EventCommandEditor for Editor {
                                             update_state,
                                             &mut command.parameters[1],
                                         )
-                                        .id_salt((8, 1)),
+                                        .prepare((8, 1)),
                                     )
                                     .changed();
                             }
@@ -1034,7 +1034,7 @@ impl EventCommandEditor for Editor {
                                             update_state,
                                             &mut command.parameters[1],
                                         )
-                                        .id_salt((9, 1)),
+                                        .prepare((9, 1)),
                                     )
                                     .changed();
                             }
@@ -1048,7 +1048,7 @@ impl EventCommandEditor for Editor {
                                             update_state,
                                             &mut command.parameters[1],
                                         )
-                                        .id_salt((10, 1)),
+                                        .prepare((10, 1)),
                                     )
                                     .changed();
                             }

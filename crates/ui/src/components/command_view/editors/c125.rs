@@ -98,7 +98,7 @@ impl EventCommandEditor for Editor {
                 let [discriminant, value] = command.parameters[1..].first_chunk_mut().unwrap();
                 ui.label("Operand");
                 modified |= ui
-                    .add(ValueSelection::new(update_state, discriminant, value).id_salt("operand"))
+                    .add(ValueSelection::new(update_state, discriminant, value).prepare("operand"))
                     .changed();
             })
             .response;

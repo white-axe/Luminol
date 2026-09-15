@@ -61,7 +61,7 @@ impl EventCommandEditor for Editor {
                 modified |= ui
                     .add(
                         VariableSelection::new(update_state, &mut command.parameters[0])
-                            .id_salt("variable"),
+                            .prepare("variable"),
                     )
                     .changed();
 

@@ -48,7 +48,7 @@ enum CharacterType {
 }
 
 /// A widget for changing the value of a character parameter.
-#[must_use = "call `.fmt()` to convert to a `String` or `.id_salt()` to convert to a `egui::Widget`"]
+#[must_use = "call `.fmt()` to convert to a `String` or `.prepare()` to convert to a `egui::Widget`"]
 pub struct CharacterSelection<'this, 'update_state, P> {
     update_state: &'this UpdateState<'update_state>,
     event_info: Option<&'this EventInfo<'this>>,
@@ -56,7 +56,7 @@ pub struct CharacterSelection<'this, 'update_state, P> {
 }
 
 #[must_use = "use `ui.add()` to show this widget"]
-pub struct CharacterSelectionWithId<'this, 'update_state, P, H> {
+pub struct CharacterSelectionPrepared<'this, 'update_state, P, H> {
     inner: CharacterSelection<'this, 'update_state, P>,
     id_salt: H,
 }
@@ -110,19 +110,20 @@ where
         }
     }
 
-    /// Sets the ID salt that this widget will use to persist UI state.
-    pub fn id_salt<H>(self, id_salt: H) -> CharacterSelectionWithId<'this, 'update_state, P, H>
+    /// Prepares a [`egui::Widget`] from the character.
+    pub fn prepare<H>(self, id_salt: H) -> CharacterSelectionPrepared<'this, 'update_state, P, H>
     where
+        P: super::IntegerParameterMut,
         H: std::hash::Hash,
     {
-        CharacterSelectionWithId {
+        CharacterSelectionPrepared {
             inner: self,
             id_salt,
         }
     }
 }
 
-impl<P, H> egui::Widget for CharacterSelectionWithId<'_, '_, P, H>
+impl<P, H> egui::Widget for CharacterSelectionPrepared<'_, '_, P, H>
 where
     P: super::IntegerParameterMut,
     H: std::hash::Hash,

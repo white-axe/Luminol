@@ -429,7 +429,7 @@ impl EventCommandEditor for Editor {
                         let changed = ui
                             .add(
                                 VariableSelection::new(update_state, &mut start)
-                                    .id_salt("variable"),
+                                    .prepare("variable"),
                             )
                             .changed();
                         if changed {
@@ -443,7 +443,7 @@ impl EventCommandEditor for Editor {
                         let changed = ui
                             .add(
                                 VariableSelection::new(update_state, &mut start)
-                                    .id_salt("start variable"),
+                                    .prepare("start variable"),
                             )
                             .changed();
                         if changed && start > end {
@@ -456,7 +456,7 @@ impl EventCommandEditor for Editor {
                         let changed = ui
                             .add(
                                 VariableSelection::new(update_state, &mut end)
-                                    .id_salt("end variable"),
+                                    .prepare("end variable"),
                             )
                             .changed();
                         if changed && start > end {
@@ -513,7 +513,7 @@ impl EventCommandEditor for Editor {
                         modified |= ui
                             .add(
                                 VariableSelection::new(update_state, &mut command.parameters[4])
-                                    .id_salt((1, 4)),
+                                    .prepare((1, 4)),
                             )
                             .changed();
                     }
@@ -554,7 +554,7 @@ impl EventCommandEditor for Editor {
                         modified |= ui
                             .add(
                                 ItemSelection::new(update_state, &mut command.parameters[4])
-                                    .id_salt((3, 4)),
+                                    .prepare((3, 4)),
                             )
                             .changed();
                     }
@@ -565,7 +565,7 @@ impl EventCommandEditor for Editor {
                         modified |= ui
                             .add(
                                 ActorSelection::new(update_state, &mut command.parameters[4])
-                                    .id_salt((4, 4)),
+                                    .prepare((4, 4)),
                             )
                             .changed();
 
@@ -615,7 +615,7 @@ impl EventCommandEditor for Editor {
                                     event_info,
                                     &mut command.parameters[4],
                                 )
-                                .id_salt((6, 4)),
+                                .prepare((6, 4)),
                             )
                             .changed();
 

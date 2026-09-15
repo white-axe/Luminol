@@ -67,6 +67,7 @@ where
         source: Option<Source>,
     ) -> AudioSelectionPrepared<'this, 'update_state, P, D, H>
     where
+        P: super::AudioFileParameterMut,
         D: AsRef<camino::Utf8Path>,
         H: std::hash::Hash,
     {

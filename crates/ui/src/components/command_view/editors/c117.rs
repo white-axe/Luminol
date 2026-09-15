@@ -55,7 +55,7 @@ impl EventCommandEditor for Editor {
     ) -> egui::Response {
         ui.add(
             CommonEventSelection::new(update_state, &mut command.parameters[0])
-                .id_salt("common event"),
+                .prepare("common event"),
         )
     }
 }

@@ -110,7 +110,7 @@ impl EventCommandEditor for Editor {
                 modified |= ui
                     .add(
                         ActorSelection::new(update_state, &mut command.parameters[0])
-                            .id_salt("actor"),
+                            .prepare("actor"),
                     )
                     .changed();
 

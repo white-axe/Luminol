@@ -91,7 +91,7 @@ impl EventCommandEditor for Editor {
                 modified |= ui
                     .add(
                         ArmorSelection::new(update_state, &mut command.parameters[0])
-                            .id_salt("armor"),
+                            .prepare("armor"),
                     )
                     .changed();
 
@@ -107,7 +107,7 @@ impl EventCommandEditor for Editor {
                 let [discriminant, value] = command.parameters[2..].first_chunk_mut().unwrap();
                 ui.label("Operand");
                 modified |= ui
-                    .add(ValueSelection::new(update_state, discriminant, value).id_salt("operand"))
+                    .add(ValueSelection::new(update_state, discriminant, value).prepare("operand"))
                     .changed();
             })
             .response;

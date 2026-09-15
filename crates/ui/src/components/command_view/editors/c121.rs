@@ -107,7 +107,7 @@ impl EventCommandEditor for Editor {
                     ui.label("Switch");
                     modified |= {
                         let changed = ui
-                            .add(SwitchSelection::new(update_state, &mut start).id_salt("switch"))
+                            .add(SwitchSelection::new(update_state, &mut start).prepare("switch"))
                             .changed();
                         if changed {
                             *end = *start;
@@ -120,7 +120,7 @@ impl EventCommandEditor for Editor {
                         let changed = ui
                             .add(
                                 SwitchSelection::new(update_state, &mut start)
-                                    .id_salt("start switch"),
+                                    .prepare("start switch"),
                             )
                             .changed();
                         if changed && start > end {
@@ -131,7 +131,7 @@ impl EventCommandEditor for Editor {
                     ui.label("Last switch");
                     modified |= {
                         let changed = ui
-                            .add(SwitchSelection::new(update_state, &mut end).id_salt("end switch"))
+                            .add(SwitchSelection::new(update_state, &mut end).prepare("end switch"))
                             .changed();
                         if changed && start > end {
                             *start = *end;
