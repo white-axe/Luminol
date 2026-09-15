@@ -22,37 +22,27 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
+pub mod editors;
+use editors::EDITORS;
+
+pub mod collapsing;
+use collapsing::Collapsing;
+
+pub mod description_width_callback;
+use description_width_callback::DescriptionWidthCallback;
+
+pub mod parameter_ref;
+use parameter_ref::{IntegerParameterMut, IntegerParameterRef, StringParameterMut};
+
+pub mod character_selection;
+pub mod database_selection;
+pub mod graphic_selection;
+pub mod value_selection;
+use database_selection::VariableSelection;
+
 use super::UiExt;
 use crate::UpdateState;
 use luminol_data::{rpg::EventCommand, ParameterType};
-
-mod collapsing;
-pub use collapsing::{Collapsing, CollapsingHeaderResponse};
-
-mod description_width_callback;
-pub use description_width_callback::DescriptionWidthCallback;
-
-mod parameter_ref;
-pub use parameter_ref::{
-    IntegerParameterMut, IntegerParameterRef, StringParameterMut, StringParameterRef,
-};
-
-mod character_selection;
-pub use character_selection::{CharacterSelection, CharacterSelectionWithId};
-
-mod database_selection;
-pub use database_selection::{
-    ActorSelection, AnimationSelection, ArmorSelection, ClassSelection, CommonEventSelection,
-    DatabaseSelection, DatabaseSelectionWithId, ElementSelection, EnemySelection, ItemSelection,
-    ScriptSelection, SkillSelection, StateSelection, SwitchSelection, TilesetSelection,
-    TroopSelection, VariableSelection, WeaponSelection,
-};
-
-mod graphic_selection;
-pub use graphic_selection::{GraphicSelection, GraphicSelectionState};
-
-mod value_selection;
-pub use value_selection::{ValueFmt, ValueSelection, ValueSelectionWithId};
 
 #[derive(Debug, Clone, Copy)]
 pub struct EventInfo<'a> {
@@ -96,110 +86,6 @@ impl<'this, 'update_state> CommandView<'this, 'update_state> {
         self
     }
 }
-
-pub trait EventCommandEditor
-where
-    Self: Sync + 'static,
-{
-    /// Returns whether or not the UI for this event command editor should be expanded by default.
-    ///
-    /// The default is to not expand by default.
-    fn expand_by_default(&self) -> bool {
-        false
-    }
-
-    /// Returns the name of the event command that this event command editor edits.
-    fn name(&self) -> &'static str;
-
-    /// Returns a description of the given event command.
-    ///
-    /// By default, there is no description.
-    ///
-    /// If the description can be long, for optimization purposes, `callback` can be used to
-    /// determine whether or not the description is short enough to fit in the UI widget where the
-    /// description will be displayed.
-    #[allow(unused_variables)]
-    fn description(
-        &self,
-        callback: DescriptionWidthCallback<'_>,
-        update_state: &mut UpdateState<'_>,
-        event_info: Option<&EventInfo<'_>>,
-        command: &EventCommand,
-    ) -> Option<String> {
-        None
-    }
-
-    /// Renders the UI for this event command editor.
-    ///
-    /// Remember to mark the response returned by this method as changed if the event command was
-    /// modified by this editor (by calling the `mark_changed` method of the response).
-    ///
-    /// The event command is guaranteed to match the schema for the command's event code (i.e. the
-    /// `matches_schema` field on the command will be `true`). If there is no schema for the
-    /// command's command code, this will never be called.
-    fn ui(
-        &self,
-        ui: &mut egui::Ui,
-        stripe: &mut bool,
-        update_state: &mut UpdateState<'_>,
-        event_info: Option<&EventInfo<'_>>,
-        command: &mut EventCommand,
-    ) -> egui::Response;
-}
-
-mod c101;
-mod c102;
-mod c103;
-mod c104;
-mod c105;
-mod c106;
-mod c111;
-mod c112;
-mod c113;
-mod c115;
-mod c116;
-mod c117;
-mod c118;
-mod c119;
-mod c121;
-mod c122;
-mod c123;
-mod c124;
-mod c125;
-mod c126;
-mod c127;
-mod c128;
-mod c129;
-mod c131;
-
-static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
-    101u16 => &c101::Editor { continuation_code: 401, name: "Show Text" },
-    102u16 => &c102::Editor,
-    103u16 => &c103::Editor,
-    104u16 => &c104::Editor,
-    105u16 => &c105::Editor,
-    106u16 => &c106::Editor,
-    108u16 => &c101::Editor { continuation_code: 408, name: "Comment" },
-    111u16 => &c111::Editor,
-    112u16 => &c112::Editor,
-    113u16 => &c113::Editor,
-    115u16 => &c115::Editor,
-    116u16 => &c116::Editor,
-    117u16 => &c117::Editor,
-    118u16 => &c118::Editor,
-    119u16 => &c119::Editor,
-    121u16 => &c121::Editor,
-    122u16 => &c122::Editor,
-    123u16 => &c123::Editor,
-    124u16 => &c124::Editor,
-    125u16 => &c125::Editor,
-    126u16 => &c126::Editor,
-    127u16 => &c127::Editor,
-    128u16 => &c128::Editor,
-    129u16 => &c129::Editor,
-    131u16 => &c131::Editor,
-    355u16 => &c101::Editor { continuation_code: 655, name: "Script" },
-};
 
 fn show_parameter_label(ui: &mut egui::Ui, index: usize, type_name: &str) {
     let index = index + 1;

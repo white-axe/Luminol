@@ -15,12 +15,20 @@
 // You should have received a copy of the GNU General Public License
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 
-mod state;
+pub mod schemas;
+pub use schemas::SCHEMAS;
+
+pub mod indented_iter;
+use indented_iter::EventCommandListIndentedIter;
+
+pub mod state;
+use state::EventCommandState;
+
+mod de;
+mod ser;
 
 use crate::{id_alox, id_serde, rpg::MoveRoute, BlendMode, ParameterType, Path, RpgOption};
-use alox_48::{SerializeArray, SerializeIvars};
 use rand::Rng;
-use serde::ser::{SerializeMap, SerializeSeq};
 
 #[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
 #[derive(alox_48::Deserialize, alox_48::Serialize)]
@@ -287,7 +295,7 @@ impl From<SelfSwitch> for String {
 #[allow(missing_docs)]
 pub struct EventCommand {
     pub guid: String,
-    pub state: state::EventCommandState,
+    pub state: EventCommandState,
     pub matches_schema: bool,
     pub code: u16,
     pub parameters: Vec<ParameterType>,
@@ -309,7 +317,7 @@ impl Default for EventCommand {
     fn default() -> Self {
         Self {
             guid: Self::generate_guid(),
-            state: state::EventCommandState::default(),
+            state: EventCommandState::default(),
             matches_schema: false,
             code: 0,
             parameters: Vec::new(),
@@ -323,7 +331,7 @@ impl Clone for EventCommand {
     fn clone(&self) -> Self {
         Self {
             guid: Self::generate_guid(),
-            state: state::EventCommandState::default(),
+            state: EventCommandState::default(),
             matches_schema: self.matches_schema,
             code: self.code,
             parameters: self.parameters.clone(),
@@ -333,372 +341,50 @@ impl Clone for EventCommand {
     }
 }
 
+/// A borrowed instance of [`EventCommand`] with an indentation.
+#[derive(Clone, Copy)]
+pub struct IndentedEventCommandRef<'a> {
+    /// The indentation of the `command` field.
+    pub indent: u64,
+    /// The inner event command.
+    pub command: &'a EventCommand,
+}
+
+/// An owned instance of [`EventCommand`] with an indentation.
 #[derive(Default)]
-struct IndentedEventCommand {
-    indent: u64,
-    command: EventCommand,
+pub struct IndentedEventCommand {
+    /// The indentation of the `command` field.
+    pub indent: u64,
+    /// The inner event command.
+    pub command: EventCommand,
 }
 
 impl IndentedEventCommand {
-    fn as_ref(&self) -> IndentedEventCommandRef<'_> {
+    /// Borrows this object as an [`IndentedEventCommandRef`].
+    pub fn as_ref(&self) -> IndentedEventCommandRef<'_> {
+        self.into()
+    }
+}
+
+impl<'a> From<&'a IndentedEventCommand> for IndentedEventCommandRef<'a> {
+    fn from(value: &'a IndentedEventCommand) -> Self {
         IndentedEventCommandRef {
-            indent: self.indent,
-            command: &self.command,
+            indent: value.indent,
+            command: &value.command,
         }
     }
 }
 
-#[derive(Clone, Copy)]
-struct IndentedEventCommandRef<'a> {
-    indent: u64,
-    command: &'a EventCommand,
-}
-
-enum EventCommandListIndentedIterItem<'a> {
-    Ref(IndentedEventCommandRef<'a>),
-    Terminator(IndentedEventCommand),
-}
-
-impl EventCommandListIndentedIterItem<'_> {
-    fn as_ref(&self) -> IndentedEventCommandRef<'_> {
-        match self {
-            Self::Ref(indented_command) => *indented_command,
-            Self::Terminator(indented_command) => indented_command.as_ref(),
-        }
-    }
-}
-
+/// A wrapper around [`Vec<EventCommand>`] that supports serialization and deserialization.
 #[derive(Debug, Default, Clone)]
 pub struct EventCommandList {
+    /// The inner event commands.
     pub commands: Vec<EventCommand>,
 }
 
-struct EventCommandListIndentedIter<'a> {
-    stack: Vec<(
-        std::slice::Iter<'a, EventCommand>,
-        std::slice::Iter<'a, EventCommand>,
-        bool,
-        bool,
-    )>,
-    indent: u64,
-    is_terminated: bool,
-}
-
-struct EventCommandListVisitor;
-
-struct IndentedEventCommandVisitor;
-
 impl EventCommandList {
-    fn indented_iter(&self) -> EventCommandListIndentedIter<'_> {
-        EventCommandListIndentedIter {
-            stack: vec![([].iter(), self.commands.iter(), false, false)],
-            indent: 0,
-            is_terminated: false,
-        }
-    }
-}
-
-impl<'a> Iterator for EventCommandListIndentedIter<'a> {
-    type Item = EventCommandListIndentedIterItem<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some((child_iter, sibling_iter, is_indented, is_terminated)) =
-            self.stack.last_mut()
-        {
-            if let Some(command) = {
-                if let Some(command) = child_iter.next() {
-                    if !*is_indented {
-                        *is_indented = true;
-                        self.indent += 1;
-                    }
-                    Some(command)
-                } else {
-                    if *is_indented {
-                        if !*is_terminated {
-                            *is_terminated = true;
-                            return Some(EventCommandListIndentedIterItem::Terminator(
-                                Default::default(),
-                            ));
-                        }
-                        *is_indented = false;
-                        self.indent -= 1;
-                    }
-                    sibling_iter.next()
-                }
-            } {
-                self.stack.push((
-                    command.child_commands.iter(),
-                    command.sibling_commands.iter(),
-                    false,
-                    false,
-                ));
-                return Some(EventCommandListIndentedIterItem::Ref(
-                    IndentedEventCommandRef {
-                        indent: self.indent,
-                        command,
-                    },
-                ));
-            } else {
-                self.stack.pop();
-            }
-        }
-        if !self.is_terminated {
-            self.is_terminated = true;
-            Some(EventCommandListIndentedIterItem::Terminator(
-                Default::default(),
-            ))
-        } else {
-            None
-        }
-    }
-}
-
-impl std::iter::FusedIterator for EventCommandListIndentedIter<'_> {}
-
-impl serde::Serialize for EventCommandList {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut seq = serializer.serialize_seq(Some(self.indented_iter().count()))?;
-        for indented_command in self.indented_iter() {
-            seq.serialize_element(&indented_command.as_ref())?;
-        }
-        seq.end()
-    }
-}
-
-impl alox_48::Serialize for EventCommandList {
-    fn serialize<S>(&self, serializer: S) -> alox_48::SerResult<S::Ok>
-    where
-        S: alox_48::SerializerTrait,
-    {
-        let mut seq = serializer.serialize_array(self.indented_iter().count())?;
-        for indented_command in self.indented_iter() {
-            seq.serialize_element(&indented_command.as_ref())?;
-        }
-        seq.end()
-    }
-}
-
-impl serde::Serialize for IndentedEventCommandRef<'_> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut map = serializer.serialize_map(Some(3))?;
-        map.serialize_entry("code", &self.command.code)?;
-        map.serialize_entry("indent", &self.indent)?;
-        map.serialize_entry("parameters", &self.command.parameters)?;
-        map.end()
-    }
-}
-
-impl alox_48::Serialize for IndentedEventCommandRef<'_> {
-    fn serialize<S>(&self, serializer: S) -> alox_48::SerResult<S::Ok>
-    where
-        S: alox_48::SerializerTrait,
-    {
-        let mut map = serializer.serialize_object("RPG::EventCommand".into(), 3)?;
-        map.serialize_entry("@code".into(), &self.command.code)?;
-        map.serialize_entry("@indent".into(), &self.indent)?;
-        map.serialize_entry("@parameters".into(), &self.command.parameters)?;
-        map.end()
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for EventCommandList {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_seq(EventCommandListVisitor)
-    }
-}
-
-impl<'de> alox_48::Deserialize<'de> for EventCommandList {
-    fn deserialize<D>(deserializer: D) -> alox_48::DeResult<Self>
-    where
-        D: alox_48::DeserializerTrait<'de>,
-    {
-        deserializer.deserialize(EventCommandListVisitor)
-    }
-}
-
-fn match_last_child_command_with_schema(child_commands: &mut Vec<EventCommand>) {
-    let Some(last_child_command) = child_commands.last_mut() else {
-        return;
-    };
-
-    last_child_command.matches_schema = super::command::SCHEMAS
-        .get(&last_child_command.code)
-        .is_some_and(|schema| schema.matches(last_child_command));
-
-    if !last_child_command.matches_schema {
-        let extra_child_commands = std::mem::take(&mut last_child_command.sibling_commands);
-        child_commands.extend(extra_child_commands);
-    }
-}
-
-fn push_child_command(child_commands: &mut Vec<EventCommand>, mut child_command: EventCommand) {
-    match_last_child_command_with_schema(&mut child_command.child_commands);
-
-    if let Some(last_child_command) = child_commands.last_mut().and_then(|last_child_command| {
-        super::command::SCHEMAS
-            .get(&last_child_command.code)
-            .is_some_and(|schema| schema.is_sibling(last_child_command, &child_command))
-            .then_some(last_child_command)
-    }) {
-        last_child_command.sibling_commands.push(child_command);
-    } else {
-        match_last_child_command_with_schema(child_commands);
-        child_commands.push(child_command);
-    }
-}
-
-fn deserialize_event_command_list<E>(
-    indented_commands: impl Iterator<Item = Result<IndentedEventCommand, E>>,
-) -> Result<EventCommandList, E> {
-    let mut list = EventCommandList::default();
-    let mut stack = Vec::<IndentedEventCommand>::new();
-
-    for maybe_indented_command in indented_commands {
-        let indented_command = maybe_indented_command?;
-        if indented_command.command.code == 0 {
-            // Ignore commands that have code equal to 0; these are terminator commands
-            continue;
-        }
-
-        while stack
-            .last()
-            .is_some_and(|stack_top| indented_command.indent <= stack_top.indent)
-        {
-            let child_command = stack.pop().unwrap().command;
-            push_child_command(
-                stack
-                    .last_mut()
-                    .map(|stack_top| &mut stack_top.command.child_commands)
-                    .unwrap_or(&mut list.commands),
-                child_command,
-            );
-        }
-
-        stack.push(indented_command);
-    }
-
-    while let Some(stack_top) = stack.pop() {
-        push_child_command(
-            stack
-                .last_mut()
-                .map(|stack_top| &mut stack_top.command.child_commands)
-                .unwrap_or(&mut list.commands),
-            stack_top.command,
-        );
-    }
-
-    match_last_child_command_with_schema(&mut list.commands);
-
-    Ok(list)
-}
-
-impl<'de> serde::de::Visitor<'de> for EventCommandListVisitor {
-    type Value = EventCommandList;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str("a sequence")
-    }
-
-    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-    where
-        A: serde::de::SeqAccess<'de>,
-    {
-        deserialize_event_command_list(std::iter::from_fn(|| seq.next_element().transpose()))
-    }
-}
-
-impl<'de> alox_48::Visitor<'de> for EventCommandListVisitor {
-    type Value = EventCommandList;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str("an array")
-    }
-
-    fn visit_array<A>(self, mut seq: A) -> alox_48::DeResult<Self::Value>
-    where
-        A: alox_48::ArrayAccess<'de>,
-    {
-        deserialize_event_command_list(std::iter::from_fn(|| seq.next_element().transpose()))
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for IndentedEventCommand {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_map(IndentedEventCommandVisitor)
-    }
-}
-
-impl<'de> alox_48::Deserialize<'de> for IndentedEventCommand {
-    fn deserialize<D>(deserializer: D) -> alox_48::DeResult<Self>
-    where
-        D: alox_48::DeserializerTrait<'de>,
-    {
-        deserializer.deserialize(IndentedEventCommandVisitor)
-    }
-}
-
-impl<'de> serde::de::Visitor<'de> for IndentedEventCommandVisitor {
-    type Value = IndentedEventCommand;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str("a key-value mapping")
-    }
-
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-    where
-        A: serde::de::MapAccess<'de>,
-    {
-        let mut indented_command = IndentedEventCommand::default();
-        while let Some(key) = map.next_key::<&str>()? {
-            match key {
-                "code" => indented_command.command.code = map.next_value()?,
-                "indent" => indented_command.indent = map.next_value()?,
-                "parameters" => indented_command.command.parameters = map.next_value()?,
-                _ => {}
-            }
-        }
-        Ok(indented_command)
-    }
-}
-
-impl<'de> alox_48::Visitor<'de> for IndentedEventCommandVisitor {
-    type Value = IndentedEventCommand;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str("an instance of RPG::EventCommand")
-    }
-
-    fn visit_object<A>(self, class: &'de alox_48::Sym, mut map: A) -> alox_48::DeResult<Self::Value>
-    where
-        A: alox_48::IvarAccess<'de>,
-    {
-        if class.as_str() != "RPG::EventCommand" {
-            return Err(alox_48::DeError::invalid_type(
-                alox_48::de::Unexpected::Class(class),
-                &self,
-            ));
-        }
-        let mut indented_command = IndentedEventCommand::default();
-        while let Some(key) = map.next_ivar()? {
-            match key.as_str() {
-                "@code" => indented_command.command.code = map.next_value()?,
-                "@indent" => indented_command.indent = map.next_value()?,
-                "@parameters" => indented_command.command.parameters = map.next_value()?,
-                _ => {}
-            }
-        }
-        Ok(indented_command)
+    /// Returns a recursive iterator over the event commands.
+    pub fn indented_iter(&self) -> EventCommandListIndentedIter<'_> {
+        self.into()
     }
 }

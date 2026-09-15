@@ -16,14 +16,13 @@
 // along with Luminol.  If not, see <http://www.gnu.org/licenses/>.
 
 mod audio_file;
-pub mod command;
-mod event;
+pub mod event;
 mod mapinfo;
 mod move_route;
 mod script;
 
 pub use audio_file::*;
-pub use event::*;
+pub use event::{CommonEvent, Event, EventCommand, EventCommandList, EventPage, Graphic, MoveType};
 pub use mapinfo::*;
 pub use move_route::*;
 pub use script::*;
