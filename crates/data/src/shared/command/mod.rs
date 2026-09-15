@@ -51,7 +51,6 @@ mod c115;
 mod c116;
 mod c117;
 mod c118;
-mod c119;
 mod c121;
 mod c122;
 mod c123;
@@ -75,7 +74,7 @@ pub(super) static SCHEMAS: phf::Map<u16, &dyn EventCommandSchema> = phf::phf_map
     116u16 => &c116::Schema,
     117u16 => &c117::Schema,
     118u16 => &c118::Schema,
-    119u16 => &c119::Schema,
+    119u16 => &c118::Schema,
     121u16 => &c121::Schema,
     122u16 => &c122::Schema,
     123u16 => &c123::Schema,
@@ -85,5 +84,6 @@ pub(super) static SCHEMAS: phf::Map<u16, &dyn EventCommandSchema> = phf::phf_map
     127u16 => &c126::Schema,
     128u16 => &c126::Schema,
     129u16 => &c129::Schema,
+    131u16 => &c118::Schema,
     355u16 => &c101::Schema { continuation_code: 655 },
 };

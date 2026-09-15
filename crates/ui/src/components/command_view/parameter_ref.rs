@@ -93,3 +93,79 @@ impl IntegerParameterMut for ParameterType {
         self.as_integer_mut().unwrap()
     }
 }
+
+/// An immutable reference to a string parameter.
+pub trait StringParameterRef {
+    /// Converts this parameter into a string.
+    fn to_string(&self) -> &str;
+}
+
+/// A mutable reference to a string parameter.
+pub trait StringParameterMut
+where
+    Self: StringParameterRef,
+{
+    /// Mutably borrows this parameter as a string.
+    fn as_string_mut(&mut self) -> &mut String;
+}
+
+impl<T> StringParameterRef for &T
+where
+    T: StringParameterRef,
+{
+    fn to_string(&self) -> &str {
+        (*self).to_string()
+    }
+}
+
+impl<T> StringParameterRef for &mut T
+where
+    T: StringParameterRef,
+{
+    fn to_string(&self) -> &str {
+        let self_immutable: &T = self;
+        self_immutable.to_string()
+    }
+}
+
+impl<T> StringParameterMut for &mut T
+where
+    T: StringParameterMut,
+{
+    fn as_string_mut(&mut self) -> &mut String {
+        (*self).as_string_mut()
+    }
+}
+
+impl StringParameterRef for str {
+    fn to_string(&self) -> &str {
+        self
+    }
+}
+
+impl StringParameterRef for String {
+    fn to_string(&self) -> &str {
+        self
+    }
+}
+
+impl StringParameterMut for String {
+    fn as_string_mut(&mut self) -> &mut String {
+        self
+    }
+}
+
+impl StringParameterRef for ParameterType {
+    fn to_string(&self) -> &str {
+        self.as_string().map(|value| value.as_str()).unwrap_or("")
+    }
+}
+
+impl StringParameterMut for ParameterType {
+    fn as_string_mut(&mut self) -> &mut String {
+        if !self.is_string() {
+            *self = ParameterType::String(String::new());
+        }
+        self.as_string_mut().unwrap()
+    }
+}

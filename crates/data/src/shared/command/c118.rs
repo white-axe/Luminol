@@ -27,10 +27,10 @@ impl EventCommandSchema for Schema {
         }
 
         // Must have exactly one parameter, a string
-        let [label] = &command.parameters[..] else {
+        let [string] = &command.parameters[..] else {
             return false;
         };
-        if !label.is_string() {
+        if !string.is_string() {
             return false;
         };
 

@@ -33,7 +33,9 @@ mod description_width_callback;
 pub use description_width_callback::DescriptionWidthCallback;
 
 mod parameter_ref;
-pub use parameter_ref::{IntegerParameterMut, IntegerParameterRef};
+pub use parameter_ref::{
+    IntegerParameterMut, IntegerParameterRef, StringParameterMut, StringParameterRef,
+};
 
 mod character_selection;
 pub use character_selection::{CharacterSelection, CharacterSelectionWithId};
@@ -45,6 +47,9 @@ pub use database_selection::{
     ScriptSelection, SkillSelection, StateSelection, SwitchSelection, TilesetSelection,
     TroopSelection, VariableSelection, WeaponSelection,
 };
+
+mod graphic_selection;
+pub use graphic_selection::{GraphicSelection, GraphicSelectionState};
 
 mod value_selection;
 pub use value_selection::{ValueFmt, ValueSelection, ValueSelectionWithId};
@@ -64,6 +69,7 @@ enum Stripe<'a> {
     Owned(bool),
 }
 
+#[must_use = "use `ui.add()` to show this widget"]
 pub struct CommandView<'this, 'update_state> {
     stripe: Stripe<'this>,
     update_state: &'this UpdateState<'update_state>,
@@ -164,6 +170,7 @@ mod c126;
 mod c127;
 mod c128;
 mod c129;
+mod c131;
 
 static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
     101u16 => &c101::Editor { continuation_code: 401, name: "Show Text" },
@@ -190,6 +197,7 @@ static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
     127u16 => &c127::Editor,
     128u16 => &c128::Editor,
     129u16 => &c129::Editor,
+    131u16 => &c131::Editor,
     355u16 => &c101::Editor { continuation_code: 655, name: "Script" },
 };
 
