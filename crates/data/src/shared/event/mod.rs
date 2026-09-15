@@ -296,18 +296,6 @@ pub struct EventCommand {
 }
 
 impl EventCommand {
-    const fn with_empty_guid() -> Self {
-        Self {
-            guid: String::new(),
-            state: state::EventCommandState::new(),
-            matches_schema: false,
-            code: 0,
-            parameters: Vec::new(),
-            child_commands: Vec::new(),
-            sibling_commands: Vec::new(),
-        }
-    }
-
     fn generate_guid() -> String {
         rand::thread_rng()
             .sample_iter(rand::distributions::Alphanumeric)
@@ -321,7 +309,12 @@ impl Default for EventCommand {
     fn default() -> Self {
         Self {
             guid: Self::generate_guid(),
-            ..Self::with_empty_guid()
+            state: state::EventCommandState::default(),
+            matches_schema: false,
+            code: 0,
+            parameters: Vec::new(),
+            child_commands: Vec::new(),
+            sibling_commands: Vec::new(),
         }
     }
 }
@@ -330,7 +323,7 @@ impl Clone for EventCommand {
     fn clone(&self) -> Self {
         Self {
             guid: Self::generate_guid(),
-            state: state::EventCommandState::new(),
+            state: state::EventCommandState::default(),
             matches_schema: self.matches_schema,
             code: self.code,
             parameters: self.parameters.clone(),
@@ -340,17 +333,39 @@ impl Clone for EventCommand {
     }
 }
 
-static EVENT_COMMAND_TERMINATOR: EventCommand = EventCommand::with_empty_guid();
-
 #[derive(Default)]
 struct IndentedEventCommand {
     indent: u64,
     command: EventCommand,
 }
 
+impl IndentedEventCommand {
+    fn as_ref(&self) -> IndentedEventCommandRef<'_> {
+        IndentedEventCommandRef {
+            indent: self.indent,
+            command: &self.command,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
 struct IndentedEventCommandRef<'a> {
     indent: u64,
     command: &'a EventCommand,
+}
+
+enum IndentedEventCommandRefOrOwned<'a> {
+    Ref(IndentedEventCommandRef<'a>),
+    Owned(IndentedEventCommand),
+}
+
+impl IndentedEventCommandRefOrOwned<'_> {
+    fn as_ref(&self) -> IndentedEventCommandRef<'_> {
+        match self {
+            Self::Ref(indented_command) => *indented_command,
+            Self::Owned(indented_command) => indented_command.as_ref(),
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -384,7 +399,7 @@ impl EventCommandList {
 }
 
 impl<'a> Iterator for EventCommandListIndentedIter<'a> {
-    type Item = IndentedEventCommandRef<'a>;
+    type Item = IndentedEventCommandRefOrOwned<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some((child_iter, sibling_iter, is_indented, is_terminated)) =
@@ -401,10 +416,7 @@ impl<'a> Iterator for EventCommandListIndentedIter<'a> {
                     if *is_indented {
                         if !*is_terminated {
                             *is_terminated = true;
-                            return Some(IndentedEventCommandRef {
-                                indent: self.indent,
-                                command: &EVENT_COMMAND_TERMINATOR,
-                            });
+                            return Some(IndentedEventCommandRefOrOwned::Owned(Default::default()));
                         }
                         *is_indented = false;
                         self.indent -= 1;
@@ -418,20 +430,19 @@ impl<'a> Iterator for EventCommandListIndentedIter<'a> {
                     false,
                     false,
                 ));
-                return Some(IndentedEventCommandRef {
-                    indent: self.indent,
-                    command,
-                });
+                return Some(IndentedEventCommandRefOrOwned::Ref(
+                    IndentedEventCommandRef {
+                        indent: self.indent,
+                        command,
+                    },
+                ));
             } else {
                 self.stack.pop();
             }
         }
         if !self.is_terminated {
             self.is_terminated = true;
-            Some(IndentedEventCommandRef {
-                indent: self.indent,
-                command: &EVENT_COMMAND_TERMINATOR,
-            })
+            Some(IndentedEventCommandRefOrOwned::Owned(Default::default()))
         } else {
             None
         }
@@ -447,7 +458,7 @@ impl serde::Serialize for EventCommandList {
     {
         let mut seq = serializer.serialize_seq(Some(self.indented_iter().count()))?;
         for indented_command in self.indented_iter() {
-            seq.serialize_element(&indented_command)?;
+            seq.serialize_element(&indented_command.as_ref())?;
         }
         seq.end()
     }
@@ -460,7 +471,7 @@ impl alox_48::Serialize for EventCommandList {
     {
         let mut seq = serializer.serialize_array(self.indented_iter().count())?;
         for indented_command in self.indented_iter() {
-            seq.serialize_element(&indented_command)?;
+            seq.serialize_element(&indented_command.as_ref())?;
         }
         seq.end()
     }
