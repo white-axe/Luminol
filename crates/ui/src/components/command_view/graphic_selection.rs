@@ -35,7 +35,7 @@ struct GraphicSelectionStateInner {
 #[derive(Default)]
 pub struct GraphicSelectionState {
     attempted_to_load: bool,
-    inner: Option<fragile::Fragile<GraphicSelectionStateInner>>,
+    inner: Option<fragile::Sticky<GraphicSelectionStateInner>>,
 }
 
 /// A widget for changing the value of a graphic parameter.
@@ -95,7 +95,14 @@ where
                         ))
                         .changed();
 
-                    if changed || !self.state.attempted_to_load {
+                    if changed
+                        || !self.state.attempted_to_load
+                        || self
+                            .state
+                            .inner
+                            .as_ref()
+                            .is_some_and(|state| !state.is_valid())
+                    {
                         self.state.attempted_to_load = true;
                         self.state.inner = self
                             .update_state
@@ -109,7 +116,7 @@ where
                                     Viewport::new(&self.update_state.graphics, Default::default());
                                 let sprite =
                                     Sprite::basic(&self.update_state.graphics, &texture, &viewport);
-                                fragile::Fragile::new(GraphicSelectionStateInner {
+                                fragile::Sticky::new(GraphicSelectionStateInner {
                                     texture,
                                     viewport,
                                     sprite,
@@ -120,41 +127,43 @@ where
                     changed
                 };
 
-                if let Some(state) = self.state.inner.as_mut().map(|state| state.get_mut()) {
-                    egui::ScrollArea::both()
-                        .id_salt((&self.id_salt, "scroll"))
-                        .max_height(200.)
-                        .show_viewport(ui, |ui, viewport_rect| {
-                            let (canvas_rect, _) = ui.allocate_exact_size(
-                                state.texture.size_vec2(),
-                                egui::Sense::click(),
-                            );
-                            let absolute_scroll_rect = ui
-                                .ctx()
-                                .screen_rect()
-                                .intersect(viewport_rect.translate(canvas_rect.min.to_vec2()));
-                            let scroll_rect =
-                                absolute_scroll_rect.translate(-canvas_rect.min.to_vec2());
-                            state.sprite.transform.set_position(
-                                &self.update_state.graphics.render_state,
-                                glam::vec2(-scroll_rect.left(), -scroll_rect.top()),
-                            );
-                            state.viewport.set(
-                                &self.update_state.graphics.render_state,
-                                glam::vec2(
-                                    absolute_scroll_rect.width(),
-                                    absolute_scroll_rect.height(),
-                                ),
-                                glam::Vec2::ZERO,
-                                glam::Vec2::ONE,
-                            );
-                            let painter =
-                                Painter::new(state.sprite.prepare(&self.update_state.graphics));
-                            ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                                absolute_scroll_rect,
-                                painter,
-                            ));
-                        });
+                if let Some(state) = &mut self.state.inner {
+                    let _ = state.try_with_mut(|state| {
+                        egui::ScrollArea::both()
+                            .id_salt((&self.id_salt, "scroll"))
+                            .max_height(200.)
+                            .show_viewport(ui, |ui, viewport_rect| {
+                                let (canvas_rect, _) = ui.allocate_exact_size(
+                                    state.texture.size_vec2(),
+                                    egui::Sense::click(),
+                                );
+                                let absolute_scroll_rect = ui
+                                    .ctx()
+                                    .screen_rect()
+                                    .intersect(viewport_rect.translate(canvas_rect.min.to_vec2()));
+                                let scroll_rect =
+                                    absolute_scroll_rect.translate(-canvas_rect.min.to_vec2());
+                                state.sprite.transform.set_position(
+                                    &self.update_state.graphics.render_state,
+                                    glam::vec2(-scroll_rect.left(), -scroll_rect.top()),
+                                );
+                                state.viewport.set(
+                                    &self.update_state.graphics.render_state,
+                                    glam::vec2(
+                                        absolute_scroll_rect.width(),
+                                        absolute_scroll_rect.height(),
+                                    ),
+                                    glam::Vec2::ZERO,
+                                    glam::Vec2::ONE,
+                                );
+                                let painter =
+                                    Painter::new(state.sprite.prepare(&self.update_state.graphics));
+                                ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                                    absolute_scroll_rect,
+                                    painter,
+                                ));
+                            });
+                    });
                 }
             })
             .response;
