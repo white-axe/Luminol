@@ -94,6 +94,23 @@ impl<'this, 'update_state> CommandView<'this, 'update_state> {
     }
 }
 
+#[cfg(not(debug_assertions))]
+fn assert_command_matches_schema(_command: &mut EventCommand) {}
+
+#[cfg(debug_assertions)]
+fn assert_command_matches_schema(command: &mut EventCommand) {
+    if command.matches_schema {
+        let schema = *luminol_data::rpg::event::SCHEMAS
+            .get(&command.code)
+            .unwrap();
+        for sibling in std::mem::take(&mut command.sibling_commands) {
+            assert!(schema.is_sibling(command, &sibling));
+            command.sibling_commands.push(sibling);
+        }
+        assert!(schema.matches(command));
+    }
+}
+
 fn show_parameter_label(ui: &mut egui::Ui, index: usize, type_name: &str) {
     let index = index + 1;
     ui.label(format!("Parameter {index} ({type_name})"));
@@ -227,6 +244,7 @@ impl egui::Widget for CommandView<'_, '_> {
                             }
                         })
                         .body(|ui| {
+                            assert_command_matches_schema(command);
                             if let Some(editor) = maybe_editor {
                                 ui.push_id(command.code, |ui| {
                                     modified |= editor
@@ -261,6 +279,7 @@ impl egui::Widget for CommandView<'_, '_> {
                                             .changed();
                                     });
                             }
+                            assert_command_matches_schema(command);
                         });
                 }
             })
