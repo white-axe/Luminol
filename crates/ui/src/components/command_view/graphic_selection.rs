@@ -41,7 +41,7 @@ pub struct GraphicSelectionState {
 /// A widget for changing the value of a graphic parameter.
 #[must_use = "use `ui.add()` to show this widget"]
 pub struct GraphicSelection<'this, 'update_state, P, D, H> {
-    update_state: &'this UpdateState<'update_state>,
+    update_state: &'this mut UpdateState<'update_state>,
     state: &'this mut GraphicSelectionState,
     id_salt: H,
     directory_path: D,
@@ -55,7 +55,7 @@ where
     H: std::hash::Hash,
 {
     pub fn new(
-        update_state: &'this UpdateState<'update_state>,
+        update_state: &'this mut UpdateState<'update_state>,
         state: &'this mut GraphicSelectionState,
         id_salt: H,
         directory_path: D,
@@ -102,6 +102,7 @@ where
                             .graphics
                             .texture_loader
                             .load_now_dir(self.update_state.filesystem, directory_path, filename)
+                            .map_err(|e| luminol_core::error!(self.update_state.toasts, e))
                             .ok()
                             .map(|texture| {
                                 let viewport =
