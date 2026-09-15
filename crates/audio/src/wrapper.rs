@@ -56,6 +56,10 @@ enum Command {
         source: Source,
         oneshot_tx: oneshot::Sender<()>,
     },
+    IsPlaying {
+        source: Source,
+        oneshot_tx: oneshot::Sender<bool>,
+    },
     Drop,
 }
 
@@ -145,6 +149,15 @@ impl Audio {
         self.tx.send(Command::Stop { source, oneshot_tx }).unwrap();
         oneshot_rx.recv().unwrap()
     }
+
+    /// Returns true if a sound is playing on the given source, otherwise false.
+    pub fn is_playing(&self, source: Source) -> bool {
+        let (oneshot_tx, oneshot_rx) = oneshot::channel();
+        self.tx
+            .send(Command::IsPlaying { source, oneshot_tx })
+            .unwrap();
+        oneshot_rx.recv().unwrap()
+    }
 }
 
 impl Default for Audio {
@@ -211,6 +224,10 @@ impl Default for Audio {
                     Command::Stop { source, oneshot_tx } => {
                         audio.stop(source);
                         oneshot_tx.send(()).unwrap();
+                    }
+
+                    Command::IsPlaying { source, oneshot_tx } => {
+                        oneshot_tx.send(audio.is_playing(source)).unwrap();
                     }
 
                     Command::Drop => {
