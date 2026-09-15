@@ -201,14 +201,16 @@ where
                             .read_dir(self.directory_path)
                             .unwrap_or_default()
                             .into_iter()
-                            .map(|entry| {
-                                if self.remove_extension {
-                                    let mut path = camino::Utf8PathBuf::from(entry.name);
-                                    path.set_extension("");
-                                    path.into_string()
-                                } else {
-                                    entry.name
-                                }
+                            .filter_map(|entry| {
+                                entry.metadata.is_file.then(|| {
+                                    if self.remove_extension {
+                                        let mut path = camino::Utf8PathBuf::from(entry.name);
+                                        path.set_extension("");
+                                        path.into_string()
+                                    } else {
+                                        entry.name
+                                    }
+                                })
                             })
                             .collect::<Vec<_>>();
                         filenames.sort_unstable_by(|a, b| lexical_sort::natural_lexical_cmp(a, b));
