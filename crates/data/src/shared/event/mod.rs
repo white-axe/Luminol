@@ -354,16 +354,16 @@ struct IndentedEventCommandRef<'a> {
     command: &'a EventCommand,
 }
 
-enum IndentedEventCommandRefOrOwned<'a> {
+enum EventCommandListIndentedIterItem<'a> {
     Ref(IndentedEventCommandRef<'a>),
-    Owned(IndentedEventCommand),
+    Terminator(IndentedEventCommand),
 }
 
-impl IndentedEventCommandRefOrOwned<'_> {
+impl EventCommandListIndentedIterItem<'_> {
     fn as_ref(&self) -> IndentedEventCommandRef<'_> {
         match self {
             Self::Ref(indented_command) => *indented_command,
-            Self::Owned(indented_command) => indented_command.as_ref(),
+            Self::Terminator(indented_command) => indented_command.as_ref(),
         }
     }
 }
@@ -399,7 +399,7 @@ impl EventCommandList {
 }
 
 impl<'a> Iterator for EventCommandListIndentedIter<'a> {
-    type Item = IndentedEventCommandRefOrOwned<'a>;
+    type Item = EventCommandListIndentedIterItem<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some((child_iter, sibling_iter, is_indented, is_terminated)) =
@@ -416,7 +416,9 @@ impl<'a> Iterator for EventCommandListIndentedIter<'a> {
                     if *is_indented {
                         if !*is_terminated {
                             *is_terminated = true;
-                            return Some(IndentedEventCommandRefOrOwned::Owned(Default::default()));
+                            return Some(EventCommandListIndentedIterItem::Terminator(
+                                Default::default(),
+                            ));
                         }
                         *is_indented = false;
                         self.indent -= 1;
@@ -430,7 +432,7 @@ impl<'a> Iterator for EventCommandListIndentedIter<'a> {
                     false,
                     false,
                 ));
-                return Some(IndentedEventCommandRefOrOwned::Ref(
+                return Some(EventCommandListIndentedIterItem::Ref(
                     IndentedEventCommandRef {
                         indent: self.indent,
                         command,
@@ -442,7 +444,9 @@ impl<'a> Iterator for EventCommandListIndentedIter<'a> {
         }
         if !self.is_terminated {
             self.is_terminated = true;
-            Some(IndentedEventCommandRefOrOwned::Owned(Default::default()))
+            Some(EventCommandListIndentedIterItem::Terminator(
+                Default::default(),
+            ))
         } else {
             None
         }
