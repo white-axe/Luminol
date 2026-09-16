@@ -99,7 +99,7 @@ fn assert_command_matches_schema(_command: &mut EventCommand) {}
 
 #[cfg(debug_assertions)]
 fn assert_command_matches_schema(command: &mut EventCommand) {
-    if command.matches_schema {
+    if command.matches_schema && EDITORS.contains_key(&command.code) {
         let schema = *luminol_data::rpg::event::SCHEMAS
             .get(&command.code)
             .unwrap();
