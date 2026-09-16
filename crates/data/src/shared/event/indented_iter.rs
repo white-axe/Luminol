@@ -104,7 +104,10 @@ impl<'a> Iterator for EventCommandListIndentedIter<'a> {
                             *is_terminated = true;
                             return Some(EventCommandListIndentedIterItem(
                                 EventCommandListIndentedIterItemInner::Terminator(
-                                    Default::default(),
+                                    IndentedEventCommand {
+                                        indent: self.indent,
+                                        command: EventCommand::default(),
+                                    },
                                 ),
                             ));
                         }
@@ -133,7 +136,10 @@ impl<'a> Iterator for EventCommandListIndentedIter<'a> {
         if !self.is_terminated {
             self.is_terminated = true;
             Some(EventCommandListIndentedIterItem(
-                EventCommandListIndentedIterItemInner::Terminator(Default::default()),
+                EventCommandListIndentedIterItemInner::Terminator(IndentedEventCommand {
+                    indent: self.indent,
+                    command: EventCommand::default(),
+                }),
             ))
         } else {
             None
