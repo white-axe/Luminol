@@ -121,7 +121,7 @@ impl EventCommandEditor for Editor {
                 };
                 modified |= {
                     let changed = ui
-                        .add(EnumComboBox::new((3, 1), &mut self_switch_type))
+                        .add(EnumComboBox::new("self switch", &mut self_switch_type))
                         .changed();
                     if changed {
                         *self_switch = <&str>::from(&self_switch_type).to_string();
@@ -133,7 +133,6 @@ impl EventCommandEditor for Editor {
                 if *is_custom_self_switch {
                     modified |= ui.text_edit_singleline(self_switch).changed();
                 }
-                modified |= ui.text_edit_singleline(self_switch).changed();
 
                 let operation = command.parameters[1].as_integer_mut().unwrap();
                 ui.label("Operation");
