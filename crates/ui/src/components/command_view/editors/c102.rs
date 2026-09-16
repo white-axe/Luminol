@@ -23,7 +23,8 @@
 // Program grant you additional permission to convey the resulting work.
 
 use super::{
-    Collapsing, DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo, UpdateState,
+    Collapsing, DescriptionWidthCallback, EventCommand, EventCommandEditor, EventInfo,
+    ParameterType, UpdateState,
 };
 
 pub(super) struct Editor;
@@ -93,14 +94,38 @@ impl EventCommandEditor for Editor {
                         .id_salt(choice_index)
                         .show_header_text(format!("Choice {}", choice_index + 1))
                         .body(|ui| {
-                            modified |= ui
-                                .text_edit_singleline(choice.as_string_mut().unwrap())
-                                .changed();
+                            let sibling_index = choice_map.get(&(choice_index as _)).copied();
+
+                            let choice_text = choice.as_string_mut().unwrap();
+                            modified |= {
+                                let changed = ui.text_edit_singleline(choice_text).changed();
+                                if changed {
+                                    if let Some(sibling_index) = sibling_index {
+                                        command.sibling_commands[sibling_index].parameters[1]
+                                            .as_string_mut()
+                                            .unwrap()
+                                            .clone_from(choice_text);
+                                    } else if !choice_text.is_empty() {
+                                        let mut new_sibling = EventCommand::default();
+                                        new_sibling.code = 402;
+                                        new_sibling.parameters = vec![
+                                            ParameterType::Integer(choice_index as _),
+                                            ParameterType::String(choice_text.clone()),
+                                        ];
+                                        choice_map.insert(
+                                            choice_index as _,
+                                            command.sibling_commands.len(),
+                                        );
+                                        command.sibling_commands.push(new_sibling);
+                                    }
+                                }
+                                changed
+                            };
 
                             let mut choice_commands_fallback = Vec::new();
-                            let choice_commands = choice_map.get(&(choice_index as _)).map_or(
+                            let choice_commands = sibling_index.map_or(
                                 &mut choice_commands_fallback,
-                                |&sibling_index| {
+                                |sibling_index| {
                                     &mut command.sibling_commands[sibling_index].child_commands
                                 },
                             );
