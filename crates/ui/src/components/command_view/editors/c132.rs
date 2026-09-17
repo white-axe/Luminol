@@ -55,7 +55,7 @@ impl EventCommandEditor for Editor {
         ui.add(AudioSelection::new(&mut command.parameters[0]).prepare(
             update_state,
             "audio",
-            Some("Audio/BGM"),
+            "Audio/BGM",
             Some(luminol_audio::Source::BGM),
         ))
     }

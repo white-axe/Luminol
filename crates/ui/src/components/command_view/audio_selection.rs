@@ -27,7 +27,7 @@ use luminol_audio::Source;
 use luminol_core::UpdateState;
 
 /// A widget for changing the value of an audio file parameter.
-#[must_use = "call `.fmt()` to convert to a `String` or `.prepare()` to convert to a `egui::Widget`"]
+#[must_use = "call `.fmt()` to convert to a `String` or `.prepare()` or `.prepare_raw()` to convert to a `egui::Widget`"]
 pub struct AudioSelection<P> {
     parameter: P,
 }
@@ -35,9 +35,8 @@ pub struct AudioSelection<P> {
 #[must_use = "use `ui.add()` to show this widget"]
 pub struct AudioSelectionPrepared<'this, 'update_state, P, D, H> {
     inner: AudioSelection<P>,
-    update_state: &'this mut UpdateState<'update_state>,
+    update_state_and_directory_path: Option<(&'this mut UpdateState<'update_state>, D)>,
     id_salt: H,
-    directory_path: Option<D>,
     source: Option<Source>,
 }
 
@@ -58,12 +57,12 @@ where
         format!("{name}, {volume}%, {pitch}%")
     }
 
-    /// Prepares a [`egui::Widget`] from the audio file.
+    /// Prepares a [`egui::Widget`] from the audio file and a directory path.
     pub fn prepare<'this, 'update_state, D, H>(
         self,
         update_state: &'this mut UpdateState<'update_state>,
         id_salt: H,
-        directory_path: Option<D>,
+        directory_path: D,
         source: Option<Source>,
     ) -> AudioSelectionPrepared<'this, 'update_state, P, D, H>
     where
@@ -73,10 +72,26 @@ where
     {
         AudioSelectionPrepared {
             inner: self,
-            update_state,
+            update_state_and_directory_path: Some((update_state, directory_path)),
             id_salt,
-            directory_path,
             source,
+        }
+    }
+
+    /// Prepares a [`egui::Widget`] from the audio file without a specified directory path.
+    pub fn prepare_raw<'this, 'update_state, H>(
+        self,
+        id_salt: H,
+    ) -> AudioSelectionPrepared<'this, 'update_state, P, &'this str, H>
+    where
+        P: super::AudioFileParameterMut,
+        H: std::hash::Hash,
+    {
+        AudioSelectionPrepared {
+            inner: self,
+            update_state_and_directory_path: None,
+            id_salt,
+            source: None,
         }
     }
 }
@@ -90,18 +105,16 @@ where
     fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
         let mut modified = false;
 
-        let directory_path = self
-            .directory_path
-            .as_ref()
-            .map(|directory_path| directory_path.as_ref());
         let audio_file = self.inner.parameter.as_audio_file_mut();
 
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                if let Some(directory_path) = directory_path {
+                if let Some((update_state, directory_path)) =
+                    &mut self.update_state_and_directory_path
+                {
                     modified |= ui
                         .add(FileComboBox::new(
-                            self.update_state,
+                            update_state,
                             (&self.id_salt, "filename"),
                             directory_path,
                             &mut audio_file.name,
@@ -138,38 +151,38 @@ where
                         .changed();
                 });
 
-                if let Some(directory_path) = directory_path {
+                if let Some((update_state, directory_path)) = self.update_state_and_directory_path {
                     ui.columns(if self.source.is_some() { 2 } else { 1 }, |columns| {
                         if columns[0]
                             .add_enabled(audio_file.name.0.is_some(), egui::Button::new("Play"))
                             .clicked()
                             || (modified
-                                && self.source.is_some_and(|source| {
-                                    self.update_state.audio.is_playing(source)
-                                }))
+                                && self
+                                    .source
+                                    .is_some_and(|source| update_state.audio.is_playing(source)))
                         {
                             if let Some(filename) = &audio_file.name.0 {
-                                if let Err(e) = self.update_state.audio.play(
-                                    directory_path.join(filename),
-                                    self.update_state.filesystem,
+                                if let Err(e) = update_state.audio.play(
+                                    directory_path.as_ref().join(filename),
+                                    update_state.filesystem,
                                     audio_file.volume,
                                     audio_file.pitch,
                                     self.source,
-                                    self.update_state
+                                    update_state
                                         .project_config
                                         .as_ref()
                                         .expect("project not loaded")
                                         .project
                                         .volume_scale,
                                 ) {
-                                    luminol_core::error!(self.update_state.toasts, e);
+                                    luminol_core::error!(update_state.toasts, e);
                                 }
                             }
                         }
 
                         if let Some(source) = self.source {
                             if columns[1].button("Stop").clicked() {
-                                self.update_state.audio.stop(source);
+                                update_state.audio.stop(source);
                             }
                         }
                     });

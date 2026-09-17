@@ -120,7 +120,6 @@ fn show_parameter_label(ui: &mut egui::Ui, index: usize, type_name: &str) {
 fn show_parameters<'a>(
     ui: &mut egui::Ui,
     stripe: &mut bool,
-    update_state: &mut UpdateState<'_>,
     parameters: impl Iterator<Item = &'a mut ParameterType>,
 ) -> bool {
     let mut modified = false;
@@ -134,7 +133,7 @@ fn show_parameters<'a>(
                     .expand_by_default(false)
                     .show_header_text("Contents")
                     .body(|ui| {
-                        modified |= show_parameters(ui, stripe, update_state, value.iter_mut());
+                        modified |= show_parameters(ui, stripe, value.iter_mut());
                     });
             }
             ParameterType::None => {
@@ -187,12 +186,7 @@ fn show_parameters<'a>(
             ParameterType::AudioFile(value) => {
                 show_parameter_label(ui, i, "audio file");
                 modified |= ui
-                    .add(audio_selection::AudioSelection::new(value).prepare(
-                        update_state,
-                        "audio",
-                        None::<&str>,
-                        None,
-                    ))
+                    .add(audio_selection::AudioSelection::new(value).prepare_raw("audio"))
                     .changed();
             }
             ParameterType::MoveRoute(_value) => {
@@ -269,7 +263,6 @@ impl egui::Widget for CommandView<'_, '_> {
                                         modified |= show_parameters(
                                             ui,
                                             stripe,
-                                            self.update_state,
                                             command.parameters.iter_mut(),
                                         );
                                     });
