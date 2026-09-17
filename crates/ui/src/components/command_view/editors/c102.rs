@@ -106,17 +106,14 @@ impl EventCommandEditor for Editor {
                                             .unwrap()
                                             .clone_from(choice_text);
                                     } else if !choice_text.is_empty() {
-                                        let mut new_sibling = EventCommand::default();
-                                        new_sibling.code = 402;
-                                        new_sibling.parameters = vec![
-                                            ParameterType::Integer(choice_index as _),
-                                            ParameterType::String(choice_text.clone()),
-                                        ];
-                                        choice_map.insert(
-                                            choice_index as _,
-                                            command.sibling_commands.len(),
-                                        );
-                                        command.sibling_commands.push(new_sibling);
+                                        command.sibling_commands.push(EventCommand {
+                                            code: 402,
+                                            parameters: vec![
+                                                ParameterType::Integer(choice_index as _),
+                                                ParameterType::String(choice_text.clone()),
+                                            ],
+                                            ..Default::default()
+                                        });
                                     }
                                 }
                                 changed
