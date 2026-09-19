@@ -164,6 +164,7 @@ where
 struct State {
     search_string: String,
     search_matched_ids: Vec<usize>,
+    scrolled_to_selected_choice: bool,
     filenames: Vec<String>,
 }
 
@@ -217,6 +218,7 @@ where
                         State {
                             search_string: String::new(),
                             search_matched_ids: (0..filenames.len()).collect(),
+                            scrolled_to_selected_choice: false,
                             filenames,
                         }
                     });
@@ -257,23 +259,24 @@ where
                         );
                 }
 
+                let reference_file_stem = self.reference.get().map(|filename| {
+                    camino::Utf8Path::new(filename)
+                        .file_stem()
+                        .unwrap_or_default()
+                        .to_lowercase()
+                });
+
                 let button_height = ui.spacing().interact_size.y.max(
                     ui.text_style_height(&egui::TextStyle::Button)
                         + 2. * ui.spacing().button_padding.y,
                 );
-                egui::ScrollArea::vertical()
+                let mut scroll_area_output = egui::ScrollArea::vertical()
                     .auto_shrink([false, false])
                     .show_rows(
                         ui,
                         button_height,
                         state.search_matched_ids.len() + allow_none as usize,
                         |ui, range| {
-                            let reference_file_stem = self.reference.get().map(|filename| {
-                                camino::Utf8Path::new(filename)
-                                    .file_stem()
-                                    .unwrap_or_default()
-                                    .to_lowercase()
-                            });
                             let mut is_faint = range.clone().start % 2 != 0;
 
                             if allow_none && range.clone().start == 0 {
@@ -320,6 +323,52 @@ where
                             }
                         },
                     );
+
+                // Scroll the selected choice into view if we haven't already
+                if !state.scrolled_to_selected_choice {
+                    state.scrolled_to_selected_choice = true;
+                    let selected_index =
+                        if let Some(reference_file_stem) = reference_file_stem.as_ref() {
+                            state
+                                .search_matched_ids
+                                .iter()
+                                .copied()
+                                .position(|id| {
+                                    let filename = &state.filenames[id];
+                                    let file_stem = camino::Utf8Path::new(filename)
+                                        .file_stem()
+                                        .unwrap_or_default();
+                                    file_stem.to_lowercase() == *reference_file_stem
+                                })
+                                .map(|selected_index| {
+                                    if allow_none {
+                                        selected_index + 1
+                                    } else {
+                                        selected_index
+                                    }
+                                })
+                        } else {
+                            Some(0)
+                        };
+                    if let Some(selected_index) = selected_index {
+                        let spacing = ui.spacing().item_spacing.y;
+                        let max = selected_index as f32 * (button_height + spacing) + spacing;
+                        let min = selected_index as f32 * (button_height + spacing) + button_height
+                            - spacing
+                            - scroll_area_output.inner_rect.height();
+                        if scroll_area_output.state.offset.y > max {
+                            scroll_area_output.state.offset.y = max;
+                            scroll_area_output
+                                .state
+                                .store(ui.ctx(), scroll_area_output.id);
+                        } else if scroll_area_output.state.offset.y < min {
+                            scroll_area_output.state.offset.y = min;
+                            scroll_area_output
+                                .state
+                                .store(ui.ctx(), scroll_area_output.id);
+                        }
+                    }
+                }
 
                 // Save the search string and the search results back into egui memory
                 ui.data_mut(|d| d.insert_temp(state_id, state));
