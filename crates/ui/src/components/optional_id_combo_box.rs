@@ -154,25 +154,27 @@ where
                     ui.text_style_height(&egui::TextStyle::Button)
                         + 2. * ui.spacing().button_padding.y,
                 );
-                egui::ScrollArea::vertical().show_rows(
-                    ui,
-                    button_height,
-                    state.search_matched_ids.len() + self.allow_none as usize,
-                    |ui, range| {
-                        let first_row_is_faint = range.clone().start % 2 != 0;
-                        let show_none = self.allow_none && range.clone().start == 0;
-                        let ids = range
-                            .filter_map(|i| {
-                                if self.allow_none {
-                                    (i != 0).then(|| state.search_matched_ids[i - 1])
-                                } else {
-                                    Some(state.search_matched_ids[i])
-                                }
-                            })
-                            .collect_vec();
-                        changed = f(self, ui, ids, first_row_is_faint, show_none);
-                    },
-                );
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false, false])
+                    .show_rows(
+                        ui,
+                        button_height,
+                        state.search_matched_ids.len() + self.allow_none as usize,
+                        |ui, range| {
+                            let first_row_is_faint = range.clone().start % 2 != 0;
+                            let show_none = self.allow_none && range.clone().start == 0;
+                            let ids = range
+                                .filter_map(|i| {
+                                    if self.allow_none {
+                                        (i != 0).then(|| state.search_matched_ids[i - 1])
+                                    } else {
+                                        Some(state.search_matched_ids[i])
+                                    }
+                                })
+                                .collect_vec();
+                            changed = f(self, ui, ids, first_row_is_faint, show_none);
+                        },
+                    );
 
                 // Save the search string and the search results back into egui memory
                 ui.data_mut(|d| d.insert_temp(state_id, state));

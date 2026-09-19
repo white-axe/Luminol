@@ -261,62 +261,65 @@ where
                     ui.text_style_height(&egui::TextStyle::Button)
                         + 2. * ui.spacing().button_padding.y,
                 );
-                egui::ScrollArea::vertical().show_rows(
-                    ui,
-                    button_height,
-                    state.search_matched_ids.len() + allow_none as usize,
-                    |ui, range| {
-                        let reference_file_stem = self.reference.get().map(|filename| {
-                            camino::Utf8Path::new(filename)
-                                .file_stem()
-                                .unwrap_or_default()
-                                .to_lowercase()
-                        });
-                        let mut is_faint = range.clone().start % 2 != 0;
-
-                        if allow_none && range.clone().start == 0 {
-                            if ui
-                                .with_stripe(is_faint, |ui| {
-                                    ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
-                                    ui.selectable_label(reference_file_stem.is_none(), "(None)")
-                                })
-                                .inner
-                                .clicked()
-                            {
-                                self.reference.set(None);
-                                changed = true;
-                            }
-                            is_faint = !is_faint;
-                        }
-
-                        for i in range.filter_map(|i| {
-                            if allow_none {
-                                (i != 0).then(|| state.search_matched_ids[i - 1])
-                            } else {
-                                Some(state.search_matched_ids[i])
-                            }
-                        }) {
-                            ui.with_stripe(is_faint, |ui| {
-                                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
-                                let filename = &state.filenames[i];
-                                let file_stem = camino::Utf8Path::new(filename)
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false, false])
+                    .show_rows(
+                        ui,
+                        button_height,
+                        state.search_matched_ids.len() + allow_none as usize,
+                        |ui, range| {
+                            let reference_file_stem = self.reference.get().map(|filename| {
+                                camino::Utf8Path::new(filename)
                                     .file_stem()
-                                    .unwrap_or_default();
+                                    .unwrap_or_default()
+                                    .to_lowercase()
+                            });
+                            let mut is_faint = range.clone().start % 2 != 0;
+
+                            if allow_none && range.clone().start == 0 {
                                 if ui
-                                    .selectable_label(
-                                        Some(file_stem.to_lowercase()) == reference_file_stem,
-                                        filename,
-                                    )
+                                    .with_stripe(is_faint, |ui| {
+                                        ui.style_mut().wrap_mode =
+                                            Some(egui::TextWrapMode::Truncate);
+                                        ui.selectable_label(reference_file_stem.is_none(), "(None)")
+                                    })
+                                    .inner
                                     .clicked()
                                 {
-                                    self.reference.set(Some(file_stem.to_string()));
+                                    self.reference.set(None);
                                     changed = true;
                                 }
-                            });
-                            is_faint = !is_faint;
-                        }
-                    },
-                );
+                                is_faint = !is_faint;
+                            }
+
+                            for i in range.filter_map(|i| {
+                                if allow_none {
+                                    (i != 0).then(|| state.search_matched_ids[i - 1])
+                                } else {
+                                    Some(state.search_matched_ids[i])
+                                }
+                            }) {
+                                ui.with_stripe(is_faint, |ui| {
+                                    ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+                                    let filename = &state.filenames[i];
+                                    let file_stem = camino::Utf8Path::new(filename)
+                                        .file_stem()
+                                        .unwrap_or_default();
+                                    if ui
+                                        .selectable_label(
+                                            Some(file_stem.to_lowercase()) == reference_file_stem,
+                                            filename,
+                                        )
+                                        .clicked()
+                                    {
+                                        self.reference.set(Some(file_stem.to_string()));
+                                        changed = true;
+                                    }
+                                });
+                                is_faint = !is_faint;
+                            }
+                        },
+                    );
 
                 // Save the search string and the search results back into egui memory
                 ui.data_mut(|d| d.insert_temp(state_id, state));
