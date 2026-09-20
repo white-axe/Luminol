@@ -55,6 +55,8 @@ pub use cellpicker::Cellpicker;
 mod troop_view;
 pub use troop_view::TroopView;
 
+pub mod combo_box;
+pub use combo_box::ComboBox;
 pub mod enum_combo_box;
 pub use enum_combo_box::EnumComboBox;
 pub mod file_combo_box;

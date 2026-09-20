@@ -22,8 +22,6 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::UiExt;
-
 trait EnumCast {
     type Enum;
     type Reference;
@@ -80,7 +78,7 @@ pub struct EnumComboBox<C, H> {
 
 impl<'a, T, H> EnumComboBox<TrivialEnumCast<'a, T>, H>
 where
-    T: ToString + strum::IntoEnumIterator,
+    T: ToString + strum::IntoEnumIterator + 'static,
     H: std::hash::Hash,
 {
     /// Creates a combo box that can be used to change the variant of an enum `T` that implements
@@ -92,7 +90,7 @@ where
 
 impl<'a, T, R, H, E> EnumComboBox<TryIntoEnumCast<'a, T, R>, H>
 where
-    T: Into<R> + ToString + strum::IntoEnumIterator,
+    T: Into<R> + ToString + strum::IntoEnumIterator + 'static,
     R: TryInto<T, Error = E> + Clone,
     H: std::hash::Hash,
 {
@@ -131,46 +129,36 @@ impl<C, H> EnumComboBox<C, H> {
 impl<C, T, R, H> egui::Widget for EnumComboBox<C, H>
 where
     C: EnumCast<Enum = T, Reference = R>,
-    T: Into<R> + ToString + strum::IntoEnumIterator,
+    T: Into<R> + ToString + strum::IntoEnumIterator + 'static,
     H: std::hash::Hash,
 {
     fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
-        let mut changed = false;
-        let available_width = ui.available_width() - ui.spacing().item_spacing.x;
-        let width = self.max_width.min(available_width);
-        let (discriminant, text) = if let Some((discriminant, text)) = self.reference.cast() {
-            (Some(discriminant), text)
-        } else {
-            (None, Default::default())
-        };
-        let mut response = egui::ComboBox::from_id_salt(&self.id_salt)
-            .wrap()
-            .width(width)
-            .selected_text(text)
-            .show_ui(ui, |ui| {
-                ui.style_mut().wrap_mode = Some(self.wrap_mode);
-
-                for (i, variant) in T::iter().enumerate() {
-                    ui.with_stripe(i % 2 != 0, |ui| {
-                        if ui
-                            .selectable_label(
-                                discriminant.is_some_and(|discriminant| {
-                                    discriminant == std::mem::discriminant(&variant)
-                                }),
-                                variant.to_string(),
-                            )
-                            .clicked()
-                        {
-                            *self.reference.get_mut() = variant.into();
-                            changed = true;
-                        }
-                    });
-                }
-            })
-            .response;
-        if changed {
-            response.mark_changed();
-        }
-        response
+        let (reference_discriminant, reference_text) =
+            if let Some((discriminant, text)) = self.reference.cast() {
+                (Some(discriminant), text)
+            } else {
+                (None, Default::default())
+            };
+        let widget = super::ComboBox::new(self.id_salt)
+            .without_argument()
+            .without_state()
+            .choices(T::iter().enumerate().map(|(index, variant)| {
+                (index, std::mem::discriminant(&variant), variant.to_string())
+            }))
+            .selected_text(Some(reference_text))
+            .prepare(
+                |_data, (_index, _discriminant, text)| text.clone(),
+                |_data, maybe_variant| {
+                    maybe_variant.is_some_and(|(_index, discriminant, _text)| {
+                        Some(*discriminant) == reference_discriminant
+                    })
+                },
+                |_data, maybe_variant| {
+                    if let Some((index, _discriminant, _text)) = maybe_variant {
+                        *self.reference.get_mut() = T::iter().nth(*index).unwrap().into();
+                    }
+                },
+            );
+        egui::Widget::ui(widget, ui)
     }
 }
