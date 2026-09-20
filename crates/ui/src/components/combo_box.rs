@@ -146,7 +146,7 @@ impl<Inner, Argument> ComboBoxWithArgument<Inner, Argument> {
         state_initializer: StateInitializer,
     ) -> ComboBoxWithState<Self, State, StateInitializer>
     where
-        State: Clone + Default + Send + Sync + 'static,
+        State: Send + Sync + 'static,
         StateInitializer: FnOnce(ComboBoxData<'_, Argument, ()>) -> State,
     {
         ComboBoxWithState {
@@ -162,7 +162,7 @@ impl<Inner, Argument> ComboBoxWithArgument<Inner, Argument> {
         state: State,
     ) -> ComboBoxWithState<Self, State, impl FnOnce(ComboBoxData<'_, Argument, ()>) -> State>
     where
-        State: Clone + Default + Send + Sync + 'static,
+        State: Send + Sync + 'static,
     {
         self.with_state_or_insert_with(|_data| state)
     }
@@ -172,7 +172,7 @@ impl<Inner, Argument> ComboBoxWithArgument<Inner, Argument> {
         self,
     ) -> ComboBoxWithState<Self, State, impl FnOnce(ComboBoxData<'_, Argument, ()>) -> State>
     where
-        State: Clone + Default + Send + Sync + 'static,
+        State: Default + Send + Sync + 'static,
     {
         self.with_state_or_insert_with(|_data| Default::default())
     }
@@ -194,7 +194,7 @@ impl<IdSalt, Argument, State, StateInitializer>
         choice_iter_factory: ChoiceIterFactory,
     ) -> ComboBoxWithChoices<Self, Choice, ChoiceIter, ChoiceIterFactory>
     where
-        Choice: Clone + Send + Sync + 'static,
+        Choice: Send + Sync + 'static,
         ChoiceIter: Iterator<Item = Choice>,
         ChoiceIterFactory: FnOnce(ComboBoxData<'_, Argument, State>) -> ChoiceIter,
     {
@@ -217,7 +217,7 @@ impl<IdSalt, Argument, State, StateInitializer>
         impl FnOnce(ComboBoxData<'_, Argument, State>) -> ChoiceIter,
     >
     where
-        Choice: Clone + Send + Sync + 'static,
+        Choice: Send + Sync + 'static,
         ChoiceIter: Iterator<Item = Choice>,
     {
         self.choices_with(|_data| choice_iter)
@@ -325,25 +325,24 @@ impl<
     }
 }
 
-#[derive(Clone)]
-struct ComboBoxState<Choice, State> {
+struct ComboBoxStateInner<Choice, State> {
     inner: State,
     search_string: String,
     search_matched_choices: Vec<Choice>,
     scrolled_to_selected_choice: bool,
 }
 
-impl<Choice, State> Default for ComboBoxState<Choice, State>
-where
-    State: Default,
-{
+struct ComboBoxState<Choice, State>(Option<ComboBoxStateInner<Choice, State>>);
+
+impl<Choice, State> Default for ComboBoxState<Choice, State> {
     fn default() -> Self {
-        Self {
-            inner: State::default(),
-            search_string: String::new(),
-            search_matched_choices: Vec::new(),
-            scrolled_to_selected_choice: false,
-        }
+        Self(None)
+    }
+}
+
+impl<Choice, State> Clone for ComboBoxState<Choice, State> {
+    fn clone(&self) -> Self {
+        Self::default()
     }
 }
 
@@ -384,9 +383,9 @@ impl<
     >
 where
     IdSalt: std::hash::Hash,
-    State: Clone + Default + Send + Sync + 'static,
+    State: Send + Sync + 'static,
     StateInitializer: FnOnce(ComboBoxData<'_, Argument, ()>) -> State,
-    Choice: Clone + Send + Sync + 'static,
+    Choice: Send + Sync + 'static,
     ChoiceIter: Iterator<Item = Choice>,
     ChoiceIterFactory: FnOnce(ComboBoxData<'_, Argument, State>) -> ChoiceIter,
     SelectedText: Into<egui::WidgetText>,
@@ -408,22 +407,24 @@ where
 
         let mut choice_iter_factory = Some(self.inner.inner.choice_iter_factory);
 
-        let mut state: ComboBoxState<Choice, State> = is_popup_open
-            .then(|| ui.data_mut(|d| d.remove_temp(state_id)))
+        let mut state = is_popup_open
+            .then(|| ui.data_mut(|d| d.remove_temp::<ComboBoxState<Choice, State>>(state_id)))
             .flatten()
+            .and_then(|inner| inner.0)
             .unwrap_or_else(|| {
                 let mut inner = (self.inner.inner.inner.state_initializer)(ComboBoxData {
                     argument,
                     state: &mut (),
                 });
-                ComboBoxState {
+                ComboBoxStateInner {
+                    search_string: String::new(),
                     search_matched_choices: choice_iter_factory.take().unwrap()(ComboBoxData {
                         argument,
                         state: &mut inner,
                     })
                     .collect(),
+                    scrolled_to_selected_choice: false,
                     inner,
-                    ..Default::default()
                 }
             });
 
@@ -654,7 +655,12 @@ where
                     }
 
                     // Save the search string and the search results back into egui memory
-                    ui.data_mut(|d| d.insert_temp(state_id, state));
+                    ui.data_mut(|d| {
+                        d.insert_temp::<ComboBoxState<Choice, State>>(
+                            state_id,
+                            ComboBoxState(Some(state)),
+                        )
+                    });
 
                     search_box_clicked
                 });
@@ -664,7 +670,7 @@ where
             egui::Popup::open_id(ui.ctx(), popup_id);
         } else if inner_response.inner.is_none() {
             // Clear the state if the combo box is closed
-            ui.data_mut(|d| d.remove_temp::<State>(state_id));
+            ui.data_mut(|d| d.remove_temp::<ComboBoxState<Choice, State>>(state_id));
         }
 
         if changed {
