@@ -177,6 +177,8 @@ where
                                 ) {
                                     luminol_core::error!(update_state.toasts, e);
                                 }
+                            } else if let Some(source) = self.source {
+                                update_state.audio.stop(source);
                             }
                         }
 
