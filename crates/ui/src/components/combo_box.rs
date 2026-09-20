@@ -455,6 +455,8 @@ where
                         egui::TextEdit::singleline(&mut state.search_string).hint_text("Search 🔎"),
                     );
 
+                    ui.add_space(ui.spacing().item_spacing.y);
+
                     // If the combo box popup was not open the previous frame and was opened this
                     // frame, focus the search box
                     if !is_popup_open {
