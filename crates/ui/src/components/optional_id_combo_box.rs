@@ -111,7 +111,6 @@ where
             .search_needs_update(self.search_needs_update)
             .without_argument()
             .without_state()
-            .choices(self.id_iter)
             .selected_text(self.reference.as_ref().map(|r| {
                 if let Some(id) = r.to_id() {
                     (self.formatter)(id)
@@ -119,6 +118,7 @@ where
                     "".into()
                 }
             }))
+            .choices(self.id_iter)
             .prepare(
                 |_data, id| (self.formatter)(*id),
                 |_data, maybe_id| maybe_id.copied() == reference_id,
@@ -143,12 +143,12 @@ where
             .search_needs_update(self.search_needs_update)
             .without_argument()
             .without_state()
-            .choices(self.id_iter)
             .selected_text(Some(if let Some(id) = self.reference.to_id() {
                 (self.formatter)(id)
             } else {
                 "".into()
             }))
+            .choices(self.id_iter)
             .prepare(
                 |_data, id| (self.formatter)(*id),
                 |_data, maybe_id| maybe_id.copied() == reference_id,

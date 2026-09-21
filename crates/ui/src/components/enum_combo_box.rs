@@ -142,8 +142,8 @@ where
         let widget = super::ComboBox::new(self.id_salt)
             .without_argument()
             .without_state()
-            .choices(T::iter().enumerate())
             .selected_text(Some(reference_text))
+            .choices(T::iter().enumerate())
             .prepare(
                 |_data, (_index, variant)| variant.to_string(),
                 |_data, maybe_variant| {

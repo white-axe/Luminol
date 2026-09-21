@@ -48,18 +48,18 @@ pub struct ComboBoxWithState<Inner, State, StateInitializer> {
 }
 
 #[must_use]
+pub struct ComboBoxWithSelectedText<Inner, SelectedText, SelectedTextFactory> {
+    inner: Inner,
+    selected_text_type: PhantomData<SelectedText>,
+    selected_text_factory: SelectedTextFactory,
+}
+
+#[must_use]
 pub struct ComboBoxWithChoices<Inner, Choice, ChoiceIter, ChoiceIterFactory> {
     inner: Inner,
     choice_type: PhantomData<Choice>,
     choice_iter_type: PhantomData<ChoiceIter>,
     choice_iter_factory: ChoiceIterFactory,
-}
-
-#[must_use]
-pub struct ComboBoxWithSelectedText<Inner, SelectedText, SelectedTextFactory> {
-    inner: Inner,
-    selected_text_type: PhantomData<SelectedText>,
-    selected_text_factory: SelectedTextFactory,
 }
 
 #[must_use = "use `ui.add()` to show this widget"]
@@ -188,6 +188,49 @@ impl<Inner, Argument> ComboBoxWithArgument<Inner, Argument> {
 impl<IdSalt, Argument, State, StateInitializer>
     ComboBoxWithState<ComboBoxWithArgument<ComboBox<IdSalt>, Argument>, State, StateInitializer>
 {
+    /// Sets the combo box's currently selected value using a closure that takes [`ComboBoxData`].
+    pub fn selected_text_with<SelectedText, SelectedTextFactory>(
+        self,
+        selected_text_factory: SelectedTextFactory,
+    ) -> ComboBoxWithSelectedText<Self, SelectedText, SelectedTextFactory>
+    where
+        SelectedText: Into<egui::WidgetText>,
+        SelectedTextFactory: FnOnce(ComboBoxData<'_, Argument, State>) -> Option<SelectedText>,
+    {
+        ComboBoxWithSelectedText {
+            inner: self,
+            selected_text_type: PhantomData,
+            selected_text_factory,
+        }
+    }
+
+    /// Sets the combo box's currently selected value.
+    pub fn selected_text<SelectedText>(
+        self,
+        selected_text: Option<SelectedText>,
+    ) -> ComboBoxWithSelectedText<
+        Self,
+        SelectedText,
+        impl FnOnce(ComboBoxData<'_, Argument, State>) -> Option<SelectedText>,
+    >
+    where
+        SelectedText: Into<egui::WidgetText>,
+    {
+        self.selected_text_with(|_data| selected_text)
+    }
+}
+
+impl<IdSalt, Argument, State, StateInitializer, SelectedText, SelectedTextFactory>
+    ComboBoxWithSelectedText<
+        ComboBoxWithState<
+            ComboBoxWithArgument<ComboBox<IdSalt>, Argument>,
+            State,
+            StateInitializer,
+        >,
+        SelectedText,
+        SelectedTextFactory,
+    >
+{
     /// Sets the choices that the combo box will show using a closure that takes [`ComboBoxData`].
     pub fn choices_with<Choice, ChoiceIter, ChoiceIterFactory>(
         self,
@@ -224,74 +267,30 @@ impl<IdSalt, Argument, State, StateInitializer>
     }
 }
 
-impl<IdSalt, Argument, State, StateInitializer, Choice, ChoiceIter, ChoiceIterFactory>
-    ComboBoxWithChoices<
-        ComboBoxWithState<
-            ComboBoxWithArgument<ComboBox<IdSalt>, Argument>,
-            State,
-            StateInitializer,
-        >,
-        Choice,
-        ChoiceIter,
-        ChoiceIterFactory,
-    >
-{
-    /// Sets the combo box's currently selected value using a closure that takes [`ComboBoxData`].
-    pub fn selected_text_with<SelectedText, SelectedTextFactory>(
-        self,
-        selected_text_factory: SelectedTextFactory,
-    ) -> ComboBoxWithSelectedText<Self, SelectedText, SelectedTextFactory>
-    where
-        SelectedText: Into<egui::WidgetText>,
-        SelectedTextFactory: FnOnce(ComboBoxData<'_, Argument, State>) -> Option<SelectedText>,
-    {
-        ComboBoxWithSelectedText {
-            inner: self,
-            selected_text_type: PhantomData,
-            selected_text_factory,
-        }
-    }
-
-    /// Sets the combo box's currently selected value.
-    pub fn selected_text<SelectedText>(
-        self,
-        selected_text: Option<SelectedText>,
-    ) -> ComboBoxWithSelectedText<
-        Self,
-        SelectedText,
-        impl FnOnce(ComboBoxData<'_, Argument, State>) -> Option<SelectedText>,
-    >
-    where
-        SelectedText: Into<egui::WidgetText>,
-    {
-        self.selected_text_with(|_data| selected_text)
-    }
-}
-
 impl<
         IdSalt,
         Argument,
         State,
         StateInitializer,
+        SelectedText,
+        SelectedTextFactory,
         Choice,
         ChoiceIter,
         ChoiceIterFactory,
-        SelectedText,
-        SelectedTextFactory,
     >
-    ComboBoxWithSelectedText<
-        ComboBoxWithChoices<
+    ComboBoxWithChoices<
+        ComboBoxWithSelectedText<
             ComboBoxWithState<
                 ComboBoxWithArgument<ComboBox<IdSalt>, Argument>,
                 State,
                 StateInitializer,
             >,
-            Choice,
-            ChoiceIter,
-            ChoiceIterFactory,
+            SelectedText,
+            SelectedTextFactory,
         >,
-        SelectedText,
-        SelectedTextFactory,
+        Choice,
+        ChoiceIter,
+        ChoiceIterFactory,
     >
 {
     /// Sets the callbacks for the combo box.
@@ -351,30 +350,30 @@ impl<
         Argument,
         State,
         StateInitializer,
+        SelectedText,
+        SelectedTextFactory,
         Choice,
         ChoiceIter,
         ChoiceIterFactory,
-        SelectedText,
-        SelectedTextFactory,
         ChoiceText,
         ChoiceFormatter,
         ChoiceIsSelected,
         OnChoiceSelect,
     > egui::Widget
     for ComboBoxPrepared<
-        ComboBoxWithSelectedText<
-            ComboBoxWithChoices<
+        ComboBoxWithChoices<
+            ComboBoxWithSelectedText<
                 ComboBoxWithState<
                     ComboBoxWithArgument<ComboBox<IdSalt>, Argument>,
                     State,
                     StateInitializer,
                 >,
-                Choice,
-                ChoiceIter,
-                ChoiceIterFactory,
+                SelectedText,
+                SelectedTextFactory,
             >,
-            SelectedText,
-            SelectedTextFactory,
+            Choice,
+            ChoiceIter,
+            ChoiceIterFactory,
         >,
         ChoiceText,
         ChoiceFormatter,
@@ -385,11 +384,11 @@ where
     IdSalt: std::hash::Hash,
     State: Send + Sync + 'static,
     StateInitializer: FnOnce(ComboBoxData<'_, Argument, ()>) -> State,
+    SelectedText: Into<egui::WidgetText>,
+    SelectedTextFactory: FnOnce(ComboBoxData<'_, Argument, State>) -> Option<SelectedText>,
     Choice: Send + Sync + 'static,
     ChoiceIter: Iterator<Item = Choice>,
     ChoiceIterFactory: FnOnce(ComboBoxData<'_, Argument, State>) -> ChoiceIter,
-    SelectedText: Into<egui::WidgetText>,
-    SelectedTextFactory: FnOnce(ComboBoxData<'_, Argument, State>) -> Option<SelectedText>,
     ChoiceText: AsRef<str>,
     ChoiceFormatter: FnMut(ComboBoxData<'_, Argument, State>, &Choice) -> ChoiceText,
     ChoiceIsSelected: FnMut(ComboBoxData<'_, Argument, State>, Option<&Choice>) -> bool,
@@ -405,7 +404,7 @@ where
 
         let argument = &mut self.inner.inner.inner.inner.argument;
 
-        let mut choice_iter_factory = Some(self.inner.inner.choice_iter_factory);
+        let mut choice_iter_factory = Some(self.inner.choice_iter_factory);
 
         let mut state = is_popup_open
             .then(|| ui.data_mut(|d| d.remove_temp::<ComboBoxState<Choice, State>>(state_id)))
@@ -445,7 +444,7 @@ where
                 .wrap()
                 .width(width)
                 .selected_text(
-                    (self.inner.selected_text_factory)(ComboBoxData {
+                    (self.inner.inner.selected_text_factory)(ComboBoxData {
                         argument,
                         state: &mut state.inner,
                     })

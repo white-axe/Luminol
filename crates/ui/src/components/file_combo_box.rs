@@ -188,8 +188,8 @@ where
                 filenames.sort_unstable_by(|a, b| lexical_sort::natural_lexical_cmp(a, b));
                 filenames
             })
-            .choices_with(|data| 0..data.state.len())
             .selected_text(selected_text)
+            .choices_with(|data| 0..data.state.len())
             .prepare(
                 |data, &filename_index| data.state[filename_index].clone(),
                 |data, maybe_filename_index| {
