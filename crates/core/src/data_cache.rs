@@ -180,7 +180,7 @@ impl Data {
     }
 
     pub fn from_defaults() -> Self {
-        let mut map_infos = std::collections::HashMap::with_capacity(16);
+        let mut map_infos = luminol_data::OptionVec::new();
         map_infos.insert(
             1,
             rpg::MapInfo {

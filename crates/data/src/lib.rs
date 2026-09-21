@@ -86,7 +86,7 @@ pub mod rpg {
 
     #[derive(Debug, Default)]
     pub struct MapInfos {
-        pub data: std::collections::HashMap<usize, MapInfo>,
+        pub data: super::OptionVec<MapInfo>,
         pub modified: bool,
     }
 }
