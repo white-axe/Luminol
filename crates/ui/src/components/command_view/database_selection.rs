@@ -110,6 +110,7 @@ impl_database_type! {
     rpg::CommonEvents => CommonEventSelection, common_events,
     rpg::Enemies => EnemySelection, enemies,
     rpg::Items => ItemSelection, items,
+    rpg::MapInfos => MapSelection, map_infos,
     rpg::Scripts => ScriptSelection, scripts,
     rpg::Skills => SkillSelection, skills,
     rpg::States => StateSelection, states,
