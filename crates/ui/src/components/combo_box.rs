@@ -309,7 +309,7 @@ impl<
         on_choice_select: OnChoiceSelect,
     ) -> ComboBoxPrepared<Self, ChoiceText, ChoiceFormatter, ChoiceIsSelected, OnChoiceSelect>
     where
-        ChoiceText: AsRef<str>,
+        ChoiceText: AsRef<str> + Into<egui::WidgetText>,
         ChoiceFormatter: FnMut(ComboBoxData<'_, Argument, State>, &Choice) -> ChoiceText,
         ChoiceIsSelected: FnMut(ComboBoxData<'_, Argument, State>, Option<&Choice>) -> bool,
         OnChoiceSelect: FnOnce(ComboBoxData<'_, Argument, State>, Option<&Choice>),
@@ -389,7 +389,7 @@ where
     Choice: Send + Sync + 'static,
     ChoiceIter: Iterator<Item = Choice>,
     ChoiceIterFactory: FnOnce(ComboBoxData<'_, Argument, State>) -> ChoiceIter,
-    ChoiceText: AsRef<str>,
+    ChoiceText: AsRef<str> + Into<egui::WidgetText>,
     ChoiceFormatter: FnMut(ComboBoxData<'_, Argument, State>, &Choice) -> ChoiceText,
     ChoiceIsSelected: FnMut(ComboBoxData<'_, Argument, State>, Option<&Choice>) -> bool,
     OnChoiceSelect: FnOnce(ComboBoxData<'_, Argument, State>, Option<&Choice>),
@@ -577,7 +577,7 @@ where
                                                     },
                                                     choice,
                                                 )
-                                                .as_ref(),
+                                                .into(),
                                             )
                                             .clicked()
                                         {
