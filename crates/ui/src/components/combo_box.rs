@@ -447,6 +447,7 @@ where
             .inner
             .max_width
             .min(available_width);
+        let height = ui.spacing().combo_height;
 
         let mut on_choice_select = Some(self.on_choice_select);
 
@@ -454,6 +455,7 @@ where
             egui::ComboBox::from_id_salt(&self.inner.inner.inner.inner.inner.id_salt)
                 .wrap()
                 .width(width)
+                .height(height)
                 .selected_text(
                     (self.inner.inner.selected_text_factory)(ComboBoxData {
                         argument,
@@ -469,8 +471,8 @@ where
                     let spacing = ui.spacing().item_spacing.y;
 
                     let have_search_box = !state.search_string.is_empty()
-                        || state.total_choices as f32 * (button_height + spacing)
-                            > ui.available_height();
+                        || state.total_choices as f32 * (button_height + spacing) - spacing
+                            > height;
                     let search_box_clicked = if have_search_box {
                         let search_box_response = ui.add(
                             egui::TextEdit::singleline(&mut state.search_string)
