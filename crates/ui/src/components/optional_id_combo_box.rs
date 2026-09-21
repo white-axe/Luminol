@@ -53,7 +53,7 @@ pub struct OptionalIdComboBox<'a, R, I, H, F> {
     reference: &'a mut R,
     id_iter: I,
     formatter: F,
-    search_needs_update: bool,
+    is_stale: bool,
     allow_none: bool,
 }
 
@@ -91,7 +91,7 @@ where
             reference,
             id_iter,
             formatter,
-            search_needs_update: *update_state.modified_during_prev_frame,
+            is_stale: *update_state.modified_during_prev_frame,
             allow_none: true,
         }
     }
@@ -108,7 +108,7 @@ where
         let reference_id = self.reference.as_ref().and_then(|r| r.to_id());
         let widget = super::ComboBox::new(self.id_salt)
             .allow_none(self.allow_none)
-            .search_needs_update(self.search_needs_update)
+            .is_stale(self.is_stale)
             .without_argument()
             .without_state()
             .selected_text(self.reference.as_ref().map(|r| {
@@ -140,7 +140,7 @@ where
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         let reference_id = self.reference.to_id();
         let widget = super::ComboBox::new(self.id_salt)
-            .search_needs_update(self.search_needs_update)
+            .is_stale(self.is_stale)
             .without_argument()
             .without_state()
             .selected_text(Some(if let Some(id) = self.reference.to_id() {

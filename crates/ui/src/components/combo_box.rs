@@ -30,7 +30,7 @@ use std::marker::PhantomData;
 pub struct ComboBox<IdSalt> {
     id_salt: IdSalt,
     allow_none: bool,
-    search_needs_update: bool,
+    is_stale: bool,
     max_width: f32,
 }
 
@@ -93,7 +93,7 @@ where
         Self {
             id_salt,
             allow_none: false,
-            search_needs_update: false,
+            is_stale: false,
             max_width: f32::INFINITY,
         }
     }
@@ -106,11 +106,12 @@ where
         self
     }
 
-    /// If set to `true`, the search results are stale and need to be updated this frame.
+    /// If set to `true`, the choices are stale and need to be updated this frame using the iterator
+    /// of choices.
     ///
     /// The default is `false`.
-    pub fn search_needs_update(mut self, search_needs_update: bool) -> Self {
-        self.search_needs_update = search_needs_update;
+    pub fn is_stale(mut self, is_stale: bool) -> Self {
+        self.is_stale = is_stale;
         self
     }
 
@@ -326,8 +327,15 @@ impl<
 
 struct ComboBoxStateInner<Choice, State> {
     inner: State,
+    /// Number of choices there are in total, including ones that are not matched by the text in the
+    /// search box.
+    total_choices: usize,
+    /// The current text inside of the search box.
     search_string: String,
+    /// Vector of choices that are matched by the text in the search box.
     search_matched_choices: Vec<Choice>,
+    /// This is initially set to false, and gets set to true once the combo box has scrolled to the
+    /// selected choice upon first opening.
     scrolled_to_selected_choice: bool,
 }
 
@@ -415,15 +423,17 @@ where
                     argument,
                     state: &mut (),
                 });
+                let choices: Vec<_> = choice_iter_factory.take().unwrap()(ComboBoxData {
+                    argument,
+                    state: &mut inner,
+                })
+                .collect();
                 ComboBoxStateInner {
-                    search_string: String::new(),
-                    search_matched_choices: choice_iter_factory.take().unwrap()(ComboBoxData {
-                        argument,
-                        state: &mut inner,
-                    })
-                    .collect(),
-                    scrolled_to_selected_choice: false,
                     inner,
+                    total_choices: choices.len(),
+                    search_string: String::new(),
+                    search_matched_choices: choices,
+                    scrolled_to_selected_choice: false,
                 }
             });
 
@@ -451,63 +461,83 @@ where
                     .map_or_else(|| "(None)".into(), Into::into),
                 )
                 .show_ui(ui, |ui| {
-                    let search_box_response = ui.add(
-                        egui::TextEdit::singleline(&mut state.search_string).hint_text("Search 🔎"),
-                    );
-
-                    ui.add_space(ui.spacing().item_spacing.y);
-
-                    // If the combo box popup was not open the previous frame and was opened this
-                    // frame, focus the search box
-                    if !is_popup_open {
-                        search_box_response.request_focus();
-                    }
-
-                    let search_box_clicked = search_box_response.clicked()
-                        || search_box_response.secondary_clicked()
-                        || search_box_response.middle_clicked()
-                        || search_box_response.clicked_by(egui::PointerButton::Extra1)
-                        || search_box_response.clicked_by(egui::PointerButton::Extra2);
-
-                    // If the user edited the contents of the search box, recalculate the search results
-                    if let Some(choice_iter_factory) =
-                        (self.inner.inner.inner.inner.inner.search_needs_update
-                            || search_box_response.changed())
-                        .then(|| choice_iter_factory.take())
-                        .flatten()
-                    {
-                        let matcher = fuzzy_matcher::skim::SkimMatcherV2::default();
-                        state.search_matched_choices.clear();
-                        state.search_matched_choices.extend(
-                            choice_iter_factory(ComboBoxData {
-                                argument,
-                                state: &mut state.inner,
-                            })
-                            .filter(|choice| {
-                                matcher
-                                    .fuzzy(
-                                        (self.choice_formatter)(
-                                            ComboBoxData {
-                                                argument,
-                                                state: &mut state.inner,
-                                            },
-                                            choice,
-                                        )
-                                        .as_ref(),
-                                        &state.search_string,
-                                        false,
-                                    )
-                                    .is_some()
-                            }),
-                        );
-                    }
-
                     let button_height = ui.spacing().interact_size.y.max(
                         ui.text_style_height(&egui::TextStyle::Button)
                             + 2. * ui.spacing().button_padding.y,
                     );
+                    let spacing = ui.spacing().item_spacing.y;
+
+                    let mut update_choices = |state: &mut ComboBoxStateInner<Choice, State>,
+                                              choice_iter_factory: &mut Option<
+                        ChoiceIterFactory,
+                    >| {
+                        if let Some(choice_iter_factory) = choice_iter_factory.take() {
+                            let matcher = fuzzy_matcher::skim::SkimMatcherV2::default();
+                            state.total_choices = 0;
+                            state.search_matched_choices.clear();
+                            state.search_matched_choices.extend(
+                                choice_iter_factory(ComboBoxData {
+                                    argument,
+                                    state: &mut state.inner,
+                                })
+                                .filter(|choice| {
+                                    state.total_choices += 1;
+                                    matcher
+                                        .fuzzy(
+                                            (self.choice_formatter)(
+                                                ComboBoxData {
+                                                    argument,
+                                                    state: &mut state.inner,
+                                                },
+                                                choice,
+                                            )
+                                            .as_ref(),
+                                            &state.search_string,
+                                            false,
+                                        )
+                                        .is_some()
+                                }),
+                            );
+                        }
+                    };
+
+                    if self.inner.inner.inner.inner.inner.is_stale {
+                        update_choices(&mut state, &mut choice_iter_factory);
+                    }
+
+                    let have_search_box = !state.search_string.is_empty()
+                        || state.total_choices as f32 * (button_height + spacing)
+                            > ui.available_height();
+                    let search_box_clicked = if have_search_box {
+                        let search_box_response = ui.add(
+                            egui::TextEdit::singleline(&mut state.search_string)
+                                .hint_text("Search 🔎"),
+                        );
+
+                        ui.add_space(spacing);
+
+                        // If the combo box popup was not open the previous frame and was opened this
+                        // frame, focus the search box
+                        if !is_popup_open {
+                            search_box_response.request_focus();
+                        }
+
+                        // If the user edited the contents of the search box, recalculate the search results
+                        if search_box_response.changed() {
+                            update_choices(&mut state, &mut choice_iter_factory);
+                        }
+
+                        search_box_response.clicked()
+                            || search_box_response.secondary_clicked()
+                            || search_box_response.middle_clicked()
+                            || search_box_response.clicked_by(egui::PointerButton::Extra1)
+                            || search_box_response.clicked_by(egui::PointerButton::Extra2)
+                    } else {
+                        false
+                    };
+
                     let mut scroll_area_output = egui::ScrollArea::vertical()
-                        .auto_shrink([false, false])
+                        .auto_shrink([!have_search_box; 2])
                         .show_rows(
                             ui,
                             button_height,
@@ -633,7 +663,6 @@ where
                                 })
                         };
                         if let Some(selected_index) = selected_index {
-                            let spacing = ui.spacing().item_spacing.y;
                             let max = selected_index as f32 * (button_height + spacing) + spacing;
                             let min = selected_index as f32 * (button_height + spacing)
                                 + button_height
