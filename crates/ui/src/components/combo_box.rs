@@ -417,6 +417,7 @@ where
         let mut state = is_popup_open
             .then(|| ui.data_mut(|d| d.remove_temp::<ComboBoxState<Choice, State>>(state_id)))
             .flatten()
+            .filter(|_| !self.inner.inner.inner.inner.inner.is_stale)
             .and_then(|inner| inner.0)
             .unwrap_or_else(|| {
                 let mut inner = (self.inner.inner.inner.state_initializer)(ComboBoxData {
@@ -467,11 +468,29 @@ where
                     );
                     let spacing = ui.spacing().item_spacing.y;
 
-                    let mut update_choices = |state: &mut ComboBoxStateInner<Choice, State>,
-                                              choice_iter_factory: &mut Option<
-                        ChoiceIterFactory,
-                    >| {
-                        if let Some(choice_iter_factory) = choice_iter_factory.take() {
+                    let have_search_box = !state.search_string.is_empty()
+                        || state.total_choices as f32 * (button_height + spacing)
+                            > ui.available_height();
+                    let search_box_clicked = if have_search_box {
+                        let search_box_response = ui.add(
+                            egui::TextEdit::singleline(&mut state.search_string)
+                                .hint_text("Search 🔎"),
+                        );
+
+                        ui.add_space(spacing);
+
+                        // If the combo box popup was not open the previous frame and was opened this
+                        // frame, focus the search box
+                        if !is_popup_open {
+                            search_box_response.request_focus();
+                        }
+
+                        // If the user edited the contents of the search box, recalculate the search results
+                        if let Some(choice_iter_factory) = search_box_response
+                            .changed()
+                            .then(|| choice_iter_factory.take())
+                            .flatten()
+                        {
                             let matcher = fuzzy_matcher::skim::SkimMatcherV2::default();
                             state.total_choices = 0;
                             state.search_matched_choices.clear();
@@ -498,33 +517,6 @@ where
                                         .is_some()
                                 }),
                             );
-                        }
-                    };
-
-                    if self.inner.inner.inner.inner.inner.is_stale {
-                        update_choices(&mut state, &mut choice_iter_factory);
-                    }
-
-                    let have_search_box = !state.search_string.is_empty()
-                        || state.total_choices as f32 * (button_height + spacing)
-                            > ui.available_height();
-                    let search_box_clicked = if have_search_box {
-                        let search_box_response = ui.add(
-                            egui::TextEdit::singleline(&mut state.search_string)
-                                .hint_text("Search 🔎"),
-                        );
-
-                        ui.add_space(spacing);
-
-                        // If the combo box popup was not open the previous frame and was opened this
-                        // frame, focus the search box
-                        if !is_popup_open {
-                            search_box_response.request_focus();
-                        }
-
-                        // If the user edited the contents of the search box, recalculate the search results
-                        if search_box_response.changed() {
-                            update_choices(&mut state, &mut choice_iter_factory);
                         }
 
                         search_box_response.clicked()
