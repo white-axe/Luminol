@@ -32,6 +32,7 @@ pub struct ComboBox<IdSalt> {
     allow_none: bool,
     is_stale: bool,
     max_width: f32,
+    wrap_mode: egui::TextWrapMode,
 }
 
 #[must_use]
@@ -95,6 +96,7 @@ where
             allow_none: false,
             is_stale: false,
             max_width: f32::INFINITY,
+            wrap_mode: egui::TextWrapMode::Wrap,
         }
     }
 
@@ -120,6 +122,14 @@ where
     /// The default is `f32::INFINITY`.
     pub fn max_width(mut self, max_width: f32) -> Self {
         self.max_width = max_width;
+        self
+    }
+
+    /// Sets the wrap mode used for displaying the selected text.
+    ///
+    /// The default is [`egui::TextWrapMode::Wrap`].
+    pub fn wrap_mode(mut self, wrap_mode: egui::TextWrapMode) -> Self {
+        self.wrap_mode = wrap_mode;
         self
     }
 
@@ -453,7 +463,7 @@ where
 
         let mut inner_response =
             egui::ComboBox::from_id_salt(&self.inner.inner.inner.inner.inner.id_salt)
-                .wrap()
+                .wrap_mode(self.inner.inner.inner.inner.inner.wrap_mode)
                 .width(width)
                 .height(height)
                 .selected_text(
