@@ -32,6 +32,7 @@ use super::{
     },
     description_width_callback::DescriptionWidthCallback,
     graphic_selection::GraphicSelection,
+    location_selection::{LocationFmt, LocationSelection, MapFmt},
     value_selection::{ValueFmt, ValueSelection},
     CommandView, EventCommand, EventInfo, ParameterType, UpdateState,
 };
@@ -115,6 +116,7 @@ mod c133;
 mod c134;
 mod c135;
 mod c136;
+mod c201;
 
 /// A mapping from event command codes to the [`EventCommandEditor`] for that event command.
 pub static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
@@ -148,5 +150,6 @@ pub static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
     134u16 => &c134::Editor,
     135u16 => &c135::Editor,
     136u16 => &c136::Editor,
+    201u16 => &c201::Editor,
     355u16 => &c101::Editor { continuation_code: 655, name: "Script" },
 };

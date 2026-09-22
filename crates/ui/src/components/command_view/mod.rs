@@ -41,8 +41,10 @@ pub mod audio_selection;
 pub mod character_selection;
 pub mod database_selection;
 pub mod graphic_selection;
+pub mod location_selection;
 pub mod value_selection;
-use database_selection::VariableSelection;
+use database_selection::{MapSelection, VariableSelection};
+use value_selection::{ValueFmt, ValueSelection};
 
 use super::UiExt;
 use crate::UpdateState;
