@@ -30,7 +30,9 @@ use std::cell::RefMut;
 pub trait DatabaseType {
     type Collection;
     fn get_collection(database: &Data) -> RefMut<'_, Self::Collection>;
-    fn get_len(collection: &RefMut<'_, Self::Collection>) -> usize;
+    fn get_iterator(
+        collection: &RefMut<'_, Self::Collection>,
+    ) -> impl Iterator<Item = usize> + Clone;
     fn get_name<'a>(collection: &'a RefMut<'a, Self::Collection>, index: usize) -> Option<&'a str>;
 }
 
@@ -68,8 +70,10 @@ macro_rules! impl_database_type {
                 fn get_collection(database: &Data) -> RefMut<'_, Self::Collection> {
                     database.$method()
                 }
-                fn get_len(collection: &RefMut<'_, Self::Collection>) -> usize {
-                    collection.data.len()
+                fn get_iterator(
+                    collection: &RefMut<'_, Self::Collection>,
+                ) -> impl Iterator<Item = usize> + Clone {
+                    1..=collection.data.len()
                 }
                 fn get_name<'a>(collection: &'a RefMut<'a, Self::Collection>, index: usize) -> Option<&'a str> {
                     Some(&collection.data.get(index)?.name)
@@ -91,8 +95,10 @@ macro_rules! impl_system_database_type {
                 fn get_collection(database: &Data) -> RefMut<'_, Self::Collection> {
                     database.system()
                 }
-                fn get_len(collection: &RefMut<'_, Self::Collection>) -> usize {
-                    collection.$field.len()
+                fn get_iterator(
+                    collection: &RefMut<'_, Self::Collection>,
+                ) -> impl Iterator<Item = usize> + Clone {
+                    1..=collection.$field.len()
                 }
                 fn get_name<'a>(collection: &'a RefMut<'a, Self::Collection>, index: usize) -> Option<&'a str> {
                     Some(&collection.$field.get(index)?)
@@ -110,7 +116,6 @@ impl_database_type! {
     rpg::CommonEvents => CommonEventSelection, common_events,
     rpg::Enemies => EnemySelection, enemies,
     rpg::Items => ItemSelection, items,
-    rpg::MapInfos => MapSelection, map_infos,
     rpg::Scripts => ScriptSelection, scripts,
     rpg::Skills => SkillSelection, skills,
     rpg::States => StateSelection, states,
@@ -123,6 +128,24 @@ impl_system_database_type! {
     Elements => ElementSelection, elements,
     Switches => SwitchSelection, switches,
     Variables => VariableSelection, variables,
+}
+
+impl_database_selection! {
+    rpg::MapInfos => MapSelection,
+}
+impl DatabaseType for rpg::MapInfos {
+    type Collection = rpg::MapInfos;
+    fn get_collection(database: &Data) -> RefMut<'_, Self::Collection> {
+        database.map_infos()
+    }
+    fn get_iterator(
+        collection: &RefMut<'_, Self::Collection>,
+    ) -> impl Iterator<Item = usize> + Clone {
+        collection.data.iter().map(|(key, _value)| key)
+    }
+    fn get_name<'a>(collection: &'a RefMut<'a, Self::Collection>, index: usize) -> Option<&'a str> {
+        Some(&collection.data.get(index.wrapping_add(1))?.name)
+    }
 }
 
 impl<'this, 'update_state, T, P> DatabaseSelection<'this, 'update_state, T, P>
@@ -177,7 +200,7 @@ where
             self.inner.update_state,
             self.id_salt,
             self.inner.parameter.as_integer_mut(),
-            1..=T::get_len(&collection),
+            T::get_iterator(&collection),
             |id| {
                 id.checked_sub(1)
                     .and_then(|id| T::get_name(&collection, id))
