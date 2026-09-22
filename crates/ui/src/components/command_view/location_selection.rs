@@ -34,7 +34,7 @@ use std::marker::PhantomData;
     strum::EnumIter
 )]
 #[repr(i32)]
-enum LocationType {
+pub enum LocationType {
     Constant = 0,
     Variable = 1,
 }
@@ -50,7 +50,7 @@ pub enum MapFmt {
 }
 
 /// A widget for changing the value of three parameters that determine coordinates on a map.
-#[must_use = "call `.fmt()` to convert to a `String` or `.prepare()` to convert to a `egui::Widget`"]
+#[must_use = "call `.fmt()` to convert to a `String` or `.prepare()` or `.prepare_with_custom_enum()` to convert to a `egui::Widget`"]
 pub struct LocationSelection<'this, 'update_state, D, X, Y> {
     update_state: &'this UpdateState<'update_state>,
     discriminant_parameter: D,
@@ -59,22 +59,24 @@ pub struct LocationSelection<'this, 'update_state, D, X, Y> {
 }
 
 /// A widget for changing the value of four parameters that determine a map and coordinates.
-#[must_use = "call `.fmt()` to convert to a `String` or `.prepare()` to convert to a `egui::Widget`"]
+#[must_use = "call `.fmt()` to convert to a `String` or `.prepare()` or `.prepare_with_custom_enum()` to convert to a `egui::Widget`"]
 pub struct LocationSelectionWithMap<'this, 'update_state, D, M, X, Y> {
     inner: LocationSelection<'this, 'update_state, D, X, Y>,
     map_parameter: M,
 }
 
 #[must_use = "use `ui.add()` to show this widget"]
-pub struct LocationSelectionPrepared<'this, 'update_state, D, X, Y, H> {
+pub struct LocationSelectionPrepared<'this, 'update_state, D, X, Y, H, E> {
     inner: LocationSelection<'this, 'update_state, D, X, Y>,
     id_salt: H,
+    enum_type: PhantomData<E>,
 }
 
 #[must_use = "use `ui.add()` to show this widget"]
-pub struct LocationSelectionWithMapPrepared<'this, 'update_state, D, M, X, Y, H> {
+pub struct LocationSelectionWithMapPrepared<'this, 'update_state, D, M, X, Y, H, E> {
     inner: LocationSelectionWithMap<'this, 'update_state, D, M, X, Y>,
     id_salt: H,
+    enum_type: PhantomData<E>,
 }
 
 impl<'this, 'update_state, D, X, Y> LocationSelection<'this, 'update_state, D, X, Y>
@@ -138,7 +140,23 @@ where
     pub fn prepare<H>(
         self,
         id_salt: H,
-    ) -> LocationSelectionPrepared<'this, 'update_state, D, X, Y, H>
+    ) -> LocationSelectionPrepared<'this, 'update_state, D, X, Y, H, LocationType>
+    where
+        D: super::IntegerParameterMut,
+        X: super::IntegerParameterMut,
+        Y: super::IntegerParameterMut,
+        H: std::hash::Hash,
+    {
+        self.prepare_with_custom_enum(id_salt, PhantomData)
+    }
+
+    /// Prepares a [`egui::Widget`] from the map location, with a custom enum type for the combo
+    /// box.
+    pub fn prepare_with_custom_enum<H, E>(
+        self,
+        id_salt: H,
+        enum_type: PhantomData<E>,
+    ) -> LocationSelectionPrepared<'this, 'update_state, D, X, Y, H, E>
     where
         D: super::IntegerParameterMut,
         X: super::IntegerParameterMut,
@@ -148,6 +166,7 @@ where
         LocationSelectionPrepared {
             inner: self,
             id_salt,
+            enum_type,
         }
     }
 }
@@ -178,7 +197,24 @@ where
     pub fn prepare<H>(
         self,
         id_salt: H,
-    ) -> LocationSelectionWithMapPrepared<'this, 'update_state, D, M, X, Y, H>
+    ) -> LocationSelectionWithMapPrepared<'this, 'update_state, D, M, X, Y, H, LocationType>
+    where
+        D: super::IntegerParameterMut,
+        M: super::IntegerParameterMut,
+        X: super::IntegerParameterMut,
+        Y: super::IntegerParameterMut,
+        H: std::hash::Hash,
+    {
+        self.prepare_with_custom_enum(id_salt, PhantomData)
+    }
+
+    /// Prepares a [`egui::Widget`] from the map location, with a custom enum type for the combo
+    /// box.
+    pub fn prepare_with_custom_enum<H, E>(
+        self,
+        id_salt: H,
+        enum_type: PhantomData<E>,
+    ) -> LocationSelectionWithMapPrepared<'this, 'update_state, D, M, X, Y, H, E>
     where
         D: super::IntegerParameterMut,
         M: super::IntegerParameterMut,
@@ -189,6 +225,7 @@ where
         LocationSelectionWithMapPrepared {
             inner: self,
             id_salt,
+            enum_type,
         }
     }
 }
@@ -199,12 +236,22 @@ where
     X: super::IntegerParameterMut,
     Y: super::IntegerParameterMut,
 {
-    fn show_discriminant(&mut self, ui: &mut egui::Ui, id_salt: impl std::hash::Hash) -> bool {
+    fn show_discriminant<E, F, H>(
+        &mut self,
+        ui: &mut egui::Ui,
+        id_salt: H,
+        enum_type: PhantomData<E>,
+    ) -> bool
+    where
+        H: std::hash::Hash,
+        E: Into<i32> + Send + Sync + ToString + strum::IntoEnumIterator + 'static,
+        i32: TryInto<E, Error = F> + Clone,
+    {
         let mut modified = false;
 
         modified |= ui
             .add(EnumComboBox::new_with_conversion(
-                PhantomData::<LocationType>,
+                enum_type,
                 (id_salt, "discriminant"),
                 self.discriminant_parameter.as_integer_mut(),
             ))
@@ -258,19 +305,23 @@ where
     }
 }
 
-impl<D, X, Y, H> egui::Widget for LocationSelectionPrepared<'_, '_, D, X, Y, H>
+impl<D, X, Y, H, E, F> egui::Widget for LocationSelectionPrepared<'_, '_, D, X, Y, H, E>
 where
     D: super::IntegerParameterMut,
     X: super::IntegerParameterMut,
     Y: super::IntegerParameterMut,
     H: std::hash::Hash,
+    E: Into<i32> + Send + Sync + ToString + strum::IntoEnumIterator + 'static,
+    i32: TryInto<E, Error = F> + Clone,
 {
     fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
         let mut modified = false;
 
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                modified |= self.inner.show_discriminant(ui, &self.id_salt);
+                modified |= self
+                    .inner
+                    .show_discriminant(ui, &self.id_salt, self.enum_type);
                 modified |= self.inner.show_location(ui, self.id_salt);
             })
             .response;
@@ -282,20 +333,26 @@ where
     }
 }
 
-impl<D, M, X, Y, H> egui::Widget for LocationSelectionWithMapPrepared<'_, '_, D, M, X, Y, H>
+impl<D, M, X, Y, H, E, F> egui::Widget
+    for LocationSelectionWithMapPrepared<'_, '_, D, M, X, Y, H, E>
 where
     D: super::IntegerParameterMut,
     M: super::IntegerParameterMut,
     X: super::IntegerParameterMut,
     Y: super::IntegerParameterMut,
     H: std::hash::Hash,
+    E: Into<i32> + Send + Sync + ToString + strum::IntoEnumIterator + 'static,
+    i32: TryInto<E, Error = F> + Clone,
 {
     fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
         let mut modified = false;
 
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                modified |= self.inner.inner.show_discriminant(ui, &self.id_salt);
+                modified |= self
+                    .inner
+                    .inner
+                    .show_discriminant(ui, &self.id_salt, self.enum_type);
 
                 match self.inner.inner.discriminant_parameter.as_integer() {
                     0 => {
