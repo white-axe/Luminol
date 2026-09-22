@@ -199,13 +199,13 @@ where
     X: super::IntegerParameterMut,
     Y: super::IntegerParameterMut,
 {
-    fn show_discriminant(&mut self, ui: &mut egui::Ui) -> bool {
+    fn show_discriminant(&mut self, ui: &mut egui::Ui, id_salt: impl std::hash::Hash) -> bool {
         let mut modified = false;
 
         modified |= ui
             .add(EnumComboBox::new_with_conversion(
                 PhantomData::<LocationType>,
-                "discriminant",
+                (id_salt, "discriminant"),
                 self.discriminant_parameter.as_integer_mut(),
             ))
             .changed();
@@ -270,7 +270,7 @@ where
 
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                modified |= self.inner.show_discriminant(ui);
+                modified |= self.inner.show_discriminant(ui, &self.id_salt);
                 modified |= self.inner.show_location(ui, self.id_salt);
             })
             .response;
@@ -295,7 +295,7 @@ where
 
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                modified |= self.inner.inner.show_discriminant(ui);
+                modified |= self.inner.inner.show_discriminant(ui, &self.id_salt);
 
                 match self.inner.inner.discriminant_parameter.as_integer() {
                     0 => {
