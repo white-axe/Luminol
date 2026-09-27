@@ -664,7 +664,18 @@ impl luminol_core::Tab for Tab {
                     }
                 }
 
-                if let SelectedLayer::Tiles(tile_layer) = self.view.selected_layer {
+                if let Some(picker) = &mut update_state.map_location_picker {
+                    // Click on a tile to choose it for the map location picker
+                    if response.clicked()
+                        || (is_focused && ui.input(|i| i.key_pressed(egui::Key::Enter)))
+                    {
+                        if let Some(hover_tile) = self.view.hover_tile {
+                            picker.map_id = Some(self.id as _);
+                            picker.x = hover_tile.x as _;
+                            picker.y = hover_tile.y as _;
+                        }
+                    }
+                } else if let SelectedLayer::Tiles(tile_layer) = self.view.selected_layer {
                     // Tile drawing
                     if response.is_pointer_button_down_on()
                         && ui.input(|i| {

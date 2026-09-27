@@ -72,6 +72,8 @@ pub struct App {
     modified_during_prev_frame: bool,
     project_manager: luminol_core::ProjectManager,
 
+    map_location_picker: Option<luminol_core::MapLocationPicker>,
+
     #[cfg(not(target_arch = "wasm32"))]
     _runtime: tokio::runtime::Runtime,
 
@@ -294,6 +296,8 @@ impl App {
             modified_during_prev_frame: false,
             project_manager: luminol_core::ProjectManager::new(&cc.egui_ctx),
 
+            map_location_picker: None,
+
             #[cfg(not(target_arch = "wasm32"))]
             _runtime: runtime,
 
@@ -354,6 +358,7 @@ impl AppTrait for App {
             modified_during_prev_frame: &mut self.modified_during_prev_frame,
             project_manager: &mut self.project_manager,
             build_diagnostics: &BUILD_DIAGNOSTIC,
+            map_location_picker: &mut self.map_location_picker,
         };
 
         // If a file/folder picker is open, prevent the user from interacting with the application

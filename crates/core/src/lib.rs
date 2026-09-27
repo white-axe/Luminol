@@ -89,6 +89,8 @@ pub struct UpdateState<'res> {
     pub project_manager: &'res mut ProjectManager,
 
     pub build_diagnostics: &'static BuildDiagnostics,
+
+    pub map_location_picker: &'res mut Option<MapLocationPicker>,
 }
 
 pub struct BuildDiagnostics {
@@ -98,6 +100,20 @@ pub struct BuildDiagnostics {
     pub cargo_version: &'static str,
     pub build_os: &'static str,
     pub is_debug: bool,
+}
+
+pub struct MapLocationPicker {
+    /// The ID of the widget that is currently trying to prompt the user to pick a map location.
+    pub id: egui::Id,
+    /// If a map location has been chosen, this is the ID of the map on which the location was
+    /// chosen.
+    pub map_id: Option<i32>,
+    /// If a map location has been chosen, this is the map x-coordinate. Otherwise, this is the
+    /// original map x-coordinate from before the location picker was activated.
+    pub x: i32,
+    /// If a map location has been chosen, this is the map y-coordinate. Otherwise, this is the
+    /// original map y-coordinate from before the location picker was activated.
+    pub y: i32,
 }
 
 /// This stores whether or not there are unsaved changes in any file in the current project and is
@@ -167,6 +183,9 @@ impl ModifiedState {
 pub struct ToolbarState {
     /// The currently selected pencil.
     pub pencil: Pencil,
+    /// When the map location picker activates, this is set to the value of the `pencil` field
+    /// at that time.
+    pub prev_pencil: Pencil,
     /// Brush density between 0 and 1 inclusive; determines the proportion of randomly chosen tiles
     /// the brush draws on if less than 1
     pub brush_density: f32,
@@ -182,12 +201,14 @@ pub enum Pencil {
     Circle,
     Rectangle,
     Fill,
+    Picker,
 }
 
 impl Default for ToolbarState {
     fn default() -> Self {
         Self {
             pencil: Default::default(),
+            prev_pencil: Default::default(),
             brush_density: 1.,
             brush_random: false,
         }
@@ -216,6 +237,7 @@ impl UpdateState<'_> {
             modified_during_prev_frame: self.modified_during_prev_frame,
             project_manager: self.project_manager,
             build_diagnostics: self.build_diagnostics,
+            map_location_picker: self.map_location_picker,
         }
     }
 
@@ -240,6 +262,7 @@ impl UpdateState<'_> {
             modified_during_prev_frame: self.modified_during_prev_frame,
             project_manager: self.project_manager,
             build_diagnostics: self.build_diagnostics,
+            map_location_picker: self.map_location_picker,
         }
     }
 

@@ -338,6 +338,8 @@ impl super::Tab {
                     self.drawing_shape_pos = Some(map_pos);
                 }
             }
+
+            luminol_core::Pencil::Picker => {}
         };
     }
 }

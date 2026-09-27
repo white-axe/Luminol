@@ -145,7 +145,7 @@ impl EventCommandEditor for Editor {
                 let [discriminant, x, y] = command.parameters[1..].first_chunk_mut().unwrap();
                 modified |= ui
                     .add(
-                        LocationSelection::new(update_state, discriminant, x, y)
+                        LocationSelection::new(&mut *update_state, discriminant, x, y)
                             .prepare_with_custom_enum("map", PhantomData::<LocationType>),
                     )
                     .changed();

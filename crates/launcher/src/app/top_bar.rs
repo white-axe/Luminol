@@ -424,8 +424,25 @@ impl TopBar {
             ui.label("Brush:");
         });
 
-        for brush in luminol_core::Pencil::iter() {
+        if update_state.map_location_picker.is_some()
+            && update_state.toolbar.pencil != luminol_core::Pencil::Picker
+        {
+            update_state.toolbar.prev_pencil = update_state.toolbar.pencil;
+            update_state.toolbar.pencil = luminol_core::Pencil::Picker;
+        } else if update_state.map_location_picker.is_none()
+            && update_state.toolbar.pencil == luminol_core::Pencil::Picker
+        {
+            update_state.toolbar.pencil = update_state.toolbar.prev_pencil;
+        }
+        for brush in
+            luminol_core::Pencil::iter().filter(|brush| *brush != luminol_core::Pencil::Picker)
+        {
             ui.selectable_value(&mut update_state.toolbar.pencil, brush, brush.to_string());
+        }
+        if update_state.map_location_picker.is_some()
+            && update_state.toolbar.pencil != luminol_core::Pencil::Picker
+        {
+            *update_state.map_location_picker = None;
         }
 
         ui.add(egui::Slider::new(

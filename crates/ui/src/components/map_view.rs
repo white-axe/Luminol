@@ -288,6 +288,7 @@ impl MapView {
             self.hover_tile = Some(pos_tile.to_pos2());
             // Handle input
             if matches!(self.selected_layer, SelectedLayer::Tiles(_))
+                || update_state.map_location_picker.is_some()
                 || ((dragging_event || response.clicked()) && ui.input(|i| !i.modifiers.command))
             {
                 self.cursor_pos = pos_tile.to_pos2();
@@ -347,7 +348,9 @@ impl MapView {
         );
         let pattern_rect = egui::Rect::from_min_size(
             map_rect.min + (self.cursor_pos.to_vec2() * tile_size),
-            if tilepicker.brush_random || (!force_show_pattern_rect && drawing_shape_pos.is_some())
+            if tilepicker.brush_random
+                || update_state.map_location_picker.is_some()
+                || (!force_show_pattern_rect && drawing_shape_pos.is_some())
             {
                 egui::Vec2::splat(tile_size)
             } else {
@@ -363,8 +366,7 @@ impl MapView {
         )
         .intersect(map_rect);
 
-        if !self.map.settings.event_enabled || !matches!(self.selected_layer, SelectedLayer::Events)
-        {
+        if !self.map.settings.event_enabled || self.selected_layer != SelectedLayer::Events {
             self.selected_event_id = None;
         }
         self.selected_event_is_hovered = false;
@@ -405,7 +407,7 @@ impl MapView {
                     sprite.sprite.graphic.set_opacity_multiplier(
                         &update_state.graphics.render_state,
                         if self.darken_unselected_layers
-                            && !matches!(self.selected_layer, SelectedLayer::Events)
+                            && self.selected_layer != SelectedLayer::Events
                         {
                             0.5
                         } else {
@@ -423,7 +425,8 @@ impl MapView {
                     scaled_event_size,
                 );
 
-                if matches!(self.selected_layer, SelectedLayer::Events)
+                if self.selected_layer == SelectedLayer::Events
+                    && update_state.map_location_picker.is_none()
                     && ui.input(|i| !i.modifiers.shift)
                 {
                     self.event_rects.push(box_rect);
@@ -675,6 +678,19 @@ impl MapView {
             }
         }
 
+        // Draw a yellow rectangle on the currently selected tile in the map location picker
+        if let Some(picker) = &update_state.map_location_picker {
+            ui.painter().rect_stroke(
+                egui::Rect::from_min_size(
+                    map_rect.min + (egui::vec2(picker.x as _, picker.y as _) * tile_size),
+                    egui::Vec2::splat(tile_size),
+                ),
+                5.,
+                egui::Stroke::new(3., egui::Color32::YELLOW),
+                egui::StrokeKind::Middle,
+            );
+        }
+
         // Display cursor.
         if matches!(self.selected_layer, SelectedLayer::Tiles(_)) {
             ui.painter().rect_stroke(
@@ -797,7 +813,7 @@ impl MapView {
                         sprite.sprite.graphic.set_opacity_multiplier(
                             &graphics_state.render_state,
                             if self.darken_unselected_layers
-                                && !matches!(self.selected_layer, SelectedLayer::Events)
+                                && self.selected_layer != SelectedLayer::Events
                             {
                                 0.5
                             } else {

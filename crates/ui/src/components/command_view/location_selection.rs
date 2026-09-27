@@ -25,7 +25,10 @@
 use super::{MapSelection, ValueFmt, ValueSelection, VariableSelection};
 use crate::components::EnumComboBox;
 use luminol_core::UpdateState;
-use std::marker::PhantomData;
+use std::{
+    borrow::{Borrow, BorrowMut},
+    marker::PhantomData,
+};
 
 #[derive(
     num_enum::TryFromPrimitive,
@@ -51,8 +54,8 @@ pub enum MapFmt {
 
 /// A widget for changing the value of three parameters that determine coordinates on a map.
 #[must_use = "call `.fmt()` to convert to a `String` or `.prepare()` or `.prepare_with_custom_enum()` to convert to a `egui::Widget`"]
-pub struct LocationSelection<'this, 'update_state, D, X, Y> {
-    update_state: &'this UpdateState<'update_state>,
+pub struct LocationSelection<U, D, X, Y> {
+    update_state: U,
     discriminant_parameter: D,
     x_parameter: X,
     y_parameter: Y,
@@ -60,37 +63,33 @@ pub struct LocationSelection<'this, 'update_state, D, X, Y> {
 
 /// A widget for changing the value of four parameters that determine a map and coordinates.
 #[must_use = "call `.fmt()` to convert to a `String` or `.prepare()` or `.prepare_with_custom_enum()` to convert to a `egui::Widget`"]
-pub struct LocationSelectionWithMap<'this, 'update_state, D, M, X, Y> {
-    inner: LocationSelection<'this, 'update_state, D, X, Y>,
+pub struct LocationSelectionWithMap<U, D, M, X, Y> {
+    inner: LocationSelection<U, D, X, Y>,
     map_parameter: M,
 }
 
 #[must_use = "use `ui.add()` to show this widget"]
-pub struct LocationSelectionPrepared<'this, 'update_state, D, X, Y, H, E> {
-    inner: LocationSelection<'this, 'update_state, D, X, Y>,
+pub struct LocationSelectionPrepared<U, D, X, Y, H, E> {
+    inner: LocationSelection<U, D, X, Y>,
     id_salt: H,
     enum_type: PhantomData<E>,
 }
 
 #[must_use = "use `ui.add()` to show this widget"]
-pub struct LocationSelectionWithMapPrepared<'this, 'update_state, D, M, X, Y, H, E> {
-    inner: LocationSelectionWithMap<'this, 'update_state, D, M, X, Y>,
+pub struct LocationSelectionWithMapPrepared<U, D, M, X, Y, H, E> {
+    inner: LocationSelectionWithMap<U, D, M, X, Y>,
     id_salt: H,
     enum_type: PhantomData<E>,
 }
 
-impl<'this, 'update_state, D, X, Y> LocationSelection<'this, 'update_state, D, X, Y>
+impl<'a, U, D, X, Y> LocationSelection<U, D, X, Y>
 where
+    U: Borrow<UpdateState<'a>>,
     D: super::IntegerParameterRef,
     X: super::IntegerParameterRef,
     Y: super::IntegerParameterRef,
 {
-    pub fn new(
-        update_state: &'this UpdateState<'update_state>,
-        discriminant_parameter: D,
-        x_parameter: X,
-        y_parameter: Y,
-    ) -> Self {
+    pub fn new(update_state: U, discriminant_parameter: D, x_parameter: X, y_parameter: Y) -> Self {
         Self {
             update_state,
             discriminant_parameter,
@@ -104,13 +103,13 @@ where
     /// This will fail if the map location does not have valid variables.
     pub fn fmt(&self) -> Option<LocationFmt> {
         let x = ValueSelection::new(
-            self.update_state,
+            self.update_state.borrow(),
             &self.discriminant_parameter,
             &self.x_parameter,
         )
         .fmt()?;
         let y = ValueSelection::new(
-            self.update_state,
+            self.update_state.borrow(),
             &self.discriminant_parameter,
             &self.y_parameter,
         )
@@ -123,10 +122,7 @@ where
     }
 
     /// Adds an additional parameter that controls the map on which the map location refers to.
-    pub fn map_parameter<M>(
-        self,
-        map_parameter: M,
-    ) -> LocationSelectionWithMap<'this, 'update_state, D, M, X, Y>
+    pub fn map_parameter<M>(self, map_parameter: M) -> LocationSelectionWithMap<U, D, M, X, Y>
     where
         M: super::IntegerParameterRef,
     {
@@ -137,11 +133,9 @@ where
     }
 
     /// Prepares a [`egui::Widget`] from the map location.
-    pub fn prepare<H>(
-        self,
-        id_salt: H,
-    ) -> LocationSelectionPrepared<'this, 'update_state, D, X, Y, H, LocationType>
+    pub fn prepare<H>(self, id_salt: H) -> LocationSelectionPrepared<U, D, X, Y, H, LocationType>
     where
+        U: BorrowMut<UpdateState<'a>>,
         D: super::IntegerParameterMut,
         X: super::IntegerParameterMut,
         Y: super::IntegerParameterMut,
@@ -156,8 +150,9 @@ where
         self,
         id_salt: H,
         enum_type: PhantomData<E>,
-    ) -> LocationSelectionPrepared<'this, 'update_state, D, X, Y, H, E>
+    ) -> LocationSelectionPrepared<U, D, X, Y, H, E>
     where
+        U: BorrowMut<UpdateState<'a>>,
         D: super::IntegerParameterMut,
         X: super::IntegerParameterMut,
         Y: super::IntegerParameterMut,
@@ -171,8 +166,9 @@ where
     }
 }
 
-impl<'this, 'update_state, D, M, X, Y> LocationSelectionWithMap<'this, 'update_state, D, M, X, Y>
+impl<'a, U, D, M, X, Y> LocationSelectionWithMap<U, D, M, X, Y>
 where
+    U: Borrow<UpdateState<'a>>,
     D: super::IntegerParameterRef,
     M: super::IntegerParameterRef,
     X: super::IntegerParameterRef,
@@ -183,10 +179,10 @@ where
     /// This will fail if the map parameter does not refer to a valid map or variable.
     pub fn fmt(&self) -> Option<MapFmt> {
         match self.inner.discriminant_parameter.as_integer() {
-            0 => MapSelection::new(self.inner.update_state, &self.map_parameter)
+            0 => MapSelection::new(self.inner.update_state.borrow(), &self.map_parameter)
                 .fmt()
                 .map(MapFmt::Constant),
-            1 => VariableSelection::new(self.inner.update_state, &self.map_parameter)
+            1 => VariableSelection::new(self.inner.update_state.borrow(), &self.map_parameter)
                 .fmt()
                 .map(MapFmt::Variable),
             _ => None,
@@ -197,8 +193,9 @@ where
     pub fn prepare<H>(
         self,
         id_salt: H,
-    ) -> LocationSelectionWithMapPrepared<'this, 'update_state, D, M, X, Y, H, LocationType>
+    ) -> LocationSelectionWithMapPrepared<U, D, M, X, Y, H, LocationType>
     where
+        U: BorrowMut<UpdateState<'a>>,
         D: super::IntegerParameterMut,
         M: super::IntegerParameterMut,
         X: super::IntegerParameterMut,
@@ -214,8 +211,9 @@ where
         self,
         id_salt: H,
         enum_type: PhantomData<E>,
-    ) -> LocationSelectionWithMapPrepared<'this, 'update_state, D, M, X, Y, H, E>
+    ) -> LocationSelectionWithMapPrepared<U, D, M, X, Y, H, E>
     where
+        U: BorrowMut<UpdateState<'a>>,
         D: super::IntegerParameterMut,
         M: super::IntegerParameterMut,
         X: super::IntegerParameterMut,
@@ -230,8 +228,9 @@ where
     }
 }
 
-impl<D, X, Y> LocationSelection<'_, '_, D, X, Y>
+impl<'a, U, D, X, Y> LocationSelection<U, D, X, Y>
 where
+    U: BorrowMut<UpdateState<'a>>,
     D: super::IntegerParameterMut,
     X: super::IntegerParameterMut,
     Y: super::IntegerParameterMut,
@@ -284,7 +283,7 @@ where
                 ui.label("Map x-coordinate");
                 modified |= ui
                     .add(
-                        VariableSelection::new(self.update_state, &mut self.x_parameter)
+                        VariableSelection::new(self.update_state.borrow(), &mut self.x_parameter)
                             .prepare((&id_salt, 1, "x")),
                     )
                     .changed();
@@ -292,7 +291,7 @@ where
                 ui.label("Map y-coordinate");
                 modified |= ui
                     .add(
-                        VariableSelection::new(self.update_state, &mut self.y_parameter)
+                        VariableSelection::new(self.update_state.borrow(), &mut self.y_parameter)
                             .prepare((&id_salt, 1, "y")),
                     )
                     .changed();
@@ -303,10 +302,91 @@ where
 
         modified
     }
+
+    fn show_picker<M>(
+        &mut self,
+        ui: &mut egui::Ui,
+        id_salt: impl std::hash::Hash,
+        maybe_map_parameter: Option<M>,
+    ) -> bool
+    where
+        M: super::IntegerParameterMut,
+    {
+        let mut modified = false;
+
+        let picker_id = ui.id().with((id_salt, "picker"));
+        let update_state = self.update_state.borrow_mut();
+        if let Some(picker) = update_state
+            .map_location_picker
+            .as_ref()
+            .filter(|picker| picker.id == picker_id)
+        {
+            egui::Frame::NONE.show(ui, |ui| {
+                ui.style_mut()
+                    .visuals
+                    .widgets
+                    .noninteractive
+                    .bg_stroke
+                    .color = ui.style().visuals.warn_fg_color;
+                egui::Frame::group(ui.style())
+                    .fill(
+                        ui.visuals().gray_out(
+                            ui.visuals()
+                                .gray_out(ui.visuals().gray_out(ui.style().visuals.warn_fg_color)),
+                        ),
+                    )
+                    .show(ui, |ui| {
+                        ui.set_width(ui.available_width());
+                        ui.label(
+                            egui::RichText::new(
+                                "Click on a tile in the map editor to choose a location",
+                            )
+                            .color(ui.style().visuals.warn_fg_color),
+                        );
+                    });
+            });
+            if ui.button("Cancel").clicked() {
+                *update_state.map_location_picker = None;
+            } else if let Some(map_id) = picker.map_id {
+                if let Some(mut map_parameter) = maybe_map_parameter {
+                    let map = map_parameter.as_integer_mut();
+                    if *map != map_id {
+                        *map = map_id;
+                        modified = true;
+                    }
+                }
+                {
+                    let x = self.x_parameter.as_integer_mut();
+                    if *x != picker.x {
+                        *x = picker.x;
+                        modified = true;
+                    }
+                }
+                {
+                    let y = self.y_parameter.as_integer_mut();
+                    if *y != picker.y {
+                        *y = picker.y;
+                        modified = true;
+                    }
+                }
+                *update_state.map_location_picker = None;
+            }
+        } else if ui.button("Choose location in map editor").clicked() {
+            *update_state.map_location_picker = Some(luminol_core::MapLocationPicker {
+                id: picker_id,
+                map_id: None,
+                x: self.x_parameter.as_integer(),
+                y: self.y_parameter.as_integer(),
+            });
+        }
+
+        modified
+    }
 }
 
-impl<D, X, Y, H, E, F> egui::Widget for LocationSelectionPrepared<'_, '_, D, X, Y, H, E>
+impl<'a, U, D, X, Y, H, E, F> egui::Widget for LocationSelectionPrepared<U, D, X, Y, H, E>
 where
+    U: BorrowMut<UpdateState<'a>>,
     D: super::IntegerParameterMut,
     X: super::IntegerParameterMut,
     Y: super::IntegerParameterMut,
@@ -322,6 +402,11 @@ where
                 modified |= self
                     .inner
                     .show_discriminant(ui, &self.id_salt, self.enum_type);
+
+                if self.inner.discriminant_parameter.as_integer() == 0 {
+                    modified |= self.inner.show_picker::<D>(ui, &self.id_salt, None);
+                }
+
                 modified |= self.inner.show_location(ui, self.id_salt);
             })
             .response;
@@ -333,9 +418,10 @@ where
     }
 }
 
-impl<D, M, X, Y, H, E, F> egui::Widget
-    for LocationSelectionWithMapPrepared<'_, '_, D, M, X, Y, H, E>
+impl<'a, U, D, M, X, Y, H, E, F> egui::Widget
+    for LocationSelectionWithMapPrepared<U, D, M, X, Y, H, E>
 where
+    U: BorrowMut<UpdateState<'a>>,
     D: super::IntegerParameterMut,
     M: super::IntegerParameterMut,
     X: super::IntegerParameterMut,
@@ -356,11 +442,17 @@ where
 
                 match self.inner.inner.discriminant_parameter.as_integer() {
                     0 => {
+                        modified |= self.inner.inner.show_picker(
+                            ui,
+                            &self.id_salt,
+                            Some(&mut self.inner.map_parameter),
+                        );
+
                         ui.label("Map");
                         modified |= ui
                             .add(
                                 MapSelection::new(
-                                    self.inner.inner.update_state,
+                                    self.inner.inner.update_state.borrow(),
                                     self.inner.map_parameter,
                                 )
                                 .prepare((&self.id_salt, 0, "map")),
@@ -373,7 +465,7 @@ where
                         modified |= ui
                             .add(
                                 VariableSelection::new(
-                                    self.inner.inner.update_state,
+                                    self.inner.inner.update_state.borrow(),
                                     self.inner.map_parameter,
                                 )
                                 .prepare((&self.id_salt, 1, "map")),
