@@ -22,6 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
+use super::StringParameterMut;
 use crate::components::FileComboBox;
 use luminol_core::UpdateState;
 use luminol_graphics::{Painter, Renderable, Sprite, Texture, Viewport};
@@ -50,7 +51,7 @@ pub struct GraphicSelection<'this, 'update_state, P, D, H> {
 
 impl<'this, 'update_state, P, D, H> GraphicSelection<'this, 'update_state, P, D, H>
 where
-    P: super::StringParameterMut,
+    P: StringParameterMut,
     D: AsRef<camino::Utf8Path>,
     H: std::hash::Hash,
 {
@@ -73,7 +74,7 @@ where
 
 impl<P, D, H> egui::Widget for GraphicSelection<'_, '_, P, D, H>
 where
-    P: super::StringParameterMut,
+    P: StringParameterMut,
     D: AsRef<camino::Utf8Path>,
     H: std::hash::Hash,
 {

@@ -22,6 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
+use super::{AudioFileParameterMut, AudioFileParameterRef};
 use crate::components::FileComboBox;
 use luminol_audio::Source;
 use luminol_core::UpdateState;
@@ -42,7 +43,7 @@ pub struct AudioSelectionPrepared<'this, 'update_state, P, D, H> {
 
 impl<P> AudioSelection<P>
 where
-    P: super::AudioFileParameterRef,
+    P: AudioFileParameterRef,
 {
     pub fn new(parameter: P) -> Self {
         Self { parameter }
@@ -66,7 +67,7 @@ where
         source: Option<Source>,
     ) -> AudioSelectionPrepared<'this, 'update_state, P, D, H>
     where
-        P: super::AudioFileParameterMut,
+        P: AudioFileParameterMut,
         D: AsRef<camino::Utf8Path>,
         H: std::hash::Hash,
     {
@@ -84,7 +85,7 @@ where
         id_salt: H,
     ) -> AudioSelectionPrepared<'this, 'update_state, P, &'this str, H>
     where
-        P: super::AudioFileParameterMut,
+        P: AudioFileParameterMut,
         H: std::hash::Hash,
     {
         AudioSelectionPrepared {
@@ -98,7 +99,7 @@ where
 
 impl<P, D, H> egui::Widget for AudioSelectionPrepared<'_, '_, P, D, H>
 where
-    P: super::AudioFileParameterMut,
+    P: AudioFileParameterMut,
     D: AsRef<camino::Utf8Path>,
     H: std::hash::Hash,
 {

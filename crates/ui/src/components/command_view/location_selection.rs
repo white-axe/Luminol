@@ -22,7 +22,10 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::{MapSelection, ValueFmt, ValueSelection, VariableSelection};
+use super::{
+    IntegerParameterMut, IntegerParameterRef, MapSelection, ValueFmt, ValueSelection,
+    VariableSelection,
+};
 use crate::components::EnumComboBox;
 use luminol_core::UpdateState;
 use std::{
@@ -85,9 +88,9 @@ pub struct LocationSelectionWithMapPrepared<U, D, M, X, Y, H, E> {
 impl<'a, U, D, X, Y> LocationSelection<U, D, X, Y>
 where
     U: Borrow<UpdateState<'a>>,
-    D: super::IntegerParameterRef,
-    X: super::IntegerParameterRef,
-    Y: super::IntegerParameterRef,
+    D: IntegerParameterRef,
+    X: IntegerParameterRef,
+    Y: IntegerParameterRef,
 {
     pub fn new(update_state: U, discriminant_parameter: D, x_parameter: X, y_parameter: Y) -> Self {
         Self {
@@ -124,7 +127,7 @@ where
     /// Adds an additional parameter that controls the map on which the map location refers to.
     pub fn map_parameter<M>(self, map_parameter: M) -> LocationSelectionWithMap<U, D, M, X, Y>
     where
-        M: super::IntegerParameterRef,
+        M: IntegerParameterRef,
     {
         LocationSelectionWithMap {
             inner: self,
@@ -136,9 +139,9 @@ where
     pub fn prepare<H>(self, id_salt: H) -> LocationSelectionPrepared<U, D, X, Y, H, LocationType>
     where
         U: BorrowMut<UpdateState<'a>>,
-        D: super::IntegerParameterMut,
-        X: super::IntegerParameterMut,
-        Y: super::IntegerParameterMut,
+        D: IntegerParameterMut,
+        X: IntegerParameterMut,
+        Y: IntegerParameterMut,
         H: std::hash::Hash,
     {
         self.prepare_with_custom_enum(id_salt, PhantomData)
@@ -153,9 +156,9 @@ where
     ) -> LocationSelectionPrepared<U, D, X, Y, H, E>
     where
         U: BorrowMut<UpdateState<'a>>,
-        D: super::IntegerParameterMut,
-        X: super::IntegerParameterMut,
-        Y: super::IntegerParameterMut,
+        D: IntegerParameterMut,
+        X: IntegerParameterMut,
+        Y: IntegerParameterMut,
         H: std::hash::Hash,
     {
         LocationSelectionPrepared {
@@ -169,10 +172,10 @@ where
 impl<'a, U, D, M, X, Y> LocationSelectionWithMap<U, D, M, X, Y>
 where
     U: Borrow<UpdateState<'a>>,
-    D: super::IntegerParameterRef,
-    M: super::IntegerParameterRef,
-    X: super::IntegerParameterRef,
-    Y: super::IntegerParameterRef,
+    D: IntegerParameterRef,
+    M: IntegerParameterRef,
+    X: IntegerParameterRef,
+    Y: IntegerParameterRef,
 {
     /// Attempts to format the map (excluding the map location) as a string.
     ///
@@ -196,10 +199,10 @@ where
     ) -> LocationSelectionWithMapPrepared<U, D, M, X, Y, H, LocationType>
     where
         U: BorrowMut<UpdateState<'a>>,
-        D: super::IntegerParameterMut,
-        M: super::IntegerParameterMut,
-        X: super::IntegerParameterMut,
-        Y: super::IntegerParameterMut,
+        D: IntegerParameterMut,
+        M: IntegerParameterMut,
+        X: IntegerParameterMut,
+        Y: IntegerParameterMut,
         H: std::hash::Hash,
     {
         self.prepare_with_custom_enum(id_salt, PhantomData)
@@ -214,10 +217,10 @@ where
     ) -> LocationSelectionWithMapPrepared<U, D, M, X, Y, H, E>
     where
         U: BorrowMut<UpdateState<'a>>,
-        D: super::IntegerParameterMut,
-        M: super::IntegerParameterMut,
-        X: super::IntegerParameterMut,
-        Y: super::IntegerParameterMut,
+        D: IntegerParameterMut,
+        M: IntegerParameterMut,
+        X: IntegerParameterMut,
+        Y: IntegerParameterMut,
         H: std::hash::Hash,
     {
         LocationSelectionWithMapPrepared {
@@ -231,9 +234,9 @@ where
 impl<'a, U, D, X, Y> LocationSelection<U, D, X, Y>
 where
     U: BorrowMut<UpdateState<'a>>,
-    D: super::IntegerParameterMut,
-    X: super::IntegerParameterMut,
-    Y: super::IntegerParameterMut,
+    D: IntegerParameterMut,
+    X: IntegerParameterMut,
+    Y: IntegerParameterMut,
 {
     fn show_discriminant<E, F, H>(
         &mut self,
@@ -310,7 +313,7 @@ where
         maybe_map_parameter: Option<M>,
     ) -> bool
     where
-        M: super::IntegerParameterMut,
+        M: IntegerParameterMut,
     {
         let mut modified = false;
 
@@ -387,9 +390,9 @@ where
 impl<'a, U, D, X, Y, H, E, F> egui::Widget for LocationSelectionPrepared<U, D, X, Y, H, E>
 where
     U: BorrowMut<UpdateState<'a>>,
-    D: super::IntegerParameterMut,
-    X: super::IntegerParameterMut,
-    Y: super::IntegerParameterMut,
+    D: IntegerParameterMut,
+    X: IntegerParameterMut,
+    Y: IntegerParameterMut,
     H: std::hash::Hash,
     E: Into<i32> + Send + Sync + ToString + strum::IntoEnumIterator + 'static,
     i32: TryInto<E, Error = F> + Clone,
@@ -422,10 +425,10 @@ impl<'a, U, D, M, X, Y, H, E, F> egui::Widget
     for LocationSelectionWithMapPrepared<U, D, M, X, Y, H, E>
 where
     U: BorrowMut<UpdateState<'a>>,
-    D: super::IntegerParameterMut,
-    M: super::IntegerParameterMut,
-    X: super::IntegerParameterMut,
-    Y: super::IntegerParameterMut,
+    D: IntegerParameterMut,
+    M: IntegerParameterMut,
+    X: IntegerParameterMut,
+    Y: IntegerParameterMut,
     H: std::hash::Hash,
     E: Into<i32> + Send + Sync + ToString + strum::IntoEnumIterator + 'static,
     i32: TryInto<E, Error = F> + Clone,

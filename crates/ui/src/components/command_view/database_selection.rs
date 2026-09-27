@@ -22,6 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
+use super::{IntegerParameterMut, IntegerParameterRef};
 use crate::components::OptionalIdComboBox;
 use luminol_core::{Data, UpdateState};
 use luminol_data::rpg;
@@ -151,7 +152,7 @@ impl DatabaseType for rpg::MapInfos {
 impl<'this, 'update_state, T, P> DatabaseSelection<'this, 'update_state, T, P>
 where
     T: DatabaseType,
-    P: super::IntegerParameterRef,
+    P: IntegerParameterRef,
 {
     pub fn new(update_state: &'this UpdateState<'update_state>, parameter: P) -> Self {
         Self {
@@ -178,7 +179,7 @@ where
     /// Prepares a [`egui::Widget`] from the database entry.
     pub fn prepare<H>(self, id_salt: H) -> DatabaseSelectionPrepared<'this, 'update_state, T, P, H>
     where
-        P: super::IntegerParameterMut,
+        P: IntegerParameterMut,
         H: std::hash::Hash,
     {
         DatabaseSelectionPrepared {
@@ -191,7 +192,7 @@ where
 impl<T, P, H> egui::Widget for DatabaseSelectionPrepared<'_, '_, T, P, H>
 where
     T: DatabaseType,
-    P: super::IntegerParameterMut,
+    P: IntegerParameterMut,
     H: std::hash::Hash,
 {
     fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {

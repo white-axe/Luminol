@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::EventInfo;
+use super::{EventInfo, IntegerParameterMut, IntegerParameterRef};
 use crate::components::{EnumComboBox, OptionalIdComboBox};
 use luminol_core::UpdateState;
 
@@ -63,7 +63,7 @@ pub struct CharacterSelectionPrepared<'this, 'update_state, P, H> {
 
 impl<'this, 'update_state, P> CharacterSelection<'this, 'update_state, P>
 where
-    P: super::IntegerParameterRef,
+    P: IntegerParameterRef,
 {
     pub fn new(
         update_state: &'this UpdateState<'update_state>,
@@ -113,7 +113,7 @@ where
     /// Prepares a [`egui::Widget`] from the character.
     pub fn prepare<H>(self, id_salt: H) -> CharacterSelectionPrepared<'this, 'update_state, P, H>
     where
-        P: super::IntegerParameterMut,
+        P: IntegerParameterMut,
         H: std::hash::Hash,
     {
         CharacterSelectionPrepared {
@@ -125,7 +125,7 @@ where
 
 impl<P, H> egui::Widget for CharacterSelectionPrepared<'_, '_, P, H>
 where
-    P: super::IntegerParameterMut,
+    P: IntegerParameterMut,
     H: std::hash::Hash,
 {
     fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
