@@ -321,7 +321,7 @@ where
         let update_state = self.update_state.borrow_mut();
         if let Some(picker) = update_state
             .map_location_picker
-            .as_ref()
+            .as_mut()
             .filter(|picker| picker.id == picker_id)
         {
             egui::Frame::NONE.show(ui, |ui| {
@@ -373,6 +373,9 @@ where
                     }
                 }
                 *update_state.map_location_picker = None;
+            } else {
+                picker.x = self.x_parameter.as_integer();
+                picker.y = self.y_parameter.as_integer();
             }
         } else if ui.button("Choose location in map editor").clicked() {
             *update_state.map_location_picker = Some(luminol_core::MapLocationPicker {
