@@ -118,6 +118,7 @@ mod c135;
 mod c136;
 mod c201;
 mod c202;
+mod c203;
 
 /// A mapping from event command codes to the [`EventCommandEditor`] for that event command.
 pub static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
@@ -153,5 +154,6 @@ pub static EDITORS: phf::Map<u16, &dyn EventCommandEditor> = phf::phf_map! {
     136u16 => &c136::Editor,
     201u16 => &c201::Editor,
     202u16 => &c202::Editor,
+    203u16 => &c203::Editor,
     355u16 => &c101::Editor { continuation_code: 655, name: "Script" },
 };
