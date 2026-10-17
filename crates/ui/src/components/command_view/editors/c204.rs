@@ -138,7 +138,11 @@ impl EventCommandEditor for Editor {
                     }
 
                     1 => {
+                        let need_default_opacity = command.parameters.len() <= 3;
                         command.parameters.resize(8, ParameterType::Integer(0));
+                        if need_default_opacity {
+                            command.parameters[3] = ParameterType::Integer(255);
+                        }
 
                         let [name, hue, opacity] =
                             command.parameters[1..].first_chunk_mut().unwrap();
