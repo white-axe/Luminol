@@ -22,7 +22,7 @@
 // terms of the Steamworks API by Valve Corporation, the licensors of this
 // Program grant you additional permission to convey the resulting work.
 
-use super::StringParameterMut;
+use super::{IntegerParameterMut, StringParameterMut};
 use crate::components::FileComboBox;
 use luminol_core::UpdateState;
 use luminol_graphics::{Painter, Renderable, Sprite, Texture, Viewport};
@@ -49,6 +49,21 @@ pub struct GraphicSelection<'this, 'update_state, P, D, H> {
     parameter: P,
 }
 
+/// A widget for changing the value of a graphic parameter and a corresponding hue parameter.
+#[must_use = "use `ui.add()` to show this widget"]
+pub struct GraphicSelectionWithHue<'this, 'update_state, P, Q, D, H> {
+    inner: GraphicSelection<'this, 'update_state, P, D, H>,
+    hue_parameter: Q,
+}
+
+/// A widget for changing the value of a graphic parameter and corresponding hue and opacity
+/// parameters.
+#[must_use = "use `ui.add()` to show this widget"]
+pub struct GraphicSelectionWithHueOpacity<'this, 'update_state, P, Q, R, D, H> {
+    inner: GraphicSelectionWithHue<'this, 'update_state, P, Q, D, H>,
+    opacity_parameter: R,
+}
+
 impl<'this, 'update_state, P, D, H> GraphicSelection<'this, 'update_state, P, D, H>
 where
     P: StringParameterMut,
@@ -70,15 +85,60 @@ where
             parameter,
         }
     }
+
+    /// Adds an additional parameter that controls the graphic's hue.
+    pub fn hue<Q>(
+        self,
+        hue_parameter: Q,
+    ) -> GraphicSelectionWithHue<'this, 'update_state, P, Q, D, H>
+    where
+        Q: IntegerParameterMut,
+    {
+        GraphicSelectionWithHue {
+            inner: self,
+            hue_parameter,
+        }
+    }
 }
 
-impl<P, D, H> egui::Widget for GraphicSelection<'_, '_, P, D, H>
+impl<'this, 'update_state, P, Q, D, H> GraphicSelectionWithHue<'this, 'update_state, P, Q, D, H>
+where
+    P: StringParameterMut,
+    Q: IntegerParameterMut,
+    D: AsRef<camino::Utf8Path>,
+    H: std::hash::Hash,
+{
+    /// Adds an additional parameter that controls the graphic's opacity.
+    pub fn opacity<R>(
+        self,
+        opacity_parameter: R,
+    ) -> GraphicSelectionWithHueOpacity<'this, 'update_state, P, Q, R, D, H>
+    where
+        R: IntegerParameterMut,
+    {
+        GraphicSelectionWithHueOpacity {
+            inner: self,
+            opacity_parameter,
+        }
+    }
+}
+
+impl<'this, 'update_state, P, D, H> GraphicSelection<'this, 'update_state, P, D, H>
 where
     P: StringParameterMut,
     D: AsRef<camino::Utf8Path>,
     H: std::hash::Hash,
 {
-    fn ui(mut self, ui: &mut egui::Ui) -> egui::Response {
+    fn ui_inner<Q, R>(
+        mut self,
+        ui: &mut egui::Ui,
+        maybe_hue_parameter: Option<Q>,
+        maybe_opacity_parameter: Option<R>,
+    ) -> egui::Response
+    where
+        Q: IntegerParameterMut,
+        R: IntegerParameterMut,
+    {
         let mut modified = false;
 
         let directory_path = self.directory_path.as_ref();
@@ -86,7 +146,7 @@ where
 
         let mut response = egui::Frame::NONE
             .show(ui, |ui| {
-                modified |= {
+                let (hue, opacity) = {
                     let changed = ui
                         .add(FileComboBox::new(
                             self.update_state,
@@ -95,6 +155,32 @@ where
                             filename,
                         ))
                         .changed();
+
+                    let hue = maybe_hue_parameter
+                        .map(|mut hue_parameter| {
+                            ui.label("Hue");
+                            modified |= ui
+                                .add(
+                                    egui::DragValue::new(hue_parameter.as_integer_mut())
+                                        .range(0..=360),
+                                )
+                                .changed();
+                            hue_parameter.as_integer()
+                        })
+                        .unwrap_or(0);
+
+                    let opacity = maybe_opacity_parameter
+                        .map(|mut opacity_parameter| {
+                            ui.label("Opacity");
+                            modified |= ui
+                                .add(
+                                    egui::DragValue::new(opacity_parameter.as_integer_mut())
+                                        .range(0..=255),
+                                )
+                                .changed();
+                            opacity_parameter.as_integer()
+                        })
+                        .unwrap_or(255);
 
                     if changed
                         || !self.state.attempted_to_load
@@ -115,8 +201,13 @@ where
                             .map(|texture| {
                                 let viewport =
                                     Viewport::new(&self.update_state.graphics, Default::default());
-                                let sprite =
-                                    Sprite::basic(&self.update_state.graphics, &texture, &viewport);
+                                let sprite = Sprite::basic_hue_opacity(
+                                    &self.update_state.graphics,
+                                    hue,
+                                    opacity,
+                                    &texture,
+                                    &viewport,
+                                );
                                 fragile::Sticky::new(GraphicSelectionStateInner {
                                     texture,
                                     viewport,
@@ -125,7 +216,7 @@ where
                             });
                     }
 
-                    changed
+                    (hue, opacity)
                 };
 
                 if let Some(state) = &mut self.state.inner {
@@ -157,6 +248,14 @@ where
                                     glam::Vec2::ZERO,
                                     glam::Vec2::ONE,
                                 );
+                                state
+                                    .sprite
+                                    .graphic
+                                    .set_hue(&self.update_state.graphics.render_state, hue);
+                                state
+                                    .sprite
+                                    .graphic
+                                    .set_opacity(&self.update_state.graphics.render_state, opacity);
                                 let painter =
                                     Painter::new(state.sprite.prepare(&self.update_state.graphics));
                                 ui.painter().add(egui_wgpu::Callback::new_paint_callback(
@@ -173,5 +272,46 @@ where
             response.mark_changed();
         }
         response
+    }
+}
+
+impl<P, D, H> egui::Widget for GraphicSelection<'_, '_, P, D, H>
+where
+    P: StringParameterMut,
+    D: AsRef<camino::Utf8Path>,
+    H: std::hash::Hash,
+{
+    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+        self.ui_inner::<&mut i32, &mut i32>(ui, None, None)
+    }
+}
+
+impl<P, Q, D, H> egui::Widget for GraphicSelectionWithHue<'_, '_, P, Q, D, H>
+where
+    P: StringParameterMut,
+    Q: IntegerParameterMut,
+    D: AsRef<camino::Utf8Path>,
+    H: std::hash::Hash,
+{
+    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+        self.inner
+            .ui_inner::<_, &mut i32>(ui, Some(self.hue_parameter), None)
+    }
+}
+
+impl<P, Q, R, D, H> egui::Widget for GraphicSelectionWithHueOpacity<'_, '_, P, Q, R, D, H>
+where
+    P: StringParameterMut,
+    Q: IntegerParameterMut,
+    R: IntegerParameterMut,
+    D: AsRef<camino::Utf8Path>,
+    H: std::hash::Hash,
+{
+    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+        self.inner.inner.ui_inner(
+            ui,
+            Some(self.inner.hue_parameter),
+            Some(self.opacity_parameter),
+        )
     }
 }
