@@ -123,7 +123,7 @@ where
     }
 }
 
-impl<'this, 'update_state, P, D, H> GraphicSelection<'this, 'update_state, P, D, H>
+impl<P, D, H> GraphicSelection<'_, '_, P, D, H>
 where
     P: StringParameterMut,
     D: AsRef<camino::Utf8Path>,
