@@ -132,7 +132,7 @@ impl EventCommandEditor for Editor {
                                     "Graphics/Panoramas",
                                     name,
                                 )
-                                .hue(hue),
+                                .hue_parameter(hue),
                             )
                             .changed();
                     }
@@ -155,8 +155,8 @@ impl EventCommandEditor for Editor {
                                     "Graphics/Fogs",
                                     name,
                                 )
-                                .hue(hue)
-                                .opacity(opacity),
+                                .hue_parameter(hue)
+                                .opacity_parameter(opacity),
                             )
                             .changed();
 

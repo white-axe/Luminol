@@ -87,7 +87,7 @@ where
     }
 
     /// Adds an additional parameter that controls the graphic's hue.
-    pub fn hue<Q>(
+    pub fn hue_parameter<Q>(
         self,
         hue_parameter: Q,
     ) -> GraphicSelectionWithHue<'this, 'update_state, P, Q, D, H>
@@ -109,7 +109,7 @@ where
     H: std::hash::Hash,
 {
     /// Adds an additional parameter that controls the graphic's opacity.
-    pub fn opacity<R>(
+    pub fn opacity_parameter<R>(
         self,
         opacity_parameter: R,
     ) -> GraphicSelectionWithHueOpacity<'this, 'update_state, P, Q, R, D, H>
